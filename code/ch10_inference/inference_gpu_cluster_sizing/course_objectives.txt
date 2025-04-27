@@ -1,0 +1,9 @@
+- Understand the techniques to optimize and deploy models using NVIDIA Inference Microservices (NIMs).
+- Get hands-on experience with domain basics: check out the number of tokens/word, try streaming, experience prefill and decoding.
+- Analyze the trade-offs between throughput and latency during LLM inference.
+- Examine how various factors affect LLM performance, including input and output lengths, tensor parallelism, and batch size.
+- Gain insights into the mechanisms and rationale of in-flight batching, KV-cache and chunked prefill implementations in TensorRT-LLM.
+- Learn to extrapolate existing benchmarks to new input and output lengths.
+- Develop skills to reliably benchmark models deployed in NVIDIA NIM.
+- Select the most appropriate inference hyperparameters tailored to specific use cases.
+- Understand how to scale models effectively across multiple GPUs or nodes and evaluate the efficiency of the scaling solution.

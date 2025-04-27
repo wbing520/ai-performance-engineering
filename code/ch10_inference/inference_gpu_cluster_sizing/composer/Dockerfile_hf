@@ -1,0 +1,15 @@
+# Use Python slim image from Docker Hub
+FROM python:3.11-slim
+
+# Install necessary Python packages
+RUN pip install huggingface_hub[cli] hf_transfer
+
+# Copy the entrypoint script into the container and make it executable
+ADD composer/entrypoint_hf.sh /usr/local/bin
+RUN chmod +x /usr/local/bin/entrypoint_hf.sh
+
+# Set the entrypoint script to run when the container starts
+ENTRYPOINT ["/usr/local/bin/entrypoint_hf.sh"]
+
+# Set a default command, this will be overridden unless specified otherwise
+CMD ["bash"]

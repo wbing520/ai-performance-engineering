@@ -1,0 +1,20 @@
+version: '2.3'
+
+services:
+
+  # During development we want to build our Docker image from relevant
+  # Dockerfiles, as opposed to pulling it from a repository somewhere.
+
+  lab:
+    build: 
+      context: notebooks
+      dockerfile: composer/Dockerfile
+
+  docker_router:
+    build: 
+      context: notebooks/docker_router
+      dockerfile: Dockerfile
+
+  nginx:
+    ports:
+      - $DEV_NGINX_PORT:80

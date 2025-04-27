@@ -1,0 +1,126 @@
+{
+  "request_throughput": {
+    "unit": "requests/sec",
+    "avg": 34.46292534856838
+  },
+  "request_latency": {
+    "unit": "ms",
+    "avg": 7229.528652029,
+    "p99": 7347.42173191,
+    "p95": 7343.76365205,
+    "p90": 7341.5263429,
+    "p75": 7321.702250249999,
+    "p50": 7243.959111,
+    "p25": 7159.24265525,
+    "max": 7350.839432,
+    "min": 7028.147314,
+    "std": 100.43835806408532
+  },
+  "time_to_first_token": {
+    "unit": "ms",
+    "avg": 2016.962262885,
+    "p99": 3464.4469953000003,
+    "p95": 3449.93850015,
+    "p90": 3253.8163765,
+    "p75": 2991.82295225,
+    "p50": 1876.2310615,
+    "p25": 1305.8376027499999,
+    "max": 3472.6862619999997,
+    "min": 84.613778,
+    "std": 926.4658747921776
+  },
+  "inter_token_latency": {
+    "unit": "ms",
+    "avg": 90.995392939,
+    "p99": 124.03970475,
+    "p95": 118.19790559999996,
+    "p90": 114.7399029,
+    "p75": 105.37452225,
+    "p50": 90.2193235,
+    "p25": 76.01394325,
+    "max": 134.691918,
+    "min": 55.256766999999996,
+    "std": 17.03911893322394
+  },
+  "output_token_throughput": {
+    "unit": "tokens/sec",
+    "avg": 2014.7026158773078
+  },
+  "output_token_throughput_per_request": {
+    "unit": "tokens/sec",
+    "avg": 8.088100221897953,
+    "p99": 9.26389375760953,
+    "p95": 8.923720242760481,
+    "p90": 8.723260336281548,
+    "p75": 8.368847132731286,
+    "p50": 8.070088810109928,
+    "p25": 7.764377146022753,
+    "max": 9.820718220841604,
+    "min": 6.842313124203759,
+    "std": 0.46611154742146704
+  },
+  "output_sequence_length": {
+    "unit": "tokens",
+    "avg": 58.46,
+    "p99": 66.0,
+    "p95": 64.0,
+    "p90": 63.0,
+    "p75": 60.0,
+    "p50": 58.0,
+    "p25": 56.0,
+    "max": 70.0,
+    "min": 50.0,
+    "std": 3.2308512810093877
+  },
+  "input_sequence_length": {
+    "unit": "tokens",
+    "avg": 200.03,
+    "p99": 201.01,
+    "p95": 200.0,
+    "p90": 200.0,
+    "p75": 200.0,
+    "p50": 200.0,
+    "p25": 200.0,
+    "max": 202.0,
+    "min": 200.0,
+    "std": 0.2215851980616034
+  },
+  "input_config": {
+    "model": [
+      "meta/llama3-8b-instruct"
+    ],
+    "model_selection_strategy": "round_robin",
+    "backend": "tensorrtllm",
+    "endpoint": "v1/chat/completions",
+    "endpoint_type": "chat",
+    "service_kind": "openai",
+    "streaming": true,
+    "u": "nim:8000",
+    "batch_size": 1,
+    "input_dataset": null,
+    "num_prompts": 100,
+    "output_tokens_mean": 50,
+    "output_tokens_mean_deterministic": false,
+    "output_tokens_stddev": 0,
+    "random_seed": 0,
+    "synthetic_input_tokens_mean": 200,
+    "synthetic_input_tokens_stddev": 0,
+    "concurrency": 250,
+    "measurement_interval": 10000,
+    "request_rate": null,
+    "stability_percentage": 999,
+    "artifact_dir": "artifacts/meta_llama3-8b-instruct-openai-chat-concurrency250",
+    "generate_plots": false,
+    "profile_export_file": "artifacts/meta_llama3-8b-instruct-openai-chat-concurrency250/200_50.json",
+    "tokenizer": "hf-internal-testing/llama-tokenizer",
+    "verbose": false,
+    "subcommand": null,
+    "prompt_source": "synthetic",
+    "formatted_model_name": "meta/llama3-8b-instruct",
+    "extra_inputs": {
+      "max_tokens": 50,
+      "min_tokens": 50,
+      "ignore_eos": true
+    }
+  }
+}
