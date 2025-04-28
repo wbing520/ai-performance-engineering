@@ -3,6 +3,11 @@
 
 # ⚡ Lit-GPT
 
+Compare After Profiles
+```
+./compare_nsight.py  ./profile_results/nsight_report-1744318827-after-removing-excess-sync.sqlite ./profile_results/nsight_report-1744352327.nsys-rep
+```
+
 ```
 # Debian/Ubuntu
 sudo apt update
