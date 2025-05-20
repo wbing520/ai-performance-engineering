@@ -195,9 +195,6 @@ https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/
 * [PyTorch_Model_Optimization.pdf](resources/PyTorch_Model_Optimization.pdf)
 
 ## May 19, 2025
-...
-
-
-
-
-
+* [YouTube Video](https://youtu.be/F8jJwI9xHTE)
+* [PyTorch Optimizations: Data Loader Pipeline](resources/PyTorch_Model_Optimization_2.pdf)
+* [Cross-Architeecture CUDA and ROCm Kernel Development](resources/ai_perf_eng_meetup.pdf)
