@@ -191,8 +191,8 @@ https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/
 
 ## Apr 21, 2025
 * [YouTube Video](https://youtu.be/XoZcY_fDUKA)
-* [AI_Performance_Engineering_Meetup_Apr_21_2025.pdf](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
-* [PyTorch_Model_Optimization.pdf](resources/PyTorch_Model_Optimization.pdf)
+* [AI_Performance_Engineering_Meetup_Apr_21_2025](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
+* [PyTorch_Model_Optimization](resources/PyTorch_Model_Optimization.pdf)
 
 ## May 19, 2025
 * [YouTube Video](https://youtu.be/F8jJwI9xHTE)
