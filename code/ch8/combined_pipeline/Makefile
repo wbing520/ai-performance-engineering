@@ -1,7 +1,7 @@
-TARGET=launch_batched_pipeline
-NVCC=nvcc
-ARCH=-arch=sm_90
-OPT=-O3
+TARGET = launch_batched_pipeline
+NVCC   = nvcc
+ARCH   = -arch=sm_90
+OPT    = -O3
 
 all: warp_specialized_stream_pipeline launch_batched_pipeline
 

@@ -6,28 +6,24 @@ This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 
 - **PyTorch 2.7**
 - **Blackwell B200** GPU
 
-Examples extracted from Chapter 8: advanced execution models, intra-kernel pipelining, CUDA Pipeline API, cooperative groups, persistent kernels, CTA clusters, and CUDA streams for inter-kernel concurrency fileciteturn3file0
+Examples include:
 
-Each example has its own directory. From the repo root you can:
+- **intra_pipeline/**: Two-stage double-buffered GEMM pipeline using <cuda::pipeline>
+- **warp_specialized/**: Warp-specialized pipeline kernel using <cuda::pipeline>
+- **cooperative/**: Naive loop vs. persistent kernel (cooperative groups)
+- **clusters/**: CTA-cluster example with DSMEM and cluster-wide barriers
+- **streams/**: Overlapping compute and H2D/D2H transfers with streams and cudaMallocAsync
+- **combined_pipeline/**: Streaming multiple mini-batches with a warp-specialized pipeline via streams
+
+To build and run an example:
 
 ```bash
-# Double-buffered GEMM pipeline
-cd intra_pipeline && ./run.sh
-
-# Warp-specialized pipeline kernel
-cd warp_specialized && ./run.sh
-
-# Cooperative vs persistent kernels
-cd cooperative && ./run.sh
-
-# CTA cluster example
-cd clusters && ./run.sh
-
-# CUDA streams overlap example
-cd streams && ./run.sh
-
-# Combined pipeline with streams + cudaMallocAsync + cp.async
-cd combined_pipeline && ./run.sh
+cd chapter8-examples/intra_pipeline && ./run.sh
+cd ../warp_specialized && ./run.sh
+cd ../cooperative && ./run.sh
+cd ../clusters && ./run.sh
+cd ../streams && ./run.sh
+cd ../combined_pipeline && ./run.sh
 ```
 
 #### Profiling
@@ -37,4 +33,4 @@ Profiler scripts are under **profiler_scripts/** for Nsight Systems (`nsys`) and
 ```bash
 bash profiler_scripts/nsys_profile.sh intra_pipeline/gemm_tiled_pipeline
 bash profiler_scripts/ncu_profile.sh intra_pipeline/gemm_tiled_pipeline
-```
+``` fileciteturn7file0

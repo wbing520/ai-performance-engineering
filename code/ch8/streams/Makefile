@@ -1,7 +1,7 @@
-TARGET=streams_overlap
-NVCC=nvcc
-ARCH=-arch=sm_90
-OPT=-O3
+TARGET = streams_overlap
+NVCC   = nvcc
+ARCH   = -arch=sm_90
+OPT    = -O3
 
 all: $(TARGET)
 

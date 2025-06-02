@@ -1,7 +1,7 @@
-TARGETS=compute_naive_loop compute_persistent
-NVCC=nvcc
-ARCH=-arch=sm_90
-OPT=-O3
+TARGETS = compute_naive_loop compute_persistent
+NVCC     = nvcc
+ARCH     = -arch=sm_90
+OPT      = -O3
 
 all: $(TARGETS)
 

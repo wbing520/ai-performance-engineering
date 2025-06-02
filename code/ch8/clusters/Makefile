@@ -1,7 +1,7 @@
-TARGET=MyClusterKernel
-NVCC=nvcc
-ARCH=-arch=sm_90
-OPT=-O3
+TARGET = MyClusterKernel
+NVCC   = nvcc
+ARCH   = -arch=sm_90
+OPT    = -O3
 
 all: $(TARGET)
 
