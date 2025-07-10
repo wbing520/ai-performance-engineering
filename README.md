@@ -596,8 +596,6 @@ Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorith
 * Faster Experiments and Insights for Trillion-Parameter LLMs with Grace-Blackwell Clusters
 * HPE’s Grace-Blackwell Supercomputer for the Trillion-Parameter Era
 * Training and Serving a 100-Trillion-Parameter Model
-* Key Takeaways
-* Conclusion
 
 ## Chapter 24: Future Trends in Ultra-Scale AI Systems Performance Engineering
 * Convergence of AI and Scientific Computing
