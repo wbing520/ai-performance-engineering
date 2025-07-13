@@ -6,7 +6,7 @@ This folder contains all of the PyTorch code and scripts from Chapter 10 (Profil
 - **PyTorch 2.7**  
 - **Blackwell B200** GPU
 
-Examples extracted from Chapter 10: baseline training, profiling with torch.profiler and NVTX, model compilation (torch.compile), mixed-precision training, FlashAttention integration, memory optimizations (checkpointing/offloading), DDP scaling, and inference optimizations with INT8 and CUDA Graphs fileciteturn5file0
+Examples extracted from Chapter 10: baseline training, profiling with torch.profiler and NVTX, model compilation (torch.compile), mixed-precision training, FlashAttention integration, memory optimizations (checkpointing/offloading), DDP scaling, and inference optimizations with INT8 and CUDA Graphs. 
 
 Each example has its own directory. From the repo root you can:
 
