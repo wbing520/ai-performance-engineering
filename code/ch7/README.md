@@ -6,7 +6,7 @@ This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 
 - **PyTorch 2.7**
 - **Blackwell B200** GPU
 
-Examples extracted from Chapter 7: Profiling, Tuning, and Increasing Arithmetic Intensity fileciteturn2file0
+Examples extracted from Chapter 7: Profiling, Tuning, and Increasing Arithmetic Intensity
 
 Each example has its own directory. From the repo root you can:
 
