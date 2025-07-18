@@ -33,4 +33,4 @@ Profiler scripts are under **profiler_scripts/** for Nsight Systems (`nsys`) and
 ```bash
 bash profiler_scripts/nsys_profile.sh intra_pipeline/gemm_tiled_pipeline
 bash profiler_scripts/ncu_profile.sh intra_pipeline/gemm_tiled_pipeline
-``` fileciteturn7file0
+```
