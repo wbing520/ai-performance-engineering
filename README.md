@@ -16,6 +16,10 @@ Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorith
 # Monthly Meetups (100,000 Global Members, 20+ Cities)
 * https://www.meetup.com/ai-performance-engineering
 
+## July 21, 2025
+* [YouTube Video](https://youtu.be/jaiMotxv8ck)
+* [Dynamic_Adaptive_RL_Inference_CUDA_Kernel_Tuning.pdf](resources/Dynamic_Adaptive_RL_Inference_CUDA_Kernel_Tuning.pdf)
+  
 ## Apr 21, 2025
 * [YouTube Video](https://youtu.be/XoZcY_fDUKA)
 * [AI_Performance_Engineering_Meetup_Apr_21_2025](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
@@ -482,107 +486,7 @@ Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorith
 * Edge-Oriented MoE Memory Budgeting
 * Dynamic Quantization and Activation Range Adjustment
 
-## Chapter 20: Profiling and Tuning High-Performance Agentic Systems
-* Fundamental Agent Protocols
-* Model Context Protocol (MCP)
-* Agent-to-Agent (A2A) Protocol
-* Protocols and Agent Performance
-* Architecture of an Agent System
-* User Interface / Frontend API
-* Agent Orchestrator
-* MCP Client and Tool Integrations
-* LLM Inference Backend
-* Self-Hosted Model
-* Remote API (e.g. OpenAI API or AWS Lambda)
-* Hybrid Self-Hosted and External API
-* A2A Multi-Agent Coordination
-* Assembling the Response
-* Performance Metrics for Agent Workflows
-* Time to First Token (TTFT)
-* Time per Output Token (TPOT)
-* End-to-End Latency
-* Queries per Second (QPS) Throughput
-* Goodput
-* System Metrics
-
-## Chapter 21: Agent Profiling and Observability Techniques
-* Distributed Tracing with OpenTelemetry
-* Aggregate Metrics and Logs
-* CPU and Memory Profiling
-* Python Profiler
-* Node.js Profiler
-* Asynchronous Profiler
-* GPU Profiling
-* GPU Usage
-* System-Wide CPU and GPU Profiling with Nsight Systems
-* Kernel-Level GPU Profiling with Nsight Compute
-* End-to-End Request-Response Breakdown
-* Optimizing MCP Communication and Tool Integration
-* Minimize Round Trips
-* Asynchronous Streaming
-* Connection Reuse
-* Optimize MCP Server Performance
-* Security Overhead
-* Limit Payload Size
-* Optimizing LLM Inference
-* Time-to-First-Token (TTFT) Latency Optimizations
-* Avoid Overly Long Prompts
-* Streaming API Usage
-* Model Size and Type
-* Continuous Batching Effects
-* Time-Per-Output-Token (TPOT) Throughput Optimizations
-* Use Hardware Acceleration
-* Embrace Quantization
-* Parallelism and Scalability
-* Efficient Batch Scheduling
-* Model-Specific Optimizations
-* Limit Max Output Length
-* Parallelizing Non-LLM Work
-* External API Usage Optimization (e.g. OpenAI)
-* Route to a Faster, Smaller, Cheaper Model
-* Use Batched Endpoints
-* Minimize Network Latency to External API Provider
-* Track Token Usage
-
-## Chapter 22: Orchestration and Multi-Agent Coordination (A2A) Performance
-* Asynchronous Orchestration and Concurrency
-* Optimizing A2A Interactions
-* Reduce Discovery Overhead
-* Minimize Task Handoff Cost
-* Parallelize Agent Calls
-* Timeouts and Fallbacks
-* Concurrent Task Handling in Agents
-* Lightweight Protocol Handling
-* Security Context Propagation
-* Deployment Optimizations with Kubernetes and Serverless Functions
-* Kubernetes-based Agent, LLMs, and Tools
-* Resource Allocation
-* Horizontal Scaling
-* Concurrency and Workers
-* Networking and I/O
-* Kubernetes-specific Optimizations
-* Monitoring
-* Cold Start Problem
-* Serverless Functions for Agents, LLMs, and Tools
-* Function Runtimes Lack Modern GPU Support
-* Memory and CPU for each Serverless Function
-* Concurrency Control
-* External Calls from Serverless Functions
-* Stateless Design and Caching
-* Step Functions vs Orchestration
-* Cold Start Problem
-* Edge Inference and Hybrid Architectures
-* Split Inference Between Edge and Cloud
-* Edge Caching and Locality
-* Prefix Cache Locality
-* KV Prefetch
-* Compression
-* Edge Fallbacks
-* Synchronization and Updates
-* Quantization and Hardware Considerations
-* Monitoring and Debugging at the Edge
-
-## Chapter 23: AI System Performance Optimization Case Studies
+## Chapter 21: AI-Assisted Systems Performance Optimizations and Future Trends
 * OpenAI’s Journey to Train GPT 4.5 with New Hardware at Ultra-Scale
 * DeepSeek Scales to 671-Billion Parameter Model Despite Hardware Constraints
 * MobileEye Improves GPU Performance Using FP8 Precision with PyTorch
@@ -598,24 +502,7 @@ Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorith
 * HPE’s Grace-Blackwell Supercomputer for the Trillion-Parameter Era
 * Training and Serving a 100-Trillion-Parameter Model
 
-## Chapter 24: Future Trends in Ultra-Scale AI Systems Performance Engineering
-* Convergence of AI and Scientific Computing
-* Massive Data Centers Powering Self-Improving, Perpetually-Learning AI Agents
-* Smart Compilers and Automated Code Optimizations
-* AI-Assisted Real-Time System Optimizations and Cluster Operations
-* Sparsity and Conditional Computation as First-Class Citizens
-* GPUs Performing More Tasks Across the Entire AI Pipeline
-* High-Throughput, Low-Latency Inference Orchestration
-* Silicon Photonics and Optical Interconnects
-* Globally Distributed Data Centers (AI Factories)
-* Smart Networking and Distributed Compute Offload
-* HBM Memory Stacked on GPUs (3D GPUs)
-* Energy Efficiency and Sustainability at Scale
-* Advanced Cooling and Energy Reuse Techniques
-* Hybrid Classical-Quantum Computing (CUDA Quantum)
-* Scaling Toward 100-Trillion-Parameter Models
-
-## Chapter 25: 250+ Tips for AI Systems Performance Engineers
+## Appendix: 175+ Tips for AI Systems Performance Engineers
 * Performance Tuning Mindset and Cost Optimization
 * Reproducibility and Documentation Best Practices
 * System Architecture and Hardware Planning
