@@ -1,5 +1,5 @@
 # AI Systems Performance Engineering
-## O'Reilly Book - Summer 2025
+## O'Reilly Book - Fall 2025
 
 https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/
 
