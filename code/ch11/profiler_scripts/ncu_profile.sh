@@ -4,4 +4,16 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 SCRIPT=$1
-ncu --target-processes=python3 --set full -o $(basename $SCRIPT)_ncu python3 $SCRIPT
+
+# Latest Nsight Compute profiling for CUDA 12.9 and Blackwell B200/B300
+ncu \
+  --mode=launch \
+  --target-processes=python3 \
+  --set full \
+  --kernel-regex ".*" \
+  --sampling-interval 1 \
+  --sampling-max-passes 5 \
+  --sampling-period 1000000 \
+  --export csv \
+  -o $(basename $SCRIPT)_ncu \
+  python3 $SCRIPT

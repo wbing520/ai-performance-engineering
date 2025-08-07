@@ -550,7 +550,7 @@ Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorith
 * Key Takeaways
 * Conclusion
 
-## Chapter 20: AI-Assisted Performance Optimizations and Future Trends
+## Chapter 20: AI-Assisted Performance Optimizations and Scaling Toward Multi-Million GPU Clusters
 * AlphaTensor AI-Discovered Algorithms Boosting GPU Performance (Google DeepMind)
 * Automated GPU Kernel Optimizations with DeepSeek-R1 (NVIDIA)
 * Reinforcement Learning Approach to Generating Optimized GPU Kernels (Predibase)
