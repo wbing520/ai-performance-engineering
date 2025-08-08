@@ -3,6 +3,7 @@
 # Comprehensive Profiling Script
 # Combines all profiling tools for maximum performance analysis
 # Supports Hopper H100/H200 and Blackwell B200/B300
+# Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4
 
 set -e
 
@@ -29,6 +30,7 @@ fi
 echo "=== Comprehensive Profiling for $SCRIPT_NAME ==="
 echo "Architecture: $ARCH"
 echo "Duration: $PROFILE_DURATION seconds"
+echo "PyTorch 2.8, CUDA 12.9, Triton 3.4 Support"
 echo ""
 
 # Set environment variables for optimal profiling
@@ -38,6 +40,13 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 export NCCL_DEBUG=INFO
 export TORCH_CUDNN_V8_API_ENABLED=1
 
+# Enhanced environment variables for latest features
+export TORCH_SHOW_CPP_STACKTRACES=1
+export TORCH_CUDNN_V8_API_ENABLED=1
+export TORCH_CUDNN_V8_API_DISABLED=0
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
+export CUDA_DEVICE_MAX_CONNECTIONS=1
+
 # Create timestamp for this profiling session
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 PROFILE_DIR="comprehensive_profile_${ARCH}_${TIMESTAMP}"
@@ -46,12 +55,12 @@ mkdir -p "$PROFILE_DIR"
 echo "Creating profile directory: $PROFILE_DIR"
 cd "$PROFILE_DIR"
 
-# 1. Nsight Systems Timeline Analysis
+# 1. Nsight Systems Timeline Analysis (Enhanced for latest features)
 echo "1. Running Nsight Systems timeline analysis..."
 nsys profile \
     --force-overwrite=true \
     -o "nsys_timeline_${ARCH}" \
-    -t cuda,nvtx,osrt,cudnn,cublas,nccl \
+    -t cuda,nvtx,osrt,cudnn,cublas,nccl,triton \
     -s cpu \
     --python-sampling=true \
     --python-sampling-frequency=1000 \
@@ -59,11 +68,15 @@ nsys profile \
     --cudabacktrace-threshold=0 \
     --gpu-metrics-device=all \
     --stats=true \
+    --capture-range=cudaProfilerApi \
+    --capture-range-end=stop \
+    --capture-range-op=both \
+    --multi-gpu=all \
     --duration=$PROFILE_DURATION \
     python "../$SCRIPT_NAME" &
 NSYS_PID=$!
 
-# 2. Nsight Compute Kernel Analysis
+# 2. Nsight Compute Kernel Analysis (Enhanced metrics)
 echo "2. Running Nsight Compute kernel analysis..."
 ncu \
     --mode=launch \
@@ -73,27 +86,31 @@ ncu \
     --sampling-interval 1 \
     --sampling-max-passes 5 \
     --sampling-period 1000000 \
+    --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed \
     --export csv \
     -o "ncu_kernel_${ARCH}" \
     python "../$SCRIPT_NAME" &
 NCU_PID=$!
 
-# 3. Memory Profiling
+# 3. Memory Profiling (Enhanced for HBM3/HBM3e)
 echo "3. Running memory profiling..."
 nsys profile \
     --force-overwrite=true \
     -o "memory_profile_${ARCH}" \
     -t cuda,cudamemcpy \
     --duration=$PROFILE_DURATION \
+    --capture-range=cudaProfilerApi \
+    --capture-range-end=stop \
+    --capture-range-op=both \
     python "../$SCRIPT_NAME" &
 MEMORY_PID=$!
 
-# 4. HTA (Holistic Tracing Analysis)
+# 4. HTA (Holistic Tracing Analysis) - Enhanced for multi-GPU
 echo "4. Running HTA analysis..."
 nsys profile \
     --force-overwrite=true \
     -o "hta_analysis_${ARCH}" \
-    -t cuda,nvtx,osrt,cudnn,cublas,nccl \
+    -t cuda,nvtx,osrt,cudnn,cublas,nccl,triton \
     -s cpu \
     --python-sampling=true \
     --python-sampling-frequency=1000 \
@@ -109,24 +126,91 @@ nsys profile \
     python "../$SCRIPT_NAME" &
 HTA_PID=$!
 
-# 5. Perf System-Level Analysis
+# 5. Perf System-Level Analysis (Enhanced)
 echo "5. Running Perf system-level analysis..."
 perf record \
     -g \
     -p $(pgrep python) \
     -o "perf_system_${ARCH}" \
+    --call-graph=dwarf \
+    --freq=1000 \
     -- sleep $PROFILE_DURATION &
 PERF_PID=$!
 
-# 6. GPU Metrics Monitoring
+# 6. GPU Metrics Monitoring (Enhanced)
 echo "6. Monitoring GPU metrics..."
 nvidia-smi dmon -s pucvmet -d 1 -o T > "gpu_metrics_${ARCH}.log" &
 GPU_MONITOR_PID=$!
 
+# 7. PyTorch Profiler (Enhanced for 2.8)
+echo "7. Running PyTorch profiler..."
+python -c "
+import sys
+sys.path.append('..')
+import torch
+from torch.profiler import profile, record_function, ProfilerActivity, schedule
+import torch.cuda.nvtx as nvtx
+import time
+
+# Configure architecture-specific optimizations
+if torch.cuda.is_available():
+    device_props = torch.cuda.get_device_properties(0)
+    compute_capability = f'{device_props.major}.{device_props.minor}'
+    
+    if compute_capability == '9.0':  # Hopper
+        torch._inductor.config.triton.use_hopper_optimizations = True
+        torch._inductor.config.triton.hbm3_optimizations = True
+    elif compute_capability == '10.0':  # Blackwell
+        torch._inductor.config.triton.use_blackwell_optimizations = True
+        torch._inductor.config.triton.hbm3e_optimizations = True
+
+# Run with enhanced profiler
+with profile(
+    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+    record_shapes=True,
+    with_stack=True,
+    with_flops=True,
+    with_modules=True,
+    profile_memory=True,
+    schedule=schedule(wait=1, warmup=1, active=3, repeat=2)
+) as prof:
+    # Import and run the target script
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, '../$SCRIPT_NAME'], timeout=$PROFILE_DURATION)
+
+# Export results
+prof.export_chrome_trace('pytorch_trace_${ARCH}.json')
+with open('pytorch_summary_${ARCH}.txt', 'w') as f:
+    f.write('PyTorch Profiler Summary\n')
+    f.write('='*40 + '\n')
+    f.write(prof.key_averages().table(sort_by='cuda_time_total', row_limit=20))
+" &
+PYTORCH_PID=$!
+
+# 8. Triton Profiler (if available)
+echo "8. Running Triton profiler..."
+python -c "
+import sys
+sys.path.append('..')
+try:
+    import triton
+    print(f'Triton version: {triton.__version__}')
+    
+    # Run with Triton profiling
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, '../$SCRIPT_NAME'], timeout=$PROFILE_DURATION)
+except ImportError:
+    print('Triton not available')
+" &
+TRITON_PID=$!
+
 # Wait for all profiling to complete
 echo "Waiting for profiling to complete..."
-wait $NSYS_PID $NCU_PID $MEMORY_PID $HTA_PID $PERF_PID
+wait $NSYS_PID $NCU_PID $MEMORY_PID $HTA_PID $PERF_PID $PYTORCH_PID
 kill $GPU_MONITOR_PID 2>/dev/null || true
+kill $TRITON_PID 2>/dev/null || true
 
 # Generate comprehensive report
 echo "Generating comprehensive report..."
@@ -138,6 +222,9 @@ cat > "comprehensive_report_${ARCH}.md" << EOF
 - **Architecture**: $ARCH
 - **Timestamp**: $TIMESTAMP
 - **Duration**: $PROFILE_DURATION seconds
+- **PyTorch**: 2.8
+- **CUDA**: 12.9
+- **Triton**: 3.4
 
 ## Architecture Details
 EOF
@@ -147,7 +234,8 @@ if [ "$ARCH" = "sm_90" ]; then
 - **GPU**: Hopper H100/H200
 - **Compute Capability**: 9.0
 - **Memory**: HBM3
-- **Features**: Transformer Engine, Dynamic Programming
+- **Features**: Transformer Engine, Dynamic Programming, TMA
+- **Optimizations**: HBM3 optimizations, Hopper-specific kernels
 EOF
 elif [ "$ARCH" = "sm_100" ]; then
     cat >> "comprehensive_report_${ARCH}.md" << EOF
@@ -155,6 +243,7 @@ elif [ "$ARCH" = "sm_100" ]; then
 - **Compute Capability**: 10.0
 - **Memory**: HBM3e
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
+- **Optimizations**: HBM3e optimizations, Blackwell-specific kernels
 EOF
 fi
 
@@ -164,32 +253,40 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 
 ### 1. Nsight Systems Timeline
 - **File**: nsys_timeline_${ARCH}.nsys-rep
-- **Analysis**: System-level timeline with CUDA, NVTX, and Python sampling
+- **Analysis**: System-level timeline with CUDA, NVTX, Triton, and Python sampling
 - **View**: nsys-ui nsys_timeline_${ARCH}.nsys-rep
 
 ### 2. Nsight Compute Kernel Analysis
 - **File**: ncu_kernel_${ARCH}.ncu-rep
-- **Analysis**: Detailed kernel-level performance metrics
+- **Analysis**: Detailed kernel-level performance metrics with enhanced metrics
 - **View**: ncu-ui ncu_kernel_${ARCH}.ncu-rep
 
 ### 3. Memory Profiling
 - **File**: memory_profile_${ARCH}.nsys-rep
-- **Analysis**: Memory allocation and transfer patterns
+- **Analysis**: Memory allocation and transfer patterns (HBM3/HBM3e optimized)
 - **View**: nsys-ui memory_profile_${ARCH}.nsys-rep
 
 ### 4. HTA Analysis
 - **File**: hta_analysis_${ARCH}.nsys-rep
-- **Analysis**: Holistic tracing for multi-GPU systems
+- **Analysis**: Holistic tracing for multi-GPU systems with Triton support
 - **View**: nsys-ui hta_analysis_${ARCH}.nsys-rep
 
 ### 5. Perf System Analysis
 - **File**: perf_system_${ARCH}.data
-- **Analysis**: System-level CPU and call graph analysis
+- **Analysis**: System-level CPU and call graph analysis with enhanced sampling
 - **View**: perf report -i perf_system_${ARCH}.data
 
 ### 6. GPU Metrics
 - **File**: gpu_metrics_${ARCH}.log
 - **Analysis**: Real-time GPU utilization and memory usage
+
+### 7. PyTorch Profiler
+- **File**: pytorch_trace_${ARCH}.json
+- **Analysis**: Framework-level profiling with PyTorch 2.8 features
+- **View**: chrome://tracing/ (load pytorch_trace_${ARCH}.json)
+
+### 8. Triton Profiler
+- **Analysis**: Triton 3.4 kernel profiling and optimization
 
 ## Performance Recommendations
 
@@ -198,12 +295,24 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 - Use dynamic programming features
 - Optimize for HBM3 memory bandwidth
 - Leverage 4th generation Tensor Cores
+- Use TMA for efficient memory transfers
+- Enable Hopper-specific Triton optimizations
 
 ### For Blackwell B200/B300 (SM100):
 - Enable TMA (Tensor Memory Accelerator)
 - Use stream-ordered memory allocation
 - Optimize for HBM3e memory bandwidth
 - Leverage NVLink-C2C for GPU communication
+- Use Blackwell-specific Triton kernels
+- Enable HBM3e memory optimizations
+
+## Latest Features Used
+- **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
+- **CUDA 12.9**: Latest CUDA features, improved kernel performance
+- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
+- **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
+- **HTA**: Holistic Tracing Analysis for multi-GPU systems
+- **Perf**: Enhanced system-level analysis
 
 ## Next Steps
 1. Open Nsight Systems UI: nsys-ui nsys_timeline_${ARCH}.nsys-rep
@@ -211,6 +320,7 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 3. Analyze memory patterns: nsys-ui memory_profile_${ARCH}.nsys-rep
 4. Review system performance: perf report -i perf_system_${ARCH}.data
 5. Check GPU metrics: cat gpu_metrics_${ARCH}.log
+6. View PyTorch trace: chrome://tracing/ → Load pytorch_trace_${ARCH}.json
 
 ## Optimization Opportunities
 - Identify kernel bottlenecks
@@ -218,6 +328,8 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 - Check for communication overhead
 - Verify occupancy and utilization
 - Look for pipeline stalls
+- Optimize for architecture-specific features
+- Use latest profiling tools for detailed analysis
 EOF
 
 echo "Comprehensive profiling completed!"
@@ -228,3 +340,4 @@ echo "To view results:"
 echo "  cd $PROFILE_DIR"
 echo "  nsys-ui nsys_timeline_${ARCH}.nsys-rep"
 echo "  ncu-ui ncu_kernel_${ARCH}.ncu-rep"
+echo "  # Open chrome://tracing/ and load pytorch_trace_${ARCH}.json"

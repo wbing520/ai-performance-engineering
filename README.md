@@ -63,6 +63,18 @@ This repository supports multiple NVIDIA GPU architectures. Switch between Hoppe
 
 For detailed architecture specifications and performance benchmarks, see [`code/README.md`](code/README.md).
 
+### 🔧 Latest Features
+
+**Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4:**
+
+- **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
+- **CUDA 12.9**: Latest CUDA features, improved kernel performance
+- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
+- **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
+- **HTA**: Holistic Tracing Analysis for multi-GPU systems
+- **Perf**: Enhanced system-level analysis
+- **Architecture Optimizations**: Hopper/Blackwell-specific features
+
 ---
 
 ## 📖 Book Chapters Overview
@@ -212,14 +224,31 @@ For detailed architecture specifications and performance benchmarks, see [`code/
 ## 🛠️ Tools and Utilities
 
 ### Profiling Scripts
-- `profiler_scripts/comprehensive_profile.sh` - Comprehensive GPU profiling
-- `profiler_scripts/enhanced_profiling.sh` - Enhanced profiling with Nsight
-- `profiler_scripts/hta_profile.sh` - Holistic Tracing Analysis
+- `code/profiler_scripts/comprehensive_profile.sh` - Comprehensive GPU profiling
+- `code/profiler_scripts/enhanced_profiling.sh` - Enhanced profiling with Nsight
+- `code/profiler_scripts/hta_profile.sh` - Holistic Tracing Analysis
 
 ### Performance Analysis Tools
 - `tools/comprehensive_profiling.py` - Python-based profiling utilities
 - `tools/compare_nsight/` - Nsight Systems comparison tools
 - `tools/inference_gpu_cluster_sizing/` - Cluster sizing notebooks
+
+### Enhanced Profiling Commands
+
+```bash
+# Comprehensive profiling
+nsys profile -t cuda,nvtx,osrt,triton -o timeline_profile python script.py
+
+# Kernel analysis
+ncu --metrics achieved_occupancy,warp_execution_efficiency -o kernel_profile python script.py
+
+# HTA for multi-GPU
+nsys profile -t cuda,nvtx,osrt,cudnn,cublas,nccl,triton -o hta_profile python script.py
+
+# System analysis
+perf record -g -p $(pgrep python) -o perf.data
+perf report -i perf.data
+```
 
 ---
 
@@ -262,6 +291,8 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 - ✅ Distributed Training and Network Optimization
 - ✅ Efficient Inference and Serving
 - ✅ Power and Thermal Management
+- ✅ Latest Profiling Tools and Techniques
+- ✅ Architecture-Specific Optimizations
 
 ---
 

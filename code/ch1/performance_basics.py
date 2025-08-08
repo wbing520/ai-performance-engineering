@@ -1,52 +1,3 @@
-import torch
-import os
-
-def get_architecture():
-    """Detect and return the current GPU architecture."""
-    if not torch.cuda.is_available():
-        return "cpu"
-    
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
-
-def get_architecture_info():
-    """Get detailed architecture information."""
-    arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
-        return {
-            "name": "Blackwell B200/B300",
-            "compute_capability": "10.0",
-            "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3e", "TMA", "NVLink-C2C"]
-        }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
 #!/usr/bin/env python3
 """
 Chapter 1: Introduction and AI System Overview
@@ -56,8 +7,9 @@ This example demonstrates the core concepts from Chapter 1:
 - Measuring goodput (useful throughput)
 - Hardware-software co-design principles
 - Performance profiling and benchmarking
-- PyTorch 2.8 nightly optimizations for Blackwell B200/B300
+- PyTorch 2.8 optimizations for Hopper H100/H200 and Blackwell B200/B300
 - Latest profiling tools integration
+- CUDA 12.9 and Triton 3.4 support
 """
 
 import time
@@ -65,11 +17,17 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
+import torch.cuda.nvtx as nvtx
 import psutil
 import GPUtil
 import numpy as np
 from typing import Dict, List, Tuple
-import torch.cuda.nvtx as nvtx
+import os
+
+# Import architecture configuration
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from arch_config import arch_config, configure_optimizations
 
 
 class SimpleTransformer(nn.Module):
@@ -185,33 +143,39 @@ class PerformanceMonitor:
         }
 
 
-def configure_blackwell_optimizations():
-    """Configure PyTorch 2.8 nightly optimizations for Blackwell B200/B300."""
+def configure_architecture_optimizations():
+    """Configure PyTorch 2.8 optimizations for current architecture."""
+    # Configure optimizations based on detected architecture
+    configure_optimizations()
+    
     if torch.cuda.is_available():
-        # Enable Blackwell B200/B300 specific optimizations
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.cudagraphs = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
+        device_props = torch.cuda.get_device_properties(0)
+        compute_capability = f"{device_props.major}.{device_props.minor}"
         
-        # Enable advanced optimizations
+        print(f"GPU: {device_props.name}")
+        print(f"Compute Capability: {compute_capability}")
+        
+        if compute_capability == "9.0":  # Hopper H100/H200
+            print("✓ Enabling Hopper H100/H200 optimizations")
+            # Additional Hopper-specific optimizations
+            torch._inductor.config.triton.use_hopper_optimizations = True
+            torch._inductor.config.triton.hbm3_optimizations = True
+            torch._inductor.config.triton.tma_support = True
+            torch._inductor.config.triton.transformer_engine = True
+        elif compute_capability == "10.0":  # Blackwell B200/B300
+            print("✓ Enabling Blackwell B200/B300 optimizations")
+            # Additional Blackwell-specific optimizations
+            torch._inductor.config.triton.use_blackwell_optimizations = True
+            torch._inductor.config.triton.hbm3e_optimizations = True
+            torch._inductor.config.triton.tma_support = True
+            torch._inductor.config.triton.stream_ordered_memory = True
+            torch._inductor.config.triton.nvlink_c2c = True
+        
+        # Common optimizations for both architectures
         torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.use_blackwell_tensor_cores = True
-        
-        # Memory optimizations for HBM3e
-        torch._inductor.config.triton.hbm3e_memory_optimizations = True
-        
-        # Enhanced profiling configuration
-        torch._inductor.config.triton.profiler_mode = "max-autotune"
-        torch._inductor.config.triton.enable_blackwell_features = True
-        
-        # Enable dynamic shapes for better performance
+        torch._inductor.config.triton.autotune_mode = "max-autotune"
         torch._dynamo.config.automatic_dynamic_shapes = True
-        
-        # Enable advanced memory optimizations
         torch._inductor.config.triton.enable_advanced_memory_optimizations = True
-        
-        print("Blackwell B200/B300 optimizations enabled")
 
 
 def benchmark_model_performance(model: nn.Module, 
@@ -229,8 +193,8 @@ def benchmark_model_performance(model: nn.Module,
     model = model.to(device)
     model.eval()
     
-    # Configure Blackwell optimizations
-    configure_blackwell_optimizations()
+    # Configure architecture optimizations
+    configure_architecture_optimizations()
     
     # Create dummy input
     dummy_input = torch.randint(0, 10000, (batch_size, seq_length)).to(device)
@@ -316,6 +280,10 @@ def demonstrate_hardware_software_co_design():
     """
     print("=== Chapter 1: AI Systems Performance Engineering Demo (PyTorch 2.8) ===\n")
     
+    # Print architecture information
+    arch_config.print_info()
+    print()
+    
     # Create model
     model = SimpleTransformer()
     
@@ -373,12 +341,13 @@ def demonstrate_hardware_software_co_design():
     print("\n5. Key Takeaways from Chapter 1 (PyTorch 2.8)")
     print("-" * 50)
     print("• PyTorch 2.8 torch.compile provides significant speedup")
-    print("• Blackwell B200/B300 optimizations improve performance")
+    print("• Architecture-specific optimizations improve performance")
     print("• Enhanced profiler provides detailed insights")
     print("• Memory profiling helps identify bottlenecks")
     print("• Hardware-software co-design is crucial")
     print("• Use NVTX markers for detailed timeline analysis")
     print("• Latest profiling tools provide comprehensive analysis")
+    print("• CUDA 12.9 and Triton 3.4 support latest features")
     
     return compiled_results
 
@@ -421,24 +390,24 @@ def demonstrate_mechanical_sympathy():
                 print(f"{batch_size:10d} | {'Error':>20} | {'Error':>20} | {'N/A':>7}")
 
 
-def demonstrate_blackwell_optimizations():
+def demonstrate_architecture_features():
     """
-    Demonstrate Blackwell B200/B300 specific optimizations.
+    Demonstrate architecture-specific features and optimizations.
     """
-    print("\n=== Blackwell B200/B300 Optimizations ===")
+    print("\n=== Architecture Features Demo ===")
     
     if not torch.cuda.is_available():
-        print("CUDA not available, skipping Blackwell optimizations")
+        print("CUDA not available, skipping architecture features")
         return
     
-    # Check for Blackwell B200/B300 features
+    # Check for architecture-specific features
     device_props = torch.cuda.get_device_properties(0)
     print(f"GPU: {device_props.name}")
     print(f"Compute Capability: {device_props.major}.{device_props.minor}")
     print(f"Memory: {device_props.total_memory / 1e9:.1f} GB")
     
-    # Test HBM3e memory optimizations
-    print("\nTesting HBM3e memory optimizations...")
+    # Test memory bandwidth optimizations
+    print("\nTesting memory bandwidth optimizations...")
     
     # Large tensor operations to test memory bandwidth
     sizes = [1024, 2048, 4096, 8192]
@@ -559,27 +528,31 @@ def demonstrate_latest_profiling_tools():
     print("4. HTA (Holistic Tracing Analysis) - Multi-GPU analysis")
     print("5. Perf - System-level analysis")
     print("6. Enhanced PyTorch profiler - Memory, FLOPs, modules")
+    print("7. Triton 3.4 profiler - Custom kernel analysis")
     
     print("\nProfiling commands:")
     print("# Nsight Systems timeline")
-    print("nsys profile -t cuda,nvtx,osrt -o timeline_profile python script.py")
+    print("nsys profile -t cuda,nvtx,osrt,triton -o timeline_profile python script.py")
     
     print("\n# Nsight Compute kernel analysis")
     print("ncu --metrics achieved_occupancy,warp_execution_efficiency -o kernel_profile python script.py")
     
     print("\n# HTA for multi-GPU")
-    print("nsys profile -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile python script.py")
+    print("nsys profile -t cuda,nvtx,osrt,cudnn,cublas,nccl,triton -o hta_profile python script.py")
     
     print("\n# Perf system analysis")
     print("perf record -g -p $(pgrep python) -o perf.data")
     print("perf report -i perf.data")
+    
+    print("\n# PyTorch profiler")
+    print("python -c \"import torch; from torch.profiler import profile; ...\"")
 
 
 if __name__ == "__main__":
     # Run the demonstrations
     results = demonstrate_hardware_software_co_design()
     demonstrate_mechanical_sympathy()
-    demonstrate_blackwell_optimizations()
+    demonstrate_architecture_features()
     demonstrate_enhanced_profiling()
     demonstrate_system_monitoring()
     demonstrate_latest_profiling_tools()
@@ -590,8 +563,10 @@ if __name__ == "__main__":
     print("2. Hardware-software co-design (mechanical sympathy)")
     print("3. Enhanced profiling and bottleneck identification")
     print("4. PyTorch 2.8 torch.compile optimizations")
-    print("5. Blackwell B200/B300 specific features")
+    print("5. Architecture-specific features (Hopper/Blackwell)")
     print("6. System-level optimization considerations")
     print("7. Latest profiling tools integration")
     print("8. Advanced monitoring and analysis capabilities")
+    print("9. CUDA 12.9 and Triton 3.4 support")
+    print("10. Enhanced memory and performance optimizations")
     print("\nThese concepts will be explored in detail throughout the book.")

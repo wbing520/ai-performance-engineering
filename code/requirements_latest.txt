@@ -1,7 +1,7 @@
 # AI Performance Engineering - Latest Requirements
-# PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, Architecture Switching Support
+# PyTorch 2.8, CUDA 12.9, Triton 3.4, Architecture Switching Support
 
-# Core PyTorch ecosystem (nightly builds)
+# Core PyTorch ecosystem (latest stable)
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==2.8.0+cu129
 torchvision==0.23.0+cu129
@@ -78,6 +78,28 @@ py-spy==0.3.14
 memory-profiler==0.61.0
 line-profiler==4.1.2
 
+# Optional: Advanced profiling and analysis
+py-spy==0.3.14
+memory-profiler==0.61.0
+line-profiler==4.1.2
+pyinstrument==5.0.0
+snakeviz==2.1.1
+
+# Optional: Machine learning and optimization
+optuna==4.0.0
+hyperopt==0.2.7
+ray[tune]==2.10.0
+
+# Optional: Data processing and analysis
+dask==2024.1.1
+vaex==4.17.0
+xarray==2024.1.0
+
+# Optional: Visualization and reporting
+plotly==5.18.0
+bokeh==3.4.0
+dash==2.16.1
+
 # System dependencies (install via package manager)
 # - numactl (for NUMA binding)
 # - nvidia-container-toolkit (for Docker GPU support)
@@ -86,3 +108,6 @@ line-profiler==4.1.2
 # - perftest (for network performance testing)
 # - nvidia-nsight-systems (latest profiling tools)
 # - nvidia-nsight-compute (latest profiling tools)
+# - nvidia-nsight-graphics (latest graphics profiling)
+# - nvidia-nsight-systems-cli (command line profiling)
+# - nvidia-nsight-compute-cli (command line profiling)
