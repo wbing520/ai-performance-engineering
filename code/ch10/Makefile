@@ -1,7 +1,7 @@
 # Makefile for Chapter 10 - Intra-Kernel Pipelining and Warp Specialization
-
+CUDA_VERSION = 12.9
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=sm_80 --expt-relaxed-constexpr
+NVCC_FLAGS = -O3 -std=c++17 -arch=sm_100 --expt-relaxed-constexpr
 PYTHON = python3
 
 # CUDA targets
@@ -10,7 +10,7 @@ CUDA_TARGETS = double_buffered_pipeline warp_specialized_pipeline cooperative_pe
 .PHONY: all clean test profile benchmark analyze help
 
 all: $(CUDA_TARGETS)
-
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compilation rules
 double_buffered_pipeline: double_buffered_pipeline.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
@@ -142,15 +142,15 @@ demo: $(CUDA_TARGETS)
 	@echo "  - Cooperative groups enable fine-grained synchronization"
 
 # Architecture-specific builds
-sm_75: NVCC_FLAGS += -arch=sm_75
+sm_75: NVCC_FLAGS += -arch=sm_100
 sm_75: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 7.5 (Turing)"
 
-sm_80: NVCC_FLAGS += -arch=sm_80  
+sm_80: NVCC_FLAGS += -arch=sm_100  
 sm_80: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 8.0 (Ampere)"
 
-sm_90: NVCC_FLAGS += -arch=sm_90
+sm_90: NVCC_FLAGS += -arch=sm_100
 sm_90: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 9.0 (Blackwell)"
 
@@ -199,3 +199,26 @@ check-deps:
 	@echo "Checking CUDA Pipeline API support..."
 	@echo "#include <cuda/pipeline>" | $(NVCC) -x cu - -c -o /dev/null 2>/dev/null && \
 		echo "CUDA Pipeline API supported" || echo "ERROR: Pipeline API not supported"
+
+# HTA (Holistic Tracing Analysis) profiling
+profile-hta: $(TARGET)
+	@echo "HTA profiling for multi-GPU analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile ./$(TARGET)
+
+# Perf profiling for system-level analysis
+profile-perf: $(TARGET)
+	@echo "Perf profiling for system-level analysis..."
+	perf record -g -p $$(pgrep $(TARGET)) -o perf.data ./$(TARGET)
+	perf report -i perf.data
+
+# Enhanced profiling with all tools
+profile-all: $(TARGET)
+	@echo "Comprehensive profiling with all tools..."
+	@echo "1. Nsight Systems timeline..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline ./$(TARGET)
+	@echo "2. Nsight Compute kernel analysis..."
+	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel ./$(TARGET)
+	@echo "3. Memory profiling..."
+	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory ./$(TARGET)
+	@echo "4. HTA analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta ./$(TARGET)

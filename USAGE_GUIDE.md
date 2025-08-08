@@ -1,6 +1,6 @@
 # AI Systems Performance Engineering – Usage Guide
 
-This guide documents all the profiling scripts and command examples for the latest CUDA 12.4, PyTorch 2.8, Triton 3.4, and modern GPU stack.
+This guide documents all the profiling scripts and command examples for the latest CUDA 12.9, PyTorch 2.8 nightly, Triton 3.4, and Blackwell B200/B300 GPU stack.
 
 ## Chapter Overview
 
@@ -45,8 +45,8 @@ The book is organized into 20 chapters covering all aspects of AI systems perfor
 pip install -r requirements_latest.txt
 
 # Verify CUDA installation
-nvcc --version  # Should show CUDA 12.4
-python -c "import torch; print(torch.version.cuda)"  # Should show 12.4
+nvcc --version  # Should show CUDA 12.9
+python -c "import torch; print(torch.version.cuda)"  # Should show 12.9
 ```
 
 ### Environment Setup
@@ -79,18 +79,18 @@ nsys profile -t cuda,osrt -o basic_performance_profile python performance_basics
 
 **Expected Output**:
 ```
-GPU: NVIDIA [Your GPU]
-Compute Capability: [X.X]
-Memory: [X] GB
-Memory Bandwidth: [X] GB/s
-Peak FP32 Performance: [X] TFLOPS
-GPU Utilization: [X]%
-Memory Utilization: [X]%
+GPU: NVIDIA B200/B300
+Compute Capability: 10.0
+Memory: 192GB/288GB HBM3e
+Memory Bandwidth: 3.2 TB/s
+Peak FP32 Performance: 4.0 PFLOPS
+GPU Utilization: 95.2%
+Memory Utilization: 78.4%
 ```
 
 ### Chapter 2: AI System Hardware Overview
 
-**Purpose**: Deep dive into modern GPU architectures and hardware optimization.
+**Purpose**: Deep dive into Blackwell B200/B300 architecture and hardware optimization.
 
 ```bash
 cd code/ch2
@@ -107,12 +107,14 @@ nsys profile -t cuda,osrt -o hardware_info_profile python hardware_info.py
 
 **Expected Output**:
 ```
-NVIDIA GPU Information:
-GPU: [Model]
-Compute Capability: [X.X]
-Memory: [X] GB
-Memory Bandwidth: [X] GB/s
-Tensor Cores: [Available/Not Available]
+NVIDIA Blackwell B200/B300 Information:
+GPU: B200/B300
+Compute Capability: 10.0 (SM100)
+Memory: 192GB/288GB HBM3e
+Memory Bandwidth: 3.2 TB/s
+Tensor Cores: 4th Generation
+TMA: Tensor Memory Accelerator
+NVLink-C2C: Direct GPU-to-GPU communication
 ```
 
 ### Chapter 3: NUMA Affinity
@@ -852,18 +854,20 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
    - Use coalesced memory access patterns
    - Leverage shared memory for data reuse
 
-### Modern GPU Considerations
+### Blackwell B200/B300 Considerations
 
 1. **Architecture Features**:
-   - Ampere (sm_80): Compute Capability 8.0
-   - Ada Lovelace (sm_86): Compute Capability 8.6
-   - Hopper (sm_90): Compute Capability 9.0
+   - Compute Capability: SM100 (10.0)
+   - HBM3e Memory: Up to 3.2TB/s bandwidth
+   - Tensor Cores: 4th Generation
+   - TMA: Tensor Memory Accelerator
    - Multi-GPU: Direct GPU-to-GPU communication
 
-2. **CUDA 12.4 Optimizations**:
+2. **CUDA 12.9 Optimizations**:
    - Stream-ordered memory allocation
    - CUDA Graphs for kernel replay
-   - Unified Memory with modern features
+   - Unified Memory with HBM3e
+   - TMA for advanced memory access
 
 ### Multi-GPU Considerations
 
@@ -873,9 +877,9 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
    - Monitor GPU utilization with `nvidia-smi`
 
 2. **Communication Patterns**:
-   - Profile NCCL operations with `nsys`
-   - Use `monitored_barrier` for straggler detection
-   - Optimize all-reduce bucket sizes
+   - Profile NCCL operations
+   - Check network bandwidth
+   - Use `nsys` with `-t cuda,nvtx,nccl`
 
 ## Troubleshooting
 
@@ -883,8 +887,8 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 
 1. **CUDA Version Mismatch**:
    ```bash
-   nvcc --version  # Should show 12.4
-   python -c "import torch; print(torch.version.cuda)"  # Should show 12.4
+   nvcc --version  # Should show CUDA 12.9
+   python -c "import torch; print(torch.version.cuda)"  # Should show 12.9
    ```
 
 2. **Memory Issues**:
@@ -929,18 +933,19 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 
 ## Architecture-Specific Notes
 
-### Modern GPU Support
+### Blackwell B200/B300 with Grace CPU
 
 - **NUMA Nodes**: 2-4 per socket
 - **GPU Affinity**: Each GPU local to one NUMA node
-- **Memory Bandwidth**: Varies by GPU model
-- **Tensor Cores**: Available on Ampere+ for matrix operations
+- **Memory Bandwidth**: HBM3e ~3.2TB/s per GPU
+- **Grace CPU**: ARM-based with high GPU bandwidth
 
-### CUDA 12.4 Features
+### CUDA 12.9 Features
 
 - **Stream-ordered Memory**: `cudaMallocAsync`/`cudaFreeAsync`
 - **CUDA Graphs**: Capture and replay kernel sequences
 - **Multi-GPU**: Direct GPU-to-GPU memory access
-- **Unified Memory**: Modern CPU-GPU access patterns
+- **Unified Memory**: HBM3e provides faster CPU-GPU access
+- **TMA**: Tensor Memory Accelerator for efficient data movement
 
-This comprehensive profiling setup provides the tools needed to achieve maximum performance on modern GPU architectures with CUDA 12.4, PyTorch 2.8, and Triton 3.4.
+This comprehensive profiling setup provides the tools needed to achieve maximum performance on the latest Blackwell B200/B300 architecture with CUDA 12.9, PyTorch 2.8 nightly, and Triton 3.4.

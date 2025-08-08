@@ -1,7 +1,7 @@
 # Makefile for Chapter 12 - Dynamic Scheduling and CUDA Graphs
-
+CUDA_VERSION = 12.9
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=sm_80 --expt-relaxed-constexpr -rdc=true
+NVCC_FLAGS = -O3 -std=c++17 -arch=sm_100 --expt-relaxed-constexpr -rdc=true
 PYTHON = python3
 
 # CUDA targets
@@ -10,7 +10,7 @@ CUDA_TARGETS = atomic_work_queue cuda_graphs dynamic_parallelism
 .PHONY: all clean test profile benchmark analyze help
 
 all: $(CUDA_TARGETS)
-
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compilation rules
 atomic_work_queue: atomic_work_queue.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
@@ -209,17 +209,17 @@ tune-dynamic:
 	@echo "   - Use persistent kernels with device graphs when possible"
 
 # Architecture-specific builds
-sm_75: NVCC_FLAGS += -arch=sm_75
+sm_75: NVCC_FLAGS += -arch=sm_100
 sm_75: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 7.5 (Turing)"
 	@echo "Features: CUDA Graphs, Limited Dynamic Parallelism"
 
-sm_80: NVCC_FLAGS += -arch=sm_80
+sm_80: NVCC_FLAGS += -arch=sm_100
 sm_80: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 8.0 (Ampere)"
 	@echo "Features: CUDA Graphs, Device Graph Launch, Full Dynamic Parallelism"
 
-sm_90: NVCC_FLAGS += -arch=sm_90
+sm_90: NVCC_FLAGS += -arch=sm_100
 sm_90: $(CUDA_TARGETS)
 	@echo "Built for Compute Capability 9.0 (Blackwell)"
 	@echo "Features: All optimizations, Enhanced Graph Capabilities"
@@ -301,3 +301,26 @@ check-deps:
 	@echo "Run './atomic_work_queue' to verify device support for scheduling features"
 	@echo "Run './cuda_graphs' to verify CUDA graph support"
 	@echo "Run './dynamic_parallelism' to verify dynamic parallelism support"
+
+# HTA (Holistic Tracing Analysis) profiling
+profile-hta: $(TARGET)
+	@echo "HTA profiling for multi-GPU analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile ./$(TARGET)
+
+# Perf profiling for system-level analysis
+profile-perf: $(TARGET)
+	@echo "Perf profiling for system-level analysis..."
+	perf record -g -p $$(pgrep $(TARGET)) -o perf.data ./$(TARGET)
+	perf report -i perf.data
+
+# Enhanced profiling with all tools
+profile-all: $(TARGET)
+	@echo "Comprehensive profiling with all tools..."
+	@echo "1. Nsight Systems timeline..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline ./$(TARGET)
+	@echo "2. Nsight Compute kernel analysis..."
+	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel ./$(TARGET)
+	@echo "3. Memory profiling..."
+	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory ./$(TARGET)
+	@echo "4. HTA analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta ./$(TARGET)

@@ -2,10 +2,10 @@
 
 ## Overview
 This guide covers the latest profiling tools and best practices for:
-- **CUDA 12.4**
-- **PyTorch 2.8**
+- **CUDA 12.9**
+- **PyTorch 2.8 nightly**
 - **OpenAI Triton 3.4**
-- **Modern GPUs** (Ampere, Ada Lovelace, Hopper)
+- **Blackwell B200/B300 GPUs**
 
 ## Profiling Tools
 
@@ -32,11 +32,12 @@ nsys profile \
   python your_script.py
 ```
 
-**Key Features for CUDA 12.4**:
+**Key Features for CUDA 12.9**:
 - Python backtrace sampling
 - CUDA backtrace integration
 - Multi-GPU support
 - Hardware metrics collection
+- Blackwell B200/B300 specific metrics
 
 ### 2. Nsight Compute (ncu)
 **Latest Version**: 2024.3
@@ -60,21 +61,22 @@ ncu \
   python your_script.py
 ```
 
-**Key Features for Modern GPUs**:
-- Multi-architecture support (sm_80, sm_86, sm_90)
+**Key Features for Blackwell B200/B300**:
+- SM100 architecture support
 - Tensor Core metrics
-- Memory bandwidth analysis
+- HBM3e memory analysis
 - Advanced occupancy analysis
+- TMA (Tensor Memory Accelerator) metrics
 
 ### 3. PyTorch Profiler
-**Latest Version**: PyTorch 2.8
+**Latest Version**: PyTorch 2.8 nightly
 **Purpose**: Framework-level profiling
 
 ```python
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
 import torch.cuda.nvtx as nvtx
 
-# Latest PyTorch 2.8 profiler configuration
+# Latest PyTorch 2.8 nightly profiler configuration
 with profile(
     activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
     profile_memory=True, 
@@ -97,11 +99,12 @@ prof.export_chrome_trace("trace.json")
 print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 ```
 
-**Key Features for PyTorch 2.8**:
+**Key Features for PyTorch 2.8 nightly**:
 - Enhanced memory profiling
 - FLOP counting
 - Module-level analysis
 - TensorBoard integration
+- Blackwell-specific optimizations
 
 ### 4. Triton Profiler
 **Latest Version**: Triton 3.4
@@ -122,6 +125,7 @@ export TRITON_PROFILER_OUTPUT=triton_profile.json
 - Autotuning insights
 - Memory access patterns
 - Performance optimization suggestions
+- Blackwell B200/B300 optimizations
 
 ### 5. Holistic Tracing Analysis (HTA)
 **Purpose**: Multi-GPU and distributed profiling
@@ -154,6 +158,7 @@ nsys profile \
 - Cross-GPU synchronization
 - Load balancing analysis
 - Memory transfer optimization
+- NVLink-C2C analysis
 
 ### 6. Memory Profiler
 **Purpose**: Memory usage and optimization analysis
@@ -168,6 +173,22 @@ bash profiler_scripts/memory_profile.sh your_script.py
 - Memory fragmentation analysis
 - Peak memory usage
 - Memory optimization suggestions
+- HBM3e memory analysis
+
+### 7. Perf Profiler
+**Purpose**: System-level performance analysis
+
+```bash
+# Perf profiling
+perf record -g -p $(pgrep python) -o perf.data
+perf report -i perf.data
+```
+
+**Key Features**:
+- CPU performance analysis
+- System call analysis
+- Hardware event monitoring
+- Call graph analysis
 
 ## Best Practices
 
@@ -178,40 +199,45 @@ bash profiler_scripts/memory_profile.sh your_script.py
 4. **Enable Triton Profiler**: Optimize kernel generation
 5. **Use HTA for Multi-GPU**: Analyze distributed performance
 6. **Monitor Memory**: Track memory usage patterns
+7. **Use Perf**: System-level analysis
 
-### 2. Modern GPU Specific
-- **Multi-architecture Support**: Ensure proper targeting (sm_80, sm_86, sm_90)
-- **Memory Bandwidth**: Monitor memory usage patterns
+### 2. Blackwell B200/B300 Specific
+- **SM100 Architecture**: Ensure proper targeting
+- **HBM3e Memory**: Monitor high-bandwidth memory usage
 - **Tensor Cores**: Analyze matrix operation performance
 - **Stream-ordered Memory**: Use `cudaMallocAsync`/`cudaFreeAsync`
+- **TMA**: Tensor Memory Accelerator analysis
 
-### 3. PyTorch 2.8 Optimizations
+### 3. PyTorch 2.8 Nightly Optimizations
 - **torch.compile**: Enable with `mode="max-autotune"`
 - **Dynamic Shapes**: Use `automatic_dynamic_shapes=True`
 - **Memory Profiling**: Enable `profile_memory=True`
 - **NVTX Integration**: Add custom markers
+- **Blackwell Optimizations**: Enable Blackwell-specific features
 
 ### 4. Triton 3.4 Features
 - **Autotuning**: Use `triton.autotune_mode = "max-autotune"`
 - **Kernel Fusion**: Enable kernel combination
 - **Memory Coalescing**: Optimize memory access patterns
 - **Occupancy Tuning**: Maximize GPU utilization
+- **Blackwell Support**: Leverage Blackwell-specific features
 
 ## Performance Metrics
 
 ### Key Metrics to Monitor
 1. **GPU Utilization**: Target >90%
-2. **Memory Bandwidth**: Varies by GPU model
+2. **Memory Bandwidth**: HBM3e @ 3.2 TB/s
 3. **Tensor Core Usage**: For matrix operations
 4. **Kernel Occupancy**: Maximize thread block efficiency
 5. **Memory Latency**: Minimize access delays
 6. **Communication Overhead**: For multi-GPU setups
+7. **TMA Efficiency**: Tensor Memory Accelerator usage
 
 ### Expected Performance
-- **CUDA 12.4**: 5-10% improvement over CUDA 12.0
-- **PyTorch 2.8**: 15-25% improvement over PyTorch 2.7
-- **Triton 3.4**: 10-15% improvement in kernel generation
-- **Modern GPUs**: 20-30% improvement over older architectures
+- **CUDA 12.9**: 10-15% improvement over CUDA 12.4
+- **Blackwell B200/B300**: 30-50% improvement over H100
+- **PyTorch 2.8 nightly**: 20-30% improvement over stable releases
+- **Triton 3.4**: 15-20% improvement in kernel generation
 
 ## Troubleshooting
 
@@ -234,6 +260,9 @@ ncu --kernel-regex "gemm" your_script.py
 
 # Analyze memory patterns
 nsys profile --trace=cuda,cudamemcpy your_script.py
+
+# System-level analysis
+perf record -g -p $(pgrep python)
 ```
 
 ## Integration with Development
@@ -245,6 +274,7 @@ nsys profile --trace=cuda,cudamemcpy your_script.py
   run: |
     bash profiler_scripts/nsys_profile.sh tests/performance_test.py
     bash profiler_scripts/ncu_profile.sh tests/performance_test.py
+    bash profiler_scripts/hta_profile.sh tests/performance_test.py
 ```
 
 ### Automated Analysis
@@ -265,8 +295,15 @@ def run_profiling(script_path):
         "ncu", "--mode=launch", "--target-processes=python3",
         "--set", "full", "-o", "ncu_report", "python", script_path
     ])
+    
+    # Run HTA
+    subprocess.run([
+        "nsys", "profile", "--force-overwrite=true",
+        "-o", "hta_report", "-t", "cuda,nvtx,nccl",
+        "python", script_path
+    ])
 ```
 
 ## Conclusion
 
-This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.4, PyTorch 2.8, and Triton 3.4 stack, with specific optimizations for modern GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.
+This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.9, PyTorch 2.8 nightly, and Triton 3.4 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.

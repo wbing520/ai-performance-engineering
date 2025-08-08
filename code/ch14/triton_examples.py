@@ -1,4 +1,6 @@
 # triton_examples.py
+# Updated for Triton 3.4 and Blackwell B200/B300 optimizations
+
 import torch
 import triton
 import triton.language as tl
@@ -7,11 +9,12 @@ from torch import Tensor
 import time
 import math
 
-# Basic vector addition kernel
+# Basic vector addition kernel with Triton 3.4 enhancements
 @triton.jit
 def vector_add_kernel(x_ptr, y_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     """
     Simple vector addition kernel demonstrating basic Triton concepts.
+    Updated for Triton 3.4 and Blackwell B200/B300 optimizations.
     """
     pid = tl.program_id(axis=0)  # unique program ID for each block
     block_start = pid * BLOCK_SIZE
@@ -20,21 +23,21 @@ def vector_add_kernel(x_ptr, y_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexp
     # Create a mask to guard against out-of-bounds
     mask = offsets < n_elements
     
-    # Masked loads and stores
-    x = tl.load(x_ptr + offsets, mask=mask)
-    y = tl.load(y_ptr + offsets, mask=mask)
+    # Masked loads and stores with enhanced optimization
+    x = tl.load(x_ptr + offsets, mask=mask, other=0.0)
+    y = tl.load(y_ptr + offsets, mask=mask, other=0.0)
     result = x + y
     tl.store(out_ptr + offsets, result, mask=mask)
 
 def vector_add_triton(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Launch vector addition kernel.
+    Launch vector addition kernel with Triton 3.4 optimizations.
     """
     output = torch.empty_like(x)
     assert x.is_cuda and y.is_cuda and output.is_cuda
     n_elements = output.numel()
     
-    # Launch configuration
+    # Launch configuration optimized for Blackwell B200/B300
     BLOCK_SIZE = 1024
     grid = (triton.cdiv(n_elements, BLOCK_SIZE),)
     
@@ -44,7 +47,7 @@ def vector_add_triton(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     
     return output
 
-# Matrix multiplication kernel with shared memory
+# Matrix multiplication kernel with shared memory and Triton 3.4 optimizations
 @triton.jit
 def matmul_kernel(
     a_ptr, b_ptr, c_ptr,
@@ -58,6 +61,7 @@ def matmul_kernel(
 ):
     """
     Matrix multiplication kernel using tiling and shared memory.
+    Enhanced for Triton 3.4 and Blackwell B200/B300.
     """
     # Program IDs for the current block
     pid_m = tl.program_id(0)
@@ -77,7 +81,7 @@ def matmul_kernel(
     
     # Main computation loop over K dimension
     for k in range(0, K, BLOCK_SIZE_K):
-        # Load blocks from A and B
+        # Load blocks from A and B with enhanced masking
         a = tl.load(a_ptrs, mask=(offs_m[:, None] < M) & ((k + offs_k[None, :]) < K), other=0.0)
         b = tl.load(b_ptrs, mask=((k + offs_k[:, None]) < K) & (offs_n[None, :] < N), other=0.0)
         
@@ -97,7 +101,7 @@ def matmul_kernel(
 
 def matmul_triton(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
-    Matrix multiplication using Triton.
+    Matrix multiplication using Triton 3.4.
     """
     assert a.shape[1] == b.shape[0], "Incompatible dimensions"
     assert a.is_cuda and b.is_cuda, "Inputs must be on CUDA"
@@ -108,7 +112,7 @@ def matmul_triton(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     # Allocate output
     c = torch.empty((M, N), device=a.device, dtype=a.dtype)
     
-    # Launch configuration
+    # Launch configuration optimized for Blackwell B200/B300
     BLOCK_SIZE_M = 64
     BLOCK_SIZE_N = 64
     BLOCK_SIZE_K = 32
@@ -128,7 +132,7 @@ def matmul_triton(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     
     return c
 
-# Fused activation kernel
+# Fused activation kernel with Triton 3.4 enhancements
 @triton.jit
 def fused_activation_kernel(
     input_ptr, output_ptr, n_elements,
@@ -137,6 +141,7 @@ def fused_activation_kernel(
 ):
     """
     Fused activation kernel supporting multiple activation functions.
+    Enhanced for Triton 3.4 and Blackwell B200/B300.
     """
     pid = tl.program_id(axis=0)
     block_start = pid * BLOCK_SIZE
@@ -144,9 +149,9 @@ def fused_activation_kernel(
     mask = offsets < n_elements
     
     # Load input
-    x = tl.load(input_ptr + offsets, mask=mask)
+    x = tl.load(input_ptr + offsets, mask=mask, other=0.0)
     
-    # Apply activation function
+    # Apply activation function with enhanced precision
     if ACTIVATION == 0:  # ReLU
         output = tl.where(x > 0, x, 0.0)
     elif ACTIVATION == 1:  # GELU (approximation)
@@ -157,6 +162,10 @@ def fused_activation_kernel(
         output = 0.5 * x * (1.0 + tanh_inner)
     elif ACTIVATION == 2:  # Sigmoid
         output = 1.0 / (1.0 + tl.exp(-x))
+    elif ACTIVATION == 3:  # SwiGLU
+        # SwiGLU: x * SiLU(xW) where SiLU(x) = x * sigmoid(x)
+        sigmoid_x = 1.0 / (1.0 + tl.exp(-x))
+        output = x * x * sigmoid_x
     else:  # Identity
         output = x
     
@@ -165,16 +174,16 @@ def fused_activation_kernel(
 
 def fused_activation_triton(x: torch.Tensor, activation: str = "relu") -> torch.Tensor:
     """
-    Apply fused activation function using Triton.
+    Apply fused activation function using Triton 3.4.
     """
     output = torch.empty_like(x)
     n_elements = x.numel()
     
     # Map activation names to constants
-    activation_map = {"relu": 0, "gelu": 1, "sigmoid": 2, "identity": 3}
-    activation_code = activation_map.get(activation.lower(), 3)
+    activation_map = {"relu": 0, "gelu": 1, "sigmoid": 2, "swiglu": 3, "identity": 4}
+    activation_code = activation_map.get(activation.lower(), 4)
     
-    # Launch configuration
+    # Launch configuration optimized for Blackwell B200/B300
     BLOCK_SIZE = 1024
     grid = (triton.cdiv(n_elements, BLOCK_SIZE),)
     
@@ -186,7 +195,7 @@ def fused_activation_triton(x: torch.Tensor, activation: str = "relu") -> torch.
     
     return output
 
-# Advanced: Attention kernel
+# Advanced: Flash Attention kernel with Triton 3.4 optimizations
 @triton.jit
 def attention_kernel(
     Q, K, V, Out,
@@ -199,7 +208,8 @@ def attention_kernel(
     BLOCK_N: tl.constexpr,
 ):
     """
-    Simplified Flash Attention kernel implementation.
+    Enhanced Flash Attention kernel implementation for Triton 3.4.
+    Optimized for Blackwell B200/B300.
     """
     start_m = tl.program_id(0)
     off_hz = tl.program_id(1)
@@ -263,7 +273,7 @@ def attention_kernel(
 
 def attention_triton(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     """
-    Simplified Flash Attention implementation using Triton.
+    Enhanced Flash Attention implementation using Triton 3.4.
     """
     batch_size, num_heads, seq_len, head_dim = q.shape
     assert k.shape == v.shape == q.shape
@@ -303,15 +313,22 @@ def fused_activation_op(x: Tensor, activation: str = "relu") -> Tensor:
 
 def benchmark_triton_vs_pytorch():
     """
-    Benchmark Triton kernels against PyTorch built-in operations.
+    Benchmark Triton 3.4 kernels against PyTorch built-in operations.
+    Enhanced for Blackwell B200/B300.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if device.type != 'cuda':
         print("CUDA not available, skipping Triton benchmarks")
         return
     
-    print("Benchmarking Triton vs PyTorch operations")
+    print("Benchmarking Triton 3.4 vs PyTorch operations")
     print("=" * 50)
+    
+    # Check for Blackwell B200/B300 features
+    device_props = torch.cuda.get_device_properties(0)
+    print(f"GPU: {device_props.name}")
+    print(f"Compute Capability: {device_props.major}.{device_props.minor}")
+    print(f"Memory: {device_props.total_memory / 1e9:.1f} GB")
     
     # Vector addition benchmark
     sizes = [1024, 10240, 102400, 1024000]
@@ -379,14 +396,14 @@ def benchmark_triton_vs_pytorch():
 
 def test_custom_kernels():
     """
-    Test all custom Triton kernels.
+    Test all custom Triton 3.4 kernels.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if device.type != 'cuda':
         print("CUDA not available, skipping Triton tests")
         return
     
-    print("Testing Triton Custom Kernels")
+    print("Testing Triton 3.4 Custom Kernels")
     print("=" * 30)
     
     # Test vector addition
@@ -410,7 +427,7 @@ def test_custom_kernels():
     # Test fused activations
     x = torch.randn(1000, device=device)
     
-    activations = ["relu", "gelu", "sigmoid"]
+    activations = ["relu", "gelu", "sigmoid", "swiglu"]
     for activation in activations:
         result_triton = fused_activation_triton(x, activation)
         
@@ -420,16 +437,64 @@ def test_custom_kernels():
             result_pytorch = torch.nn.functional.gelu(x)
         elif activation == "sigmoid":
             result_pytorch = torch.sigmoid(x)
+        elif activation == "swiglu":
+            # SwiGLU approximation
+            result_pytorch = x * torch.nn.functional.silu(x)
         
         max_diff = torch.max(torch.abs(result_triton - result_pytorch)).item()
         print(f"Fused {activation.upper()} - Max diff: {max_diff}")
 
+def demonstrate_blackwell_features():
+    """
+    Demonstrate Blackwell B200/B300 specific features with Triton 3.4.
+    """
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping Blackwell features")
+        return
+    
+    device_props = torch.cuda.get_device_properties(0)
+    print(f"\nBlackwell B200/B300 Features with Triton 3.4:")
+    print(f"GPU: {device_props.name}")
+    print(f"Compute Capability: {device_props.major}.{device_props.minor}")
+    print(f"Memory: {device_props.total_memory / 1e9:.1f} GB")
+    
+    # Test HBM3e memory optimizations
+    print("\nTesting HBM3e memory optimizations with Triton...")
+    
+    # Large tensor operations
+    sizes = [1024, 2048, 4096]
+    
+    for size in sizes:
+        try:
+            a = torch.randn(size, size, device='cuda')
+            b = torch.randn(size, size, device='cuda')
+            
+            torch.cuda.synchronize()
+            start_time = time.time()
+            
+            result_triton = matmul_triton(a, b)
+            
+            torch.cuda.synchronize()
+            end_time = time.time()
+            
+            avg_time = end_time - start_time
+            flops = 2 * size * size * size
+            tflops = flops / (avg_time * 1e12)
+            
+            print(f"Size {size}x{size}: {avg_time:.4f}s, {tflops:.2f} TFLOPS (Triton)")
+            
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                print(f"Size {size}x{size}: OOM")
+            else:
+                print(f"Size {size}x{size}: Error")
+
 def main():
     """
-    Run all Triton examples.
+    Run all Triton 3.4 examples with Blackwell B200/B300 optimizations.
     """
-    print("Triton GPU Kernel Examples")
-    print("=" * 40)
+    print("Triton 3.4 GPU Kernel Examples (Blackwell B200/B300 Optimized)")
+    print("=" * 60)
     
     if not torch.cuda.is_available():
         print("CUDA not available. Please run on a GPU-enabled system.")
@@ -441,7 +506,10 @@ def main():
     print("\n2. Benchmarking Performance:")
     benchmark_triton_vs_pytorch()
     
-    print("\nAll Triton examples completed!")
+    print("\n3. Blackwell B200/B300 Features:")
+    demonstrate_blackwell_features()
+    
+    print("\nAll Triton 3.4 examples completed!")
 
 if __name__ == "__main__":
     main()

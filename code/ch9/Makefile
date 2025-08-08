@@ -1,7 +1,7 @@
 # Makefile for Chapter 9 - Kernel Fusion and Arithmetic Intensity
-
+CUDA_VERSION = 12.9
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=sm_80
+NVCC_FLAGS = -O3 -std=c++17 -arch=sm_100
 PYTHON = python3
 
 # CUDA targets
@@ -13,7 +13,7 @@ PYTHON_TARGETS = fusion_pytorch.py
 .PHONY: all clean cuda python test profile
 
 all: cuda
-
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 cuda: $(CUDA_TARGETS)
 
 python:
@@ -123,3 +123,26 @@ check-deps:
 	@$(PYTHON) -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 	@which ncu > /dev/null && echo "Nsight Compute available" || echo "WARNING: Nsight Compute not found"
 	@which nsys > /dev/null && echo "Nsight Systems available" || echo "WARNING: Nsight Systems not found"
+
+# HTA (Holistic Tracing Analysis) profiling
+profile-hta: $(TARGET)
+	@echo "HTA profiling for multi-GPU analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile ./$(TARGET)
+
+# Perf profiling for system-level analysis
+profile-perf: $(TARGET)
+	@echo "Perf profiling for system-level analysis..."
+	perf record -g -p $$(pgrep $(TARGET)) -o perf.data ./$(TARGET)
+	perf report -i perf.data
+
+# Enhanced profiling with all tools
+profile-all: $(TARGET)
+	@echo "Comprehensive profiling with all tools..."
+	@echo "1. Nsight Systems timeline..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline ./$(TARGET)
+	@echo "2. Nsight Compute kernel analysis..."
+	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel ./$(TARGET)
+	@echo "3. Memory profiling..."
+	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory ./$(TARGET)
+	@echo "4. HTA analysis..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta ./$(TARGET)

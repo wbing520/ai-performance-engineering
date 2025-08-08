@@ -1,2 +1,12 @@
 torch --pre
 triton --pre
+# CUDA 12.9 runtime libraries
+nvidia-cuda-runtime-cu12==12.9.140
+nvidia-cudnn-cu12==9.0.0.29
+nvidia-cublas-cu12==12.9.2.65
+nvidia-cufft-cu12==11.2.2.12
+nvidia-curand-cu12==10.4.0.141
+nvidia-cusolver-cu12==12.2.0.141
+nvidia-cusparse-cu12==12.3.0.141
+nvidia-nccl-cu12==2.20.5
+nvidia-nvtx-cu12==12.9.140
