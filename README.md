@@ -7,6 +7,23 @@
 
 ---
 
+## 📋 Performance Checklist
+
+The book includes a comprehensive **175+ item performance checklist** covering:
+
+- ✅ Performance Tuning Mindset and Cost Optimization
+- ✅ Reproducibility and Documentation Best Practices
+- ✅ System Architecture and Hardware Planning
+- ✅ Operating System and Driver Optimizations
+- ✅ GPU Programming and CUDA Tuning
+- ✅ Distributed Training and Network Optimization
+- ✅ Efficient Inference and Serving
+- ✅ Power and Thermal Management
+- ✅ Latest Profiling Tools and Techniques
+- ✅ Architecture-Specific Optimizations
+
+---
+
 ## 📚 About This Repository
 
 This repository contains comprehensive code examples, tools, and resources for AI Systems Performance Engineering. It accompanies the O'Reilly book covering GPU optimization, distributed training, inference scaling, and performance tuning for modern AI workloads.
@@ -277,22 +294,7 @@ perf report -i perf.data
 - [AI Performance Engineering Meetup](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
 - [PyTorch Model Optimization](resources/PyTorch_Model_Optimization.pdf)
 
----
 
-## 📋 Performance Checklist
-
-The book includes a comprehensive **175+ item performance checklist** covering:
-
-- ✅ Performance Tuning Mindset and Cost Optimization
-- ✅ Reproducibility and Documentation Best Practices
-- ✅ System Architecture and Hardware Planning
-- ✅ Operating System and Driver Optimizations
-- ✅ GPU Programming and CUDA Tuning
-- ✅ Distributed Training and Network Optimization
-- ✅ Efficient Inference and Serving
-- ✅ Power and Thermal Management
-- ✅ Latest Profiling Tools and Techniques
-- ✅ Architecture-Specific Optimizations
 
 ---
 
