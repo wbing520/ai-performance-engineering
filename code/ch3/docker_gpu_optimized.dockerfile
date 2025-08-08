@@ -1,0 +1,48 @@
+# Multi-stage Docker build for optimized GPU performance
+FROM nvcr.io/nvidia/pytorch:25.05-py3 AS base
+
+# Install additional dependencies for performance optimization
+RUN apt-get update && apt-get install -y \
+    numactl \
+    libnuma-dev \
+    htop \
+    iotop \
+    tcmalloc-minimal \
+    jemalloc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for optimized memory allocation
+ENV MALLOC_CONF="narenas:8,dirty_decay_ms:10000,muzzy_decay_ms:10000,background_thread:true"
+ENV TCMALLOC_MAX_TOTAL_THREAD_CACHE_BYTES=536870912
+ENV TCMALLOC_RELEASE_RATE=16
+
+# Set CUDA environment variables for PyTorch 2.8
+ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
+
+# Copy application code
+COPY . /app
+WORKDIR /app
+
+# Install Python dependencies with latest versions
+RUN pip install --upgrade pip && \
+    pip install torch==2.8.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu129 && \
+    pip install triton==3.4.0 && \
+    pip install nvidia-ml-py3 psutil
+
+# Runtime stage for smaller final image
+FROM base AS runtime
+
+# Set up runtime environment
+ENV PYTHONPATH=/app
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Entry point with NUMA awareness
+ENTRYPOINT ["numactl", "--interleave=all", "python"]
+CMD ["train.py"]

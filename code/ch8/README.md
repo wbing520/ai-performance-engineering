@@ -1,36 +1,51 @@
-# Chapter 8 Code Examples
+# Chapter 8: Occupancy Tuning, Warp Efficiency, and Instruction-Level Parallelism
 
-This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 8 (Synchronizing, Pipelining, and Overlapping Compute and Memory Transfers), updated for:
+This chapter covers advanced GPU optimization techniques focusing on keeping the GPU fully utilized through better warp scheduling and parallelism.
 
-- **CUDA 13**
-- **PyTorch 2.7**
-- **Blackwell B200** GPU
+## Examples
 
-Examples include:
+### Occupancy Tuning
+- `occupancy_tuning.cu` - Demonstrates using __launch_bounds__ and occupancy API
+- `occupancy_api_example.cu` - Using CUDA occupancy API to find optimal block sizes
+- `occupancy_pytorch.py` - PyTorch considerations for occupancy
 
-- **intra_pipeline/**: Two-stage double-buffered GEMM pipeline using <cuda::pipeline>
-- **warp_specialized/**: Warp-specialized pipeline kernel using <cuda::pipeline>
-- **cooperative/**: Naive loop vs. persistent kernel (cooperative groups)
-- **clusters/**: CTA-cluster example with DSMEM and cluster-wide barriers
-- **streams/**: Overlapping compute and H2D/D2H transfers with streams and cudaMallocAsync
-- **combined_pipeline/**: Streaming multiple mini-batches with a warp-specialized pipeline via streams
+### Warp Divergence and Efficiency
+- `threshold_naive.cu` - Example with warp divergence issues
+- `threshold_predicated.cu` - Optimized version using predication
+- `warp_divergence_pytorch.py` - PyTorch approaches to avoid divergence
 
-To build and run an example:
+### Instruction-Level Parallelism (ILP)
+- `ilp_basic.cu` - Basic instruction-level parallelism example
+- `loop_unrolling.cu` - Loop unrolling for better ILP
+- `independent_ops.cu` - Separating independent operations
+- `ilp_pytorch.py` - PyTorch approaches to ILP
+
+### Profiling and Analysis
+- `profiling_example.cu` - Kernel designed for profiling analysis
+- `profile_analysis.py` - PyTorch profiling with torch.profiler
+
+## Key Concepts
+
+1. **Occupancy**: Ratio of active warps to maximum possible warps per SM
+2. **Warp Divergence**: When threads in a warp take different execution paths
+3. **Instruction-Level Parallelism**: Multiple independent operations per thread
+4. **Latency Hiding**: Using parallelism to hide memory and compute latencies
+
+## Profiling Commands
 
 ```bash
-cd chapter8-examples/intra_pipeline && ./run.sh
-cd ../warp_specialized && ./run.sh
-cd ../cooperative && ./run.sh
-cd ../clusters && ./run.sh
-cd ../streams && ./run.sh
-cd ../combined_pipeline && ./run.sh
+# Nsight Compute for detailed kernel analysis
+ncu --metrics smsp__warps_active.avg.pct_of_peak_sustained,smsp__warp_execution_efficiency.avg ./kernel
+
+# Nsight Systems for timeline analysis
+nsys profile --trace=cuda,nvtx ./application
+
+# PyTorch profiler
+python -c "import torch; torch.profiler.profile(...)"
 ```
 
-#### Profiling
+## Requirements
 
-Profiler scripts are under **profiler_scripts/** for Nsight Systems (`nsys`) and Nsight Compute (`ncu`):
-
-```bash
-bash profiler_scripts/nsys_profile.sh intra_pipeline/gemm_tiled_pipeline
-bash profiler_scripts/ncu_profile.sh intra_pipeline/gemm_tiled_pipeline
-```
+- CUDA 12.9+
+- PyTorch 2.8+
+- Nsight Compute/Systems for profiling

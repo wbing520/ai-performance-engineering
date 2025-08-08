@@ -1,0 +1,63 @@
+# PyTorch 2.8 with CUDA 12.9 support
+torch==2.8.0
+torchvision==0.19.0
+torchaudio==2.8.0
+
+# HuggingFace ecosystem for model loading
+transformers==4.46.3
+datasets==4.21.3
+tokenizers==0.20.3
+accelerate==1.1.1
+
+# Profiling and analysis tools
+# HTA (Holistic Trace Analysis) - install from source
+# git+https://github.com/facebookresearch/HolisticTraceAnalysis.git
+
+# TorchBench for standardized benchmarking
+# git+https://github.com/pytorch/benchmark.git
+
+# Memory profiling and visualization
+psutil==6.1.0
+memory-profiler==0.61.0
+
+# Triton for custom kernels
+triton==3.4.0
+
+# Distributed training
+# NCCL is included with PyTorch CUDA builds
+
+# Data processing and analysis
+numpy==2.1.3
+pandas==2.2.3
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# JSON and trace processing
+ujson==5.10.0
+
+# Web-based trace viewing (optional)
+# perfetto (system install)
+
+# Development and testing
+pytest==8.3.4
+pytest-benchmark==4.0.0
+black==24.10.0
+isort==5.13.2
+
+# Monitoring and logging
+wandb==0.18.7
+tensorboard==2.18.0
+tqdm==4.67.1
+
+# System monitoring
+nvidia-ml-py3==12.560.30
+pynvml==11.5.3
+
+# Optional: ExecuTorch for mobile/edge profiling
+# executorch (install from source when available)
+
+# Note: Additional system tools needed:
+# - NVIDIA Nsight Systems (nsys)
+# - NVIDIA Nsight Compute (ncu)  
+# - Linux perf tools
+# - Chrome browser (for trace viewing)

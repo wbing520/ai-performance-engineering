@@ -1,584 +1,300 @@
-# AI Systems Performance Engineering
-## O'Reilly Book - Fall 2025
+# AI Performance Engineering
 
-https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/
+A comprehensive guide to optimizing AI systems for maximum performance, efficiency, and scalability. This repository contains practical examples and code for performance engineering on modern AI hardware, including NVIDIA's Grace Blackwell superchips and NVL72 systems.
 
-[![O'Reilly Book](img/ai_sys_perf_engg_cover_cheetah_sm.png)](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
+## 🚀 Latest Updates
 
-# Meetup and YouTube Links
-* Monthly Meetup: https://www.meetup.com/ai-performance-engineering
-* YouTube Videos: https://www.youtube.com/@AIPerformanceEngineering
+**Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4**
 
-# O'Reilly Book - Table of Contents
+This repository has been completely updated to support the latest AI hardware and software stack:
 
-Book: https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/
+- **PyTorch 2.8**: Latest PyTorch with enhanced compiler support and Blackwell optimizations
+- **CUDA 12.9**: Latest CUDA toolkit with Blackwell B200/B300 support
+- **Triton 3.4**: OpenAI's Triton for custom GPU kernel development
+- **Blackwell B200/B300**: Support for NVIDIA's latest GPU architecture
+- **Grace Blackwell Superchip**: Unified memory architecture examples
+- **NVL72 Systems**: Multi-GPU cluster optimization examples
 
-# Monthly Meetups (100,000 Global Members, 20+ Cities)
-* https://www.meetup.com/ai-performance-engineering
+## 📚 Book Chapters
 
-## July 21, 2025
-* [YouTube Video](https://youtu.be/jaiMotxv8ck)
-* [Dynamic_Adaptive_RL_Inference_CUDA_Kernel_Tuning.pdf](resources/Dynamic_Adaptive_RL_Inference_CUDA_Kernel_Tuning.pdf)
-  
-## Apr 21, 2025
-* [YouTube Video](https://youtu.be/XoZcY_fDUKA)
-* [AI_Performance_Engineering_Meetup_Apr_21_2025](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
-* [PyTorch_Model_Optimization](resources/PyTorch_Model_Optimization.pdf)
+Each chapter contains practical code examples demonstrating key performance engineering concepts:
 
-## May 19, 2025
-* [YouTube Video](https://youtu.be/F8jJwI9xHTE)
-* [PyTorch Optimizations: Data Loader Pipeline](resources/PyTorch_Model_Optimization_Data_Loader.pdf)
-* [Cross-Architeecture CUDA and ROCm Kernel Development](resources/ai_perf_eng_meetup.pdf)
+### Chapter 1: Introduction and AI System Overview
+- **`code/ch1/performance_basics.py`**: Basic performance measurement and goodput analysis
+- Demonstrates unified memory architecture, Tensor Core performance, and Transformer Engine
 
-## June 16, 2025
-* [YouTube Video]()
-* [High Performance Agentic AI Inference Systems](resources/High_Performance_Agentic_AI_Inference_Systems.pdf)
+### Chapter 2: AI System Hardware Overview  
+- **`code/ch2/hardware_info.py`**: Grace Blackwell superchip hardware analysis
+- NVLink bandwidth testing, unified memory capabilities, and Blackwell specifications
 
-## Chapter 1: Introduction and AI System Overview
-* The AI Systems Performance Engineer
-* Benchmarking and Profiling
-* Scaling Distributed Training and Inference
-* Managing Resources Efficiently
-* Cross-Team Collaboration
-* Transparency and Reproducibility
-* DeepSeek Scales to 671-Billion Parameter Models Despite Hardware Constraints
-* Towards 100-Trillion-Parameter Models
-* NVIDIA’s “AI Supercomputer in a Rack”
-* Mechanical Sympathy: Hardware-Software Co-Design
-* Measuring “Goodput” Useful Throughput
-* Book Roadmap and Methodology
-* Key Takeaways
-* Conclusion
+### Chapter 3: OS, Docker, and Kubernetes Tuning
+- **`code/ch3/bind_numa_affinity.py`**: NUMA binding and CPU pinning for GPU optimization
+- **`code/ch3/numa_bind.sh`**: Shell scripts for NUMA topology management
+- Memory pinning, CPU affinity, and DataLoader optimization
 
-## Chapter 2: AI System Hardware Overview
-* The CPU and GPU “Superchip”
-* NVIDIA Grace CPU
-* NVIDIA Blackwell “Dual-Die” GPU
-* NVIDIA GPU Tensor Cores and Transformer Engine
-* Streaming Multiprocessors, Threads, and Warps
-* Ultra-Scale Networking Treating Many GPUs as One
-* NVLink and NVSwitch
-* Multi-GPU Programming
-* In-Network Aggregations with NVIDIA SHARP
-* Multi-Rack and Storage Communication
-* Pre-Integrated Rack Appliance
-* Co-Packaged Optics: Future of Networking Hardware
-* Compute Density and Power Requirements
-* Liquid Cooling vs. Air Cooling
-* Performance Monitoring and Utilization in Practice
-* Sharing and Scheduling
-* ROI of Upgrading Your Hardware
-* A Glimpse into the Future: NVIDIA’s Roadmap
-* Blackwell Ultra and Grace-Blackwell Ultra
-* Vera-Rubin Superchip (2026)
-* Rubin Ultra and Vera-Rubin Ultra (2027)
-* Feynman GPU (2028) and Doubling Something Every Year
-* Key Takeaways
-* Conclusion
+### Chapter 4: Distributed Networking Communication
+- **`code/ch4/after_ddp.py`**: Distributed training with DDP communication overlap
+- NCCL vs Gloo backend comparison, gradient compression, and RDMA optimization
 
-## Chapter 3: OS, Docker, and Kubernetes Tuning for GPU-based Environments
-* Operating System
-* GPU Driver and Software Stack
-* GPU Driver
-* CUDA Toolkit and Runtime
-* CUDA Forward and Backward Compatibility Across GPU Hardware Generations
-* C++ and Python CUDA Libraries
-* PyTorch and Higher-Level AI Frameworks
-* Configuring the CPUs and OS for GPU Environments
-* NUMA Awareness and CPU Pinning
-* NUMA-Friendly Memory Allocation and Memory Pinning
-* Transparent Huge Pages
-* Scheduler and Interrupt Affinity
-* Virtual Memory and Swapping
-* Filesystem Caching and Write-Back
-* CPU Frequency and C-states
-* Tune Host CPU Memory Allocator
-* GPU Driver and Runtime Settings for Performance
-* GPU Persistence Mode
-* Multi-Process Service
-* Multi-Instance GPU
-* GPU Clock Speeds and Error Correcting Code
-* GPU Memory Oversubscription, Fragmentation, and Out-of-Memory Handling
-* Container Runtime Optimizations for GPUs
-* NVIDIA Container Toolkit and CUDA Compatibility
-* NVIDIA Container Runtime
-* Avoiding Container Overlay Filesystem Overhead
-* Reduce Image Size for Faster Container Startup
-* Kubernetes for Topology-Aware Container Orchestration and Networking
-* Orchestrating Containers with Kubernetes Topology Manager
-* Job Scheduling with Kubernetes and SLURM
-* Slicing a GPU with Multi-Instance GPU
-* Optimizing Network Communication for Kubernetes
-* Reducing Kubernetes Orchestration Jitter
-* Improving Resource Guarantees
-* Memory Isolation and Avoiding the OOM Killer
-* Dealing with I/O Isolation
-* Key Takeaways
-* Conclusion
+### Chapter 5: CUDA Programming Fundamentals
+- **`code/ch5/`**: CUDA kernel development and optimization
+- Memory coalescing, shared memory usage, and kernel fusion techniques
 
-## Chapter 4: Tuning Distributed Networking Communication
-* Overlapping Communication and Computation (Pipelining)
-* Asynchronous Execution with Streams
-* Reducing Communication Frequency and Volume
-* Achieving Maximal Overlap in Practice
-* NVIDIA Magnum IO Optimization Stack
-* High-Speed, Low-Overhead Data Transfers with RDMA
-* Tuning Multi-Node Connectivity
-* Multi-Node Communication Pitfalls
-* NCCL for Distributed Multi-GPU Communication
-* Topology Awareness in NCCL
-* NCCL Communication Algorithms
-* Distributed Data Parallel Strategies
-* NCCL Communicator Lifecycle and Environment Gotchas
-* Profiling and Debugging NCCL
-* In-Network SHARP Aggregation
-* NVIDIA Inference Transfer Library (NIXL) and Disaggregated Inference
-* Separate Prefill and Decode Inference Stages
-* Intelligent Interconnect Routing for KV Cache Transfers
-* NIXL Asynchronous API with Callbacks
-* KV-Cache Offloading with NIXL
-* NIXL and High-Performance Inference Systems like NVIDIA Dynamo
-* NCCL vs. NIXL
-* Key Takeaways
-* Conclusion
+### Chapter 6: GPU Memory Hierarchy Optimization
+- **`code/ch6/`**: Memory bandwidth optimization and cache utilization
+- Global memory access patterns, shared memory optimization, and L2 cache usage
 
-## Chapter 5: GPU-based Storage I/O Optimizations
-* Fast Storage and Data Locality
-* Sequential vs. Random Read Patterns
-* Tuning NVMe and Filesystem for Throughput
-* Using NVIDIA GPUDirect Storage
-* Measuring GPUDirect Storage with gdsio
-* DeepSeek’s Fire-Flyer File System (3FS)
-* Distributed, Parallel File Systems and Object Stores
-* Tuning, Replicating, and Compressing Data
-* Monitoring Storage I/O
-* Tuning the Data Pipeline
-* Efficient Data Loading and Preprocessing
-* Scaling Out Workers as you Scale Out Number of GPUs
-* Multi-Modal Data Processing with NVIDIA DALI
-* Creating High-Quality LLM Datasets with NVIDIA NeMo Curator
-* Continuous Profiling and Tuning Workflow
-* Diagnosing Communication vs. Compute Bound Workloads
-* Key Takeaways
-* Conclusion
+### Chapter 7: Tensor Core and Matrix Operations
+- **`code/ch7/`**: Tensor Core optimization and matrix multiplication
+- FP8/FP4 precision, GEMM optimization, and custom kernel development
 
-## Chapter 6: GPU Architecture, CUDA Programming, and Maximizing Occupancy
-* Understanding GPU Architecture
-* Threads, Warps, Blocks, and Grids
-* Choosing Threads-per-Block and Blocks-per-Grid Sizes
-* CUDA GPU Backward and Forward Compatibility Model
-* CUDA Programming Refresher
-* Configuring Launch Parameters: Blocks Per Grid and Threads Per Block
-* 2D and 3D Kernel Inputs
-* Asynchronous Memory Allocation and Memory Pools
-* Understanding GPU Memory Hierarchy
-* Unified Memory
-* Maintaining High Occupancy and GPU Utilization
-* Tuning Occupancy with Launch Bounds
-* Debugging Functional Correctness with NVIDIA Compute Sanitizer
-* Memcheck
-* Racecheck
-* Initcheck
-* Synccheck
-* Roofline Model: Compute-Bound or Memory-Bound Workloads
-* Key Takeaways
-* Conclusion
+### Chapter 8: CUDA Streams and Asynchronous Programming
+- **`code/ch8/`**: Stream-based parallelism and asynchronous execution
+- Kernel fusion, pipeline parallelism, and communication overlap
 
-## Chapter 7: Profiling and Tuning GPU Memory Access Patterns
-* Coalesced vs. Uncoalesced Global Memory Access
-* Vectorized Memory Access
-* Tiling and Data Reuse Using Shared Memory
-* Avoid Shared-Memory Bank Conflicts
-* Warp Shuffle Intrinsics: Avoid Shared Memory and Explicit Synchronization
-* Read-Only Data Caches
-* Asynchronous Memory Prefetching and Tensor Memory Accelerator
-* Key Takeaways
-* Conclusion
+### Chapter 9: Dynamic Parallelism and CUDA Graphs
+- **`code/ch9/`**: Dynamic parallelism and CUDA graph optimization
+- Persistent kernels, graph capture, and dynamic workload distribution
 
-## Chapter 8: Occupancy Tuning, Warp Efficiency, and Instruction-Level Parallelism
-* Profiling and Diagnosing GPU Bottlenecks
-* Nsight Systems Timeline View
-* Profiling and Tuning the Data Pipeline
-* Nsight Compute and Roofline Analysis
-* PyTorch Profiler and Visualization Tools
-* Profiler-Guided Analysis
-* Analyzing Warp Stall Reasons with Nsight Compute
-* Memory-Related Stalls
-* Execution Dependency Stalls
-* Execution Unit Contention
-* Other Stall Reasons
-* Inspecting Achieved Occupancy and GPU Utilization
-* Kernel Memory Throughput vs. Peak HBM Memory Bandwidth
-* Kernel Compute Throughput vs. Peak GPU FLOPs
-* Iteratively Profiling and Determining the Kernel Bottleneck
-* Optimizing the Kernel
-* Tuning Occupancy
-* Find the Right Occupancy for your Workload
-* Techniques for Occupancy Tuning
-* Compiler Hints to Optimize Occupancy
-* Determine Optimal Launch Configuration with the Occupancy API
-* Tuning Occupancy with PyTorch
-* Improving Warp Execution Efficiency (Warp Divergence)
-* Causes of Warp Divergence
-* Techniques to Avoid Warp Divergence
-* Profiling and Detecting Warp Divergence
-* Using Prediction to Minimize Divergence
-* Efficient Intra-Warp Communication with Warp Intrinsics
-* PyTorch Considerations for Warp-Level Efficiency
-* Exposing Instruction-Level Parallelism
-* Warp Scheduling and Dual Issue Instructions
-* ILP and Occupancy
-* Loop Unrolling, Interleaving, and Compiler Hinting
-* Profiling and Mitigating Register Pressure
-* Key Takeaways
-* Conclusion
+### Chapter 10: Advanced CUDA Features
+- **`code/ch10/`**: Advanced CUDA programming techniques
+- Cooperative groups, warp-level primitives, and custom atomic operations
 
-## Chapter 9: Increasing CUDA Kernel Efficiency and Arithmetic Intensity
-* Multi-Level Micro-Tiling and Software Prefetching
-* Tiling with Thread Block Clusters
-* Kernel Fusion
-* Structured Sparsity
-* Recomputation vs. Memory Trade-Off
-* PyTorch and Arithmetic Intensity
-* Mixed Precision and Utilizing Tensor Cores
-* Feeding Tensor Cores with TMEM and TMA
-* TF32 and Automatic Mixed Precision (PyTorch)
-* BF16/FP16, FP8, and FP4 Reduced Precision
-* INT8 Reduced Precision and DP4A Instructions for Inference
-* Transformer Engine and TMEM and WMMA In-Depth
-* Impact of Converting a GEMM from FP32 to Mixed Precision
-* Using CUTLASS for Optimal Arithmetic Intensity and Tensor Core Performance
-* Inline PTX and SASS Tuning for Micro-Optimizations
-* DeepSeek’s Use of Inline PTX for Memory Allocation Optimization
-* Key Takeaways
-* Conclusion
+### Chapter 11: PyTorch Optimization
+- **`code/ch11/`**: PyTorch-specific optimizations and techniques
+- Compiler optimizations, memory management, and distributed training
 
-## Chapter 10: Intra-Kernel Pipelining, Warp Specialization, and Cooperative Thread Block Clusters
-* Intra-Kernel Pipelining Techniques
-* Cooperative Tiling and Double-Buffering with the CUDA Pipeline API
-* Warp-Specialized Producer-Consumer Model
-* Using CUDA Pipeline API for Warp Specialization
-* PyTorch, CUDA Pipeline API, and Warp Specialization
-* Persistent Kernels and Megakernels
-* Common Workloads for Persistent Kernels
-* Megakernels for Inference
-* Persistent Kernels and Warp Specialization
-* Cooperative Groups
-* Cooperative Grid Synchronization and Persistent Kernels
-* When to Combine Persistent Kernels and Cooperative Groups
-* Thread Block Clusters and Distributed Shared Memory (DSMEM)
-* Thread-Block Swizzling
-* Distributed Shared Memory
-* Scratch Memory
-* Launching a Thread Block Cluster
-* Coordinating Thread Block Clusters with Cooperative Groups API
-* CTA Pair
-* Reducing Global Memory Traffic with Thread Block Clusters
-* Designing Efficient Algorithms with Thready Block Clusters
-* Warp Specialization with Thread Block Clusters
-* Key Takeaways
-* Conclusion
+### Chapter 12: Triton for Custom GPU Kernels
+- **`code/ch12/`**: OpenAI Triton for high-performance GPU kernel development
+- Custom attention mechanisms, fused operations, and kernel autotuning
 
-## Chapter 11: Inter-Kernel Pipelining, Synchronization, and CUDA Stream-Ordered Memory Allocations
-* Using Streams to Overlap Compute with Data Transfers
-* Stream-Ordered Memory Allocator
-* Using CUDA Streams and Stream-Ordered Memory Allocator with LLMs
-* Legacy Default Stream
-* Modern Per-Thread Default Stream (PTDS)
-* Default vs. Explicit (Non-Default) Streams
-* Best Practices for Default Stream Usage
-* Fine-Grained Synchronization with Events and Callbacks
-* Using CUDA Events for Cross-Stream Synchronization
-* Combining Intra-Kernel Overlap (Warp Specialization) and Inter-Kernel Overlap (CUDA Streams)
-* Combining Thread Block Clusters with Warp Specialization and CUDA Streams
-* Multi-GPU Compute and Data Transfer Overlap with CUDA Streams
-* Zero-Overhead Launch with CUDA Graphs
-* Key Takeaways
-* Conclusion
+### Chapter 13: Distributed Training Optimization
+- **`code/ch13/`**: Large-scale distributed training techniques
+- Model parallelism, pipeline parallelism, and memory optimization
 
-## Chapter 12: Dynamic and Device-Side Kernel Orchestration with CUDA Graphs
-* Dynamic Scheduling with Atomic Work Queues
-* Atomic Counters
-* Atomic Queues
-* Batch Repeated Kernel Launches with CUDA Graphs
-* Dynamic Graph Updates
-* Programmatic Dependent Launch (PDL) and CUDA Device Graph Launch
-* Device-Initiated Graph Launch Modes
-* Atomic Queues, PDL, and Device-Initiated CUDA Graphs for In-Kernel Persistent Scheduling
-* Dynamic Parallelism: Offload Kernel Dispatch From the CPU to the GPU
-* Orchestrate Across Multiple GPUs and Cluster Nodes (NVSHMEM)
-* Fine-Grained GPU-to-GPU Memory Sharing with NVSHMEM
-* Capturing Multi-GPU Collectives with NCCL and CUDA Graphs
-* Pattern for N-GPU Scaling
-* Roofline-Guided Scheduling and Orchestration Decisions
-* Key Takeaways
-* Conclusion
+### Chapter 14: Inference Optimization
+- **`code/ch14/`**: High-throughput inference optimization
+- Model serving, quantization, and batch processing
 
-## Chapter 13: Profiling, Tuning, and Scaling PyTorch
-* NVTX Markers and Profiling Tools
-* Profiling PyTorch to Identify Bottlenecks
-* Using PyTorch Profiler
-* System Profiling with Nsight Systems and NVTX Timelines
-* Kernel Roofline Analysis for General Matrix Multiply (GEMM)
-* CPU and GPU Profiling with Linux perf
-* PyTorch Compiler (torch.compile)
-* Using PyTorch Compiler
-* Compiling versus Writing Custom Kernels
-* Compilation Modes and Trade-offs in Speed, Memory, and Compile Time
-* Profiling and Debugging Compiler Performance Issues
-* PyTorch Optimized Attention Mechanisms
-* PyTorch Architecture Optimization (torch.ao), Quantization, Sparsity, and Pruning
-* Concurrency with CUDA Streams
-* Overlapping Communication and Computation
-* Stream Synchronization with Events
-* Using CUDA Streams with Mixture-of-Experts (MoE) Models
-* Reducing Kernel Launch Overhead with CUDA Graphs
-* Capturing a CUDA Graph and Pre-Allocating Memory
-* Replaying the Graph
-* Best Practices for CUDA Graphs
-* CUDA Graph Trees (PyTorch Compiler Internal)
-* Profiling and Tuning Memory in PyTorch
-* Tuning the CUDA Memory Allocator
-* Activation/Gradient Checkpointing for Memory Savings
-* Offloading Parameters to CPU and NVMe
-* FSDP Automatic Checkpointing and Offloading
-* Combining FSDP with Tensor Parallel and Pipeline Parallel
-* Pluggable Memory Allocators and Cross-GPU Data Transfers
-* Enabling Peer-to-Peer (P2P) DMA and UCX
-* Optimizing the Data Input Pipeline
-* Scaling with PyTorch Distributed
-* DDP with torch.compile
-* FSDP with torch.compile
-* Tensor and Pipeline Parallelism with torch.compile
-* Multi-GPU Profiling with Holistic Tracing Analysis (HTA)
-* Continuous Integration and Performance Benchmarking
-* PyTorch Heads-Up-Display (HUD) Performance Dashboard
-* Performance Benchmarks and MLPerf Logging
-* Key Takeaways
-* Conclusion
+### Chapter 15: Model Compression and Quantization
+- **`code/ch15/`**: Model compression techniques for efficiency
+- Pruning, quantization, and knowledge distillation
 
-## Chapter 14: PyTorch Compiler, XLA, and OpenAI Triton Backends
-* PyTorch Compiler Deep Dive
-* TorchDynamo for Bytecode Capture and Graph Extraction
-* AOTAutograd Ahead-of-Time Fusion for Forward and Backward Passes
-* PrimTorch IR (Prims) Simplified Operator Set
-* TorchInductor Backend Code Generation
-* Autotuning with TorchInductor
-* Dynamic Shapes and Variable Sequence Lengths
-* Regional Compilation
-* NVFuser and Legacy PyTorch JIT Compilation
-* Disabling PyTorch Compiler and Reverting Back to Eager Mode
-* Performance Hints and Debugging Generated Code
-* Debugging Numerical Correctness and Accuracy
-* Explaining and Minimizing Graph Breaks
-* Graph Breaks and torch._dynamo.explain
-* Minimize Graph Recompilations
-* Mark Functions and Code Blocks as Safe with allow_in_graph
-* Tips for Handling Graph Breaks
-* Debugging Compiler Phases, Graph Breaks, and Performance
-* Writing Custom Kernels with OpenAI Triton
-* Triton Programming Model
-* Accessing Shared Memory in Triton
-* Registering Custom Kernels with PyTorch
-* Tuning Kernel Launch Parameters
-* Auto-Tuning Triton Kernels
-* Profiling with Triton Proton Profiler
-* Advanced Triton Kernel Implementations
-* Warp Specialization with Triton
-* Persistent Matmul Kernel (Single-Kernel Tiling)
-* Software Pipelining and Double-Buffering with Triton
-* Accessing Tensor Cores with Warp-Level Matrix Multiply and Inline PTX
-* PyTorch XLA Backend
-* Key Takeaways
-* Conclusion
+### Chapter 16: Memory Optimization
+- **`code/ch16/`**: Advanced memory management techniques
+- Gradient checkpointing, activation recomputation, and memory-efficient training
 
-## Chapter 15: Multi-Node Inference Parallelism, Decoding, and Routing Optimizations
-* Disaggregated Prefill and Decode Architecture
-* Prefill-Decode Interference
-* Scaling Prefill and Worker Nodes Independently
-* Impact on Latency (TTFT) and Throughput (TPOT)
-* KV Cache Data Transfer and NIXL
-* Deploying Disaggregated Prefill-Decode with Kubernetes
-* Disaggregated PD in Production
-* Parallelism Strategies for Serving Massive MoE Models
-* Tensor Parallelism
-* Pipeline Parallelism
-* Expert Parallelism
-* Data Parallelism
-* Context (Sequence) Parallelism
-* Hybrid Parallelism
-* Speculative and Parallel Decoding Techniques
-* Two-Model, Draft-Based Speculative Decoding and EAGLE
-* Single-Model Self-Speculative Decoding
-* Multi-Token Decoding with Medusa’s Multiple Heads
-* Interleaving Decode Steps from Multiple Requests
-* Combining Decoding Techniques and Evaluating Complexity
-* Constrained Decoding Performance Implications
-* Dynamic Routing Strategies for MoE Inference
-* Expert Communication Optimization
-* Load Balancing, Capacity Factor, and Expert Replication
-* Adaptive Expert Routing and Real-Time Monitoring
-* Key Takeaways
-* Conclusion
+### Chapter 17: Profiling and Debugging
+- **`code/ch17/`**: Performance profiling and debugging tools
+- NVIDIA Nsight, PyTorch profiler, and custom profiling utilities
 
-## Chapter 16: Profiling, Debugging, and Tuning Inference at Scale
-* Workflow for Profiling, Debugging, and Tuning Performance
-* Monitoring System Metrics and Counters
-* Profiling with Nsight Systems and Nsight Compute
-* Inference Troubleshooting Recipes
-* Full-Stack Inference Optimizations
-* Debugging Correctness Issues
-* Dynamic Request Batching, Scheduling, and Routing
-* Dynamic Request Batching
-* Latency-Aware Scheduling and Dynamic Routing
-* Stall-Free Scheduling (Chunked Prefill)
-* Continuous Batching
-* Continuous Scheduling
-* Systems-Level Optimizations
-* Overlapping Communication and Computation
-* Maximizing GPU Utilization and Throughput vs. Latency Trade-offs
-* Power and Thermal Constraints
-* Error Handling
-* Memory
-* KV Cache Offloading and Memory Pool Allocation
-* Quantization Approaches for Real-Time Inference
-* Reducing Precision From FP16 Down to FP8/FP4
-* Weight-Only Quantization (GPTQ, AWQ)
-* Activation Quantization
-* Post-Training Quantization Workflow
-* Combining Weight and Activation Quantization
-* Fusing Quantization-Dequantization Steps into the Execution Graph
-* Application-Level Optimizations
-* Prompt Compression
-* Prompt Cleansing
-* Prefix Caching
-* Model Cascading and Tiered Model Deployment
-* Streaming Responses
-* Debouncing and Request Coalescing
-* Token Output Limits and Timeouts
-* Key Takeaways
-* Conclusion
+### Chapter 18: Model Serving and Deployment
+- **`code/ch18/`**: Production model serving optimization
+- vLLM, TensorRT, and high-throughput inference
 
-## Chapter 17: Scaling Disaggregated Prefill and Decode for Inference
-* Why Prefill-Decode Disaggregation?
-* Advantages of Disaggregation
-* Reduced Interference
-* Phase-Specific Optimizations
-* Disaggregated Prefill-Decode Cluster Pools
-* Prefill Workers Design
-* Dynamic Batching
-* Memory Management
-* Optimizing for Latency versus Throughput
-* Latency-Aware Scheduling and Batching
-* Decode Workers Design
-* KV Cache Transfer Between Prefill and Decode
-* Continuous Batching
-* Grouping Variable-Length Sequences
-* Memory Management for the KV Cache
-* Disaggregated Routing and Scheduling Policies
-* Routing Factors
-* Example Dynamic Routing Policy in Code
-* Example Dynamic Routing Policy Configuration
-* Capacity-Aware Routing
-* Latency-Aware Routing
-* Multi-Path Inference (Racing)
-* Multi-Branch, Parallel Speculative Decoding Across Workers
-* Quality-of-Service (QoS) and Early Rejection Policies
-* Conditional Routing in Practice
-* Scalability of Disaggregated Prefill-Decode
-* Key Takeaways
-* Conclusion
+### Chapter 19: Advanced Optimization Techniques
+- **`code/ch19/`**: Cutting-edge optimization techniques
+- FlashAttention, sparse computation, and novel architectures
 
-## Chapter 18: Advanced Prefill-Decode and KV Cache Tuning
-* Optimized Decode Kernels
-* FlashMLA (DeepSeek)
-* ThunderMLA (Stanford)
-* FlexDecoding (PyTorch)
-* Tuning KV Cache Utilization and Management
-* Disaggregated KV Cache Pool
-* KV Cache Reuse and Prefix Sharing
-* Optimized KV Cache Memory Layout
-* GPU and CPU-GPU Superchip Improvements
-* Fast KV Cache Transfer Between Prefill and Decode
-* KV Cache Size
-* Zero-Copy GPU-to-GPU Transfer
-* Connector and Data Path Design
-* Heterogeneous Hardware and Parallelism Strategies for Prefill and Decode
-* Compute-Optimized versus Memory-Optimized Hardware
-* Throughput and Cost Benefits
-* Phase-Specific Model Parallelism
-* Different Precision for Prefill and Decode
-* Hybrid Prefill with GPU–CPU Collaboration
-* SLO-Aware Request Management and Fault Tolerance
-* Early Rejection (Admission Control)
-* Quality of Service (QoS)
-* Fault Tolerance
-* Dynamic Scheduling and Load Balancing
-* Adaptive Resource Scheduling and Hotspot Prevention
-* Dynamic Resource Scaling
-* Key Takeaways
-* Conclusion
+### Chapter 20: Future Trends and Emerging Technologies
+- **`code/ch20/`**: Future directions in AI performance engineering
+- AI-assisted optimization, automated tuning, and emerging hardware
 
-## Chapter 19: Dynamic and Adaptive Inference Engine Optimizations
-* Adaptive Parallelism Strategies (TP vs. PP vs. Hybrid)
-* Dynamic Precision Changes (FP8 ⇆ FP4 on the Fly)
-* Kernel Auto-Tuning for Transformer Self-Attention and MLP Paths
-* Dynamic Shared-Memory Allocation and Occupancy-Aware Kernel Selection
-* Speculative KV Prefetching for Faster TTFT
-* Real-Time KV Cache Compression and Policy Switching
-* Reinforcement Learning Agents for Tuning AI Systems at Runtime
-* Dynamic Memory-Allocation Switching (Slab vs. Caching vs. Stream-Ordered)
-* Runtime Kernel Performance Improvements and Hot-Swappable Implementations
-* Continuous Prewarming of CUDA Graphs and Caches using Time-Series Prediction
-* Adaptive Batching and Chunked Prefill Scheduling
-* Congestion-Aware and Topology-Aware Scheduling with Multiple GPUs
-* NVLink/NVSwitch Topology and Bandwidth Constraints
-* Real-Time Link Telemetry and Monitoring
-* Adaptive Process-GPU Mapping
-* Optimizing Collective Communication with NCCL
-* Multi-Node and Multi-Rack Communication with GPUDirect RDMA
-* MoE Expert Rebalancing and Regrouping
-* Dynamic Congestion-Aware Scheduling
-* Coordinating NVSwitch Transfers with Fine-Tuned Scheduling
-* Additional Adaptive and Dynamic Optimization Techniques
-* Dynamic Early Exit Networks
-* Input-Aware Layer Skipping (DASH)
-* Speculative MoE Expert Routing and Communication Reduction
-* Dynamic Token Pruning with LazyLLM
-* Edge-Oriented MoE Memory Budgeting
-* Dynamic Quantization and Activation Range Adjustment
-* Key Takeaways
-* Conclusion
+## 🛠️ Installation
 
-## Chapter 20: AI-Assisted Performance Optimizations and Scaling Toward Multi-Million GPU Clusters
-* AlphaTensor AI-Discovered Algorithms Boosting GPU Performance (Google DeepMind)
-* Automated GPU Kernel Optimizations with DeepSeek-R1 (NVIDIA)
-* Reinforcement Learning Approach to Generating Optimized GPU Kernels (Predibase)
-* Future Trends in Self-Improving AI
-* Self-Improving AI Agents (AI Futures Project)
-* Smart Compilers and Automated Code Optimizations
-* AI-Assisted Real-Time System Optimizations and Cluster Operations
-* Scaling Toward Multi-Million GPU Clusters and 100-Trillion-Parameter Models
-* Key Takeaways
-* Conclusion
+### Prerequisites
 
-## Appendix: AI Systems Performance Checklist (175+ Items)
-* Performance Tuning Mindset and Cost Optimization
-* Reproducibility and Documentation Best Practices
-* System Architecture and Hardware Planning
-* Unified CPU-GPU “Superchip” Architecture
-* Multi-GPU Scaling and Interconnect Optimizations
-* Operating System and Driver Optimizations
-* GPU Resource Management and Scheduling
-* Data Pipeline and I/O Optimization
-* Workload Profiling and Monitoring
-* GPU Programming and CUDA Tuning Optimizations
-* Kernel Scheduling and Execution Optimizations
-* Data Pipeline and Storage Tips
-* Precision and Arithmetic Optimizations
-* Advanced Strategies and Algorithmic Tricks
-* Distributed Training and Network Optimization
-* Efficient Inference and Serving
-* Multi-Node Inference and Serving
-* Power and Thermal Management
-* Conclusion
+- **NVIDIA GPU**: Blackwell B200/B300, Hopper H100, or compatible
+- **CUDA 12.9**: Latest CUDA toolkit
+- **Python 3.9+**: Python environment
+- **Linux**: Ubuntu 22.04+ recommended
+
+### Quick Start
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-repo/ai-performance-engineering.git
+   cd ai-performance-engineering
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements_latest.txt
+   ```
+
+3. **Verify installation**:
+   ```bash
+   python code/ch1/performance_basics.py
+   ```
+
+### System Dependencies
+
+Install system packages for optimal performance:
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install -y numactl nvidia-container-toolkit infiniband-diags perftest
+
+# CentOS/RHEL
+sudo yum install -y numactl nvidia-container-toolkit infiniband-diags perftest
+```
+
+## 🚀 Quick Examples
+
+### Basic Performance Analysis
+```bash
+# Run basic performance measurement
+python code/ch1/performance_basics.py
+
+# Test hardware capabilities
+python code/ch2/hardware_info.py
+```
+
+### NUMA Optimization
+```bash
+# Test NUMA binding
+python code/ch3/bind_numa_affinity.py
+
+# Run NUMA topology analysis
+bash code/ch3/numa_bind.sh
+```
+
+### Distributed Training
+```bash
+# Test DDP communication overlap
+python code/ch4/after_ddp.py --test ddp
+
+# Compare NCCL vs Gloo backends
+python code/ch4/after_ddp.py --test nccl
+```
+
+## 📊 Performance Benchmarks
+
+### Blackwell B200/B300 Performance
+
+| Metric | B200 | B300 Ultra | Improvement |
+|--------|------|------------|-------------|
+| Memory | 192 GB | 288 GB | +50% |
+| Memory Bandwidth | 8 TB/s | 12 TB/s | +50% |
+| Tensor Core (FP4) | 20 PFLOPS | 30 PFLOPS | +50% |
+| NVLink Bandwidth | 1.8 TB/s | 1.8 TB/s | Same |
+| Power | 800W | 1200W | +50% |
+
+### NVL72 System Specifications
+
+- **72 Blackwell GPUs** per rack
+- **36 Grace CPUs** per rack  
+- **30 TB unified memory** per rack
+- **1.44 exaFLOPS** peak compute (FP4)
+- **130 TB/s** bisection bandwidth
+- **130 kW** power consumption
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Set these environment variables for optimal performance:
+
+```bash
+# CUDA optimization
+export CUDA_LAUNCH_BLOCKING=0
+export CUDA_CACHE_DISABLE=0
+
+# NCCL optimization
+export NCCL_IB_DISABLE=0
+export NCCL_P2P_DISABLE=0
+export NCCL_SHM_DISABLE=0
+
+# PyTorch optimization
+export TORCH_CUDNN_V8_API_ENABLED=1
+export TORCH_CUDNN_V8_API_DISABLED=0
+
+# Memory optimization
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+```
+
+### Docker Support
+
+For containerized environments:
+
+```bash
+# Build Docker image
+docker build -t ai-perf-eng .
+
+# Run with GPU support
+docker run --gpus all --rm -it ai-perf-eng
+```
+
+## 📈 Performance Monitoring
+
+### Real-time Monitoring
+
+```bash
+# GPU utilization and memory
+watch -n 1 nvidia-smi
+
+# Network performance
+ibstat
+ibv_devinfo
+
+# System performance
+htop
+iostat
+```
+
+### Profiling Tools
+
+- **NVIDIA Nsight Systems**: Timeline analysis
+- **NVIDIA Nsight Compute**: Kernel profiling  
+- **PyTorch Profiler**: Framework-level profiling
+- **TensorBoard**: Training visualization
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements_dev.txt
+
+# Run tests
+pytest tests/
+
+# Format code
+black code/
+flake8 code/
+```
+
+## 📖 Documentation
+
+- **Book Chapters**: Each chapter contains detailed explanations and code examples
+- **API Reference**: Comprehensive documentation for all functions and classes
+- **Performance Guides**: Step-by-step optimization guides
+- **Troubleshooting**: Common issues and solutions
+
+## 🏆 Acknowledgments
+
+This repository is based on the comprehensive AI Performance Engineering book, covering:
+
+- **Hardware Optimization**: Grace Blackwell superchips, NVL72 systems
+- **Software Optimization**: PyTorch 2.8, CUDA 12.9, Triton 3.4
+- **System Optimization**: NUMA binding, memory pinning, network tuning
+- **Algorithm Optimization**: Distributed training, model parallelism, quantization
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **NVIDIA CUDA**: https://developer.nvidia.com/cuda-zone
+- **PyTorch**: https://pytorch.org/
+- **OpenAI Triton**: https://github.com/openai/triton
+- **NVIDIA Magnum IO**: https://developer.nvidia.com/magnum-io
+
+---
+
+**Note**: This repository is designed for educational and research purposes. For production deployments, ensure proper testing and validation of all optimizations in your specific environment.

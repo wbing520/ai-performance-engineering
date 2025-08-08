@@ -1,0 +1,144 @@
+# lmcache_config.yaml
+# Chapter 18: LMCache Configuration for Disaggregated KV Cache Transfer
+# Based on Chapter 18's NIXL RDMA configuration examples
+
+# Prefill server configuration
+prefill_server:
+  enable_nixl: true
+  nixl_role: "sender"  # This instance sends KV data
+  nixl_receiver_host: "decode-host"
+  nixl_receiver_port: 55555  # Port on decode server
+  nixl_buffer_size: 1073741824  # 1 GB buffer for KV transfer
+  nixl_buffer_device: "cuda"  # Buffer stays in GPU memory
+  
+  # Additional NIXL settings
+  nixl_timeout_ms: 5000
+  nixl_max_retries: 3
+  nixl_compression: false  # Disable for low latency
+  
+  # Model configuration  
+  model_path: "models/llama-70b"
+  tensor_parallel_size: 2
+  pipeline_parallel_size: 1
+  
+  # Performance tuning
+  max_batch_size: 32
+  max_seq_len: 4096
+  gpu_memory_utilization: 0.8
+
+# Decode server configuration  
+decode_server:
+  enable_nixl: true
+  nixl_role: "receiver"  # This instance receives KV
+  nixl_receiver_port: 55555  # Listen on this port for NIXL
+  nixl_buffer_size: 1073741824  # 1 GB buffer (must match sender)
+  nixl_buffer_device: "cuda"
+  
+  # KV Cache management
+  kv_cache_dtype: "fp16"  # or "fp8" for higher compression
+  enable_prefix_caching: true
+  max_cached_tokens: 1048576  # 1M tokens in cache
+  
+  # Model configuration
+  model_path: "models/llama-70b" 
+  tensor_parallel_size: 1  # Decode typically uses less TP
+  pipeline_parallel_size: 1
+  
+  # Continuous batching settings
+  max_batch_size: 128
+  max_seq_len: 4096
+  gpu_memory_utilization: 0.9
+
+# Cluster coordination
+cluster:
+  # Service discovery
+  prefill_workers:
+    - host: "prefill-node-1"
+      port: 8000
+      gpu_count: 2
+    - host: "prefill-node-2" 
+      port: 8000
+      gpu_count: 2
+      
+  decode_workers:
+    - host: "decode-node-1"
+      port: 8001
+      gpu_count: 1
+    - host: "decode-node-2"
+      port: 8001 
+      gpu_count: 1
+    - host: "decode-node-3"
+      port: 8001
+      gpu_count: 1
+    - host: "decode-node-4"
+      port: 8001
+      gpu_count: 1
+
+# Routing and load balancing
+routing:
+  # Routing strategy
+  strategy: "latency_aware"  # Options: round_robin, least_requests, latency_aware
+  
+  # Prefill offloading thresholds
+  prefill_length_threshold: 100  # Tokens
+  prefill_queue_max: 10
+  
+  # Load balancing weights
+  latency_cost_weights:
+    memory_occupancy: 0.7
+    active_requests: 0.3
+    
+  # Health checking
+  health_check_interval_ms: 1000
+  unhealthy_threshold: 3
+  
+# Monitoring and observability
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  
+  # Key metrics to track
+  tracked_metrics:
+    - "kv_transfer_latency_ms"
+    - "kv_transfer_bandwidth_gbps" 
+    - "cache_hit_rate"
+    - "prefill_queue_length"
+    - "decode_queue_length"
+    - "gpu_memory_usage"
+    - "tokens_per_second"
+    
+  # Prometheus integration
+  prometheus:
+    enabled: true
+    endpoint: "/metrics"
+    
+# Advanced optimizations
+optimizations:
+  # Zero-copy optimizations
+  enable_zero_copy: true
+  use_rdma_write: true  # vs RDMA read
+  
+  # Memory optimizations  
+  kv_cache_quantization: "fp16"  # fp16, fp8, int8
+  enable_kv_compression: false
+  memory_pool_size_gb: 8
+  
+  # Overlap optimizations
+  overlap_compute_transfer: true
+  async_kv_prefetch: true
+  
+  # Kernel optimizations
+  use_flashmla: true
+  use_flexdecoding: true
+  compile_mode: "max-autotune"
+
+# Development and debugging
+debug:
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_kv_transfers: false
+  profile_kernels: false
+  validate_transfers: false  # Expensive but useful for debugging
+  
+  # Visualization
+  trace_requests: false
+  export_traces: false

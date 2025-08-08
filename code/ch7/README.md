@@ -1,43 +1,45 @@
-# Chapter 7 Code Examples
+# Chapter 7: Profiling and Tuning GPU Memory Access Patterns
 
-This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 7 (Profiling, Tuning, and Increasing Arithmetic Intensity), updated for:
+This chapter contains code examples demonstrating GPU memory optimization techniques:
 
-- **CUDA 13**
-- **PyTorch 2.7**
-- **Blackwell B200** GPU
+## Examples
 
-Examples extracted from Chapter 7: Profiling, Tuning, and Increasing Arithmetic Intensity
+### Memory Coalescing
+- `uncoalesced_copy.cu` - Demonstrates uncoalesced memory access patterns
+- `coalesced_copy.cu` - Optimized coalesced memory access
+- `memory_access_pytorch.py` - PyTorch equivalent examples
 
-Each example has its own directory. From the repo root you can:
+### Vectorized Memory Access  
+- `scalar_copy.cu` - Scalar memory operations (4-byte loads)
+- `vectorized_copy.cu` - Vectorized operations using float4
+- `vectorized_pytorch.py` - PyTorch vectorized operations
 
-```bash
-# Threshold naive vs predicated
-cd threshold && ./run.sh
+### Shared Memory Tiling
+- `naive_matmul.cu` - Naive matrix multiplication with redundant global loads
+- `tiled_matmul.cu` - Optimized matrix multiplication using shared memory tiling
+- `matmul_pytorch.py` - PyTorch matrix multiplication examples
 
-# PyTorch threshold operations
-cd threshold_py && ./run.sh
+### Bank Conflict Avoidance
+- `transpose_naive.cu` - Matrix transpose with bank conflicts
+- `transpose_padded.cu` - Optimized transpose avoiding bank conflicts
 
-# Independent ILP ops
-cd independent_ilp && ./run.sh
+### Read-Only Cache Optimization
+- `naive_lookup.cu` - Standard global memory lookup
+- `optimized_lookup.cu` - Using const __restrict__ for read-only cache
 
-# Naive FP32 GEMM
-cd gemm_fp32 && ./run.sh
+### Asynchronous Memory Prefetching
+- `async_prefetch_tma.cu` - Using TMA and Pipeline API for async data movement
 
-# Tensor Core WMMA GEMM
-cd gemm_tensorcore && ./run.sh
+## Usage
 
-# Fused L2 Norm example
-cd fused_l2norm && ./run.sh
+Each example includes:
+- CUDA C++ implementation
+- PyTorch equivalent (where applicable) 
+- Profiling commands for Nsight Compute analysis
+- Performance comparison metrics
 
-# CUTLASS GEMM example
-cd cutlass_gemm && ./run.sh
-```
+## Requirements
 
-#### Profiling
-
-Profiler scripts are under **profiler_scripts/** for Nsight Systems (`nsys`) and Nsight Compute (`ncu`):
-
-```bash
-bash profiler_scripts/nsys_profile.sh gemm_fp32/matmul_fp32
-bash profiler_scripts/ncu_profile.sh gemm_fp32/matmul_fp32
-```
+- CUDA 12.9+
+- PyTorch 2.8+
+- Nsight Compute for profiling

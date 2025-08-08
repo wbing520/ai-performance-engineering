@@ -2,10 +2,10 @@
 
 ## Overview
 This guide covers the latest profiling tools and best practices for:
-- **CUDA 12.9**
-- **PyTorch 2.8 nightly**
+- **CUDA 12.4**
+- **PyTorch 2.8**
 - **OpenAI Triton 3.4**
-- **Blackwell B200/B300 GPUs**
+- **Modern GPUs** (Ampere, Ada Lovelace, Hopper)
 
 ## Profiling Tools
 
@@ -32,7 +32,7 @@ nsys profile \
   python your_script.py
 ```
 
-**Key Features for CUDA 12.9**:
+**Key Features for CUDA 12.4**:
 - Python backtrace sampling
 - CUDA backtrace integration
 - Multi-GPU support
@@ -60,14 +60,14 @@ ncu \
   python your_script.py
 ```
 
-**Key Features for Blackwell B200/B300**:
-- SM100 architecture support
+**Key Features for Modern GPUs**:
+- Multi-architecture support (sm_80, sm_86, sm_90)
 - Tensor Core metrics
-- HBM3e memory analysis
+- Memory bandwidth analysis
 - Advanced occupancy analysis
 
 ### 3. PyTorch Profiler
-**Latest Version**: PyTorch 2.8 nightly
+**Latest Version**: PyTorch 2.8
 **Purpose**: Framework-level profiling
 
 ```python
@@ -179,9 +179,9 @@ bash profiler_scripts/memory_profile.sh your_script.py
 5. **Use HTA for Multi-GPU**: Analyze distributed performance
 6. **Monitor Memory**: Track memory usage patterns
 
-### 2. Blackwell B200/B300 Specific
-- **SM100 Architecture**: Ensure proper targeting
-- **HBM3e Memory**: Monitor high-bandwidth memory usage
+### 2. Modern GPU Specific
+- **Multi-architecture Support**: Ensure proper targeting (sm_80, sm_86, sm_90)
+- **Memory Bandwidth**: Monitor memory usage patterns
 - **Tensor Cores**: Analyze matrix operation performance
 - **Stream-ordered Memory**: Use `cudaMallocAsync`/`cudaFreeAsync`
 
@@ -201,17 +201,17 @@ bash profiler_scripts/memory_profile.sh your_script.py
 
 ### Key Metrics to Monitor
 1. **GPU Utilization**: Target >90%
-2. **Memory Bandwidth**: HBM3e @ 16 TB/s
+2. **Memory Bandwidth**: Varies by GPU model
 3. **Tensor Core Usage**: For matrix operations
 4. **Kernel Occupancy**: Maximize thread block efficiency
 5. **Memory Latency**: Minimize access delays
 6. **Communication Overhead**: For multi-GPU setups
 
 ### Expected Performance
-- **CUDA 12.9**: 5-10% improvement over CUDA 12.8
-- **PyTorch 2.8**: 15-25% improvement over stable releases
+- **CUDA 12.4**: 5-10% improvement over CUDA 12.0
+- **PyTorch 2.8**: 15-25% improvement over PyTorch 2.7
 - **Triton 3.4**: 10-15% improvement in kernel generation
-- **Blackwell B200/B300**: 20-30% improvement over H100
+- **Modern GPUs**: 20-30% improvement over older architectures
 
 ## Troubleshooting
 
@@ -269,4 +269,4 @@ def run_profiling(script_path):
 
 ## Conclusion
 
-This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.9, PyTorch 2.8, and Triton 3.4 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.
+This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.4, PyTorch 2.8, and Triton 3.4 stack, with specific optimizations for modern GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.

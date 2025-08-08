@@ -1,0 +1,13 @@
+# Chapter 8: Occupancy Tuning, Warp Efficiency, and ILP Requirements
+
+# Core ML Framework
+torch>=2.8.0
+
+# CUDA Development (ensure compatibility with CUDA 12.9)
+# Note: These are typically system-installed, not pip packages
+# nvidia-cuda-toolkit>=12.9
+# nvidia-nsight-compute
+# nvidia-nsight-systems
+
+# Additional utilities for profiling and analysis
+numpy>=1.24.0

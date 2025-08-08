@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-topology-aware-pod
+  labels:
+    app: distributed-training
+spec:
+  # Enable host networking for InfiniBand/RDMA access
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  
+  # Use topology manager for NUMA awareness
+  topologyManager:
+    policy: "best-effort"
+  
+  containers:
+  - name: training-container
+    image: nvcr.io/nvidia/pytorch:25.05-py3
+    command: ["bash", "-c"]
+    args:
+      - |
+        # Set CPU affinity based on GPU NUMA node
+        gpu_numa_node=$(cat /sys/class/pci_bus/$(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader,nounits | head -1 | cut -d: -f2)/device/*/numa_node | head -1)
+        numactl --cpunodebind=$gpu_numa_node --membind=$gpu_numa_node python train.py
+    
+    resources:
+      requests:
+        nvidia.com/gpu: "4"  # Request 4 GPUs
+        cpu: "16"
+        memory: "64Gi"
+      limits:
+        nvidia.com/gpu: "4"
+        cpu: "16"
+        memory: "64Gi"
+    
+    env:
+    - name: NCCL_SOCKET_IFNAME
+      value: "ib0"  # InfiniBand interface
+    - name: NCCL_IB_DISABLE
+      value: "0"
+    - name: NCCL_IB_GID_INDEX
+      value: "3"
+    - name: NCCL_NET_GDR_LEVEL
+      value: "3"
+    - name: NCCL_DEBUG
+      value: "INFO"
+    - name: PYTORCH_CUDA_ALLOC_CONF
+      value: "max_split_size_mb:512"
+    
+    securityContext:
+      privileged: true  # Required for RDMA access
+      capabilities:
+        add:
+        - IPC_LOCK  # Required for pinned memory
+    
+    volumeMounts:
+    - name: shared-memory
+      mountPath: /dev/shm
+    - name: data-volume
+      mountPath: /data
+      readOnly: true
+    - name: output-volume
+      mountPath: /output
+  
+  volumes:
+  - name: shared-memory
+    emptyDir:
+      medium: Memory
+      sizeLimit: "8Gi"
+  - name: data-volume
+    hostPath:
+      path: /data/dataset
+      type: Directory
+  - name: output-volume
+    hostPath:
+      path: /output
+      type: Directory
+  
+  # Node affinity to select nodes with NVLink-connected GPUs
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: gpu.nvidia.com/nvlink-domain
+            operator: Exists
+          - key: gpu.nvidia.com/numa-node-count
+            operator: In
+            values: ["1", "2"]  # Prefer nodes with 1-2 NUMA nodes
+  
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  
+  restartPolicy: Never

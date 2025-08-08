@@ -1,0 +1,41 @@
+# PyTorch 2.8 with CUDA 12.9 support
+torch==2.8.0
+torchvision==0.19.0
+torchaudio==2.8.0
+
+# Triton 3.4 for custom GPU kernels
+triton==3.4.0
+
+# NVIDIA libraries for profiling and optimization
+nvidia-ml-py3==12.560.30
+pynvml==11.5.3
+
+# Performance monitoring and profiling
+psutil==6.1.0
+numpy==2.1.3
+pandas==2.2.3
+
+# Jupyter for interactive development
+jupyter==1.1.1
+jupyterlab==4.3.3
+
+# Visualization for profiling results
+matplotlib==3.9.3
+seaborn==0.13.2
+
+# Development and testing tools
+pytest==8.3.4
+black==24.10.0
+isort==5.13.2
+mypy==1.13.0
+
+# Optional: TorchBench for standardized benchmarking
+# Install separately: pip install git+https://github.com/pytorch/benchmark.git
+
+# Memory profiling
+memory-profiler==0.61.0
+py-spy==0.3.14
+
+# Additional optimization libraries
+einops==0.8.0  # Tensor operations
+functorch==2.0.0  # Function transformations

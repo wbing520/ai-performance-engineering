@@ -1,0 +1,206 @@
+# LMCache Configuration for Advanced KV Cache Management
+# This demonstrates the configuration for efficient KV cache handling
+
+model: "llama-70b"
+
+# LMCache configuration
+lmcache:
+  enable: true
+  
+  # Cache allocation strategy
+  allocation:
+    strategy: "dynamic"  # dynamic, static, hybrid
+    initial_size_mb: 8192  # Initial cache size in MB
+    max_size_mb: 32768     # Maximum cache size in MB
+    growth_factor: 1.5     # Growth factor when expanding
+    
+  # Cache eviction policies
+  eviction:
+    policy: "lru"  # lru, lfu, fifo, custom
+    max_age_seconds: 3600  # Maximum age of cached entries
+    min_usage_threshold: 0.1  # Minimum usage before eviction
+    
+  # Memory management
+  memory:
+    pool_type: "cuda_malloc"  # cuda_malloc, cuda_malloc_async, unified
+    alignment_bytes: 128
+    enable_compression: false
+    compression_ratio: 0.5  # Target compression ratio
+    
+  # Prefetching configuration
+  prefetch:
+    enable: true
+    strategy: "predictive"  # predictive, sequential, adaptive
+    lookahead_tokens: 10
+    batch_size: 32
+    
+  # Cache partitioning
+  partitioning:
+    strategy: "layer_wise"  # layer_wise, head_wise, mixed
+    num_partitions: 8
+    partition_size_mb: 4096
+    
+  # Quality settings
+  quality:
+    precision: "fp16"  # fp16, fp8, int8
+    enable_quantization: false
+    quantization_bits: 8
+    
+  # Performance tuning
+  performance:
+    enable_pipelining: true
+    pipeline_depth: 4
+    enable_overlap: true
+    overlap_factor: 2
+    
+  # Monitoring and metrics
+  monitoring:
+    enable_metrics: true
+    metrics_interval_seconds: 60
+    log_cache_hits: true
+    log_cache_misses: true
+    log_memory_usage: true
+
+# FlexDecoding configuration
+flexdecoding:
+  enable: true
+  
+  # Nested tensor support
+  nested_tensors:
+    enable: true
+    max_batch_size: 32
+    max_seq_len: 2048
+    
+  # Dynamic batching
+  dynamic_batching:
+    enable: true
+    max_batch_size: 64
+    timeout_ms: 100
+    
+  # Memory optimization
+  memory_optimization:
+    enable_gradient_checkpointing: false
+    enable_activation_checkpointing: true
+    enable_selective_recompute: true
+    
+  # Kernel fusion
+  kernel_fusion:
+    enable_attention_fusion: true
+    enable_ffn_fusion: true
+    enable_layer_norm_fusion: true
+
+# ThunderMLA configuration
+thundermla:
+  enable: true
+  
+  # Mega-kernel settings
+  mega_kernel:
+    enable: true
+    fusion_level: "full"  # full, partial, minimal
+    shared_memory_size_kb: 48
+    
+  # Memory access patterns
+  memory_access:
+    enable_coalescing: true
+    enable_bank_conflict_avoidance: true
+    enable_shared_memory_optimization: true
+    
+  # Warp-level optimizations
+  warp_optimization:
+    enable_warp_specialization: true
+    enable_independent_warps: true
+    enable_warp_divergence_avoidance: true
+
+# FlashMLA configuration
+flashmla:
+  enable: true
+  
+  # Attention optimization
+  attention:
+    enable_flash_attention: true
+    enable_xformers: true
+    enable_triton: true
+    
+  # Memory efficiency
+  memory_efficiency:
+    enable_gradient_checkpointing: false
+    enable_selective_recompute: true
+    enable_activation_offloading: false
+    
+  # Performance tuning
+  performance:
+    enable_kernel_autotuning: true
+    enable_memory_autotuning: true
+    enable_occupancy_optimization: true
+
+# System-level configuration
+system:
+  # GPU configuration
+  gpu:
+    num_gpus: 8
+    memory_per_gpu_gb: 80
+    enable_multi_gpu: true
+    enable_nvlink: true
+    
+  # CPU configuration
+  cpu:
+    num_cores: 128
+    enable_numa: true
+    numa_nodes: 4
+    
+  # Network configuration
+  network:
+    enable_rdma: true
+    enable_gpu_direct: true
+    bandwidth_gbps: 400
+
+# Profiling and debugging
+profiling:
+  enable: true
+  
+  # Tools
+  tools:
+    enable_nsight_systems: true
+    enable_nsight_compute: true
+    enable_pytorch_profiler: true
+    enable_memory_profiler: true
+    enable_hta: true
+    
+  # Metrics
+  metrics:
+    enable_performance_counters: true
+    enable_memory_tracking: true
+    enable_kernel_timing: true
+    enable_cache_metrics: true
+    
+  # Logging
+  logging:
+    level: "info"  # debug, info, warning, error
+    enable_tensorboard: true
+    enable_wandb: false
+    log_interval_seconds: 10
+
+# Deployment configuration
+deployment:
+  # Scaling
+  scaling:
+    enable_auto_scaling: true
+    min_instances: 1
+    max_instances: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+  # Load balancing
+  load_balancing:
+    strategy: "round_robin"  # round_robin, least_connections, weighted
+    health_check_interval_seconds: 30
+    health_check_timeout_seconds: 5
+    
+  # Monitoring
+  monitoring:
+    enable_prometheus: true
+    enable_grafana: true
+    enable_alerting: true
+    alert_threshold_cpu: 90
+    alert_threshold_memory: 90
+    alert_threshold_gpu: 95

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Fix script for Makefiles with proper formatting and CUDA 12.9
-echo "Fixing Makefiles with proper formatting and CUDA 12.9..."
+# Fix script for Makefiles with proper formatting and CUDA 12.4
+echo "Fixing Makefiles with proper formatting and CUDA 12.4..."
 
 # Find all Makefiles and fix them
 find . -name "Makefile" -type f | while read -r makefile; do
@@ -14,12 +14,12 @@ find . -name "Makefile" -type f | while read -r makefile; do
     cat > "$makefile" << 'EOF'
 TARGET = $(basename $(notdir $(CURDIR)))
 NVCC   = nvcc
-ARCH   = -arch=sm_100
+ARCH   = -arch=sm_80
 OPT    = -O3
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.4
 
 all: $(TARGET)
-	@echo "Building with Blackwell B200/B300 optimizations"
+	@echo "Building with modern GPU optimizations (Ampere/Ada/Hopper)"
 $(TARGET): $(TARGET).cu
 	$(NVCC) $(OPT) $(ARCH) -std=c++17 -DCUDA_VERSION=$(CUDA_VERSION) -o $@ $<
 
@@ -35,12 +35,12 @@ EOF
         cat > "$makefile" << EOF
 TARGETS = $targets
 NVCC   = nvcc
-ARCH   = -arch=sm_100
+ARCH   = -arch=sm_80
 OPT    = -O3
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.4
 
 all: \$(TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations"
+	@echo "Building with modern GPU optimizations (Ampere/Ada/Hopper)"
 
 $first_target: $first_target.cu
 	\$(NVCC) \$(OPT) \$(ARCH) -std=c++17 -DCUDA_VERSION=\$(CUDA_VERSION) -o \$@ \$<

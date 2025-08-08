@@ -1,0 +1,33 @@
+# PyTorch 2.8 with CUDA 12.9 support
+torch==2.8.0
+torchvision==0.19.0
+torchaudio==2.8.0
+
+# Distributed training and communication
+# NCCL is included with PyTorch CUDA builds
+
+# Performance monitoring
+nvidia-ml-py3==12.560.30
+psutil==6.1.0
+
+# Networking and RDMA (system dependencies)
+# UCX - install via system package manager or conda
+# InfiniBand drivers - install via system package manager
+
+# Triton for custom kernels
+triton==3.4.0
+
+# Data processing
+numpy==2.1.3
+h5py==3.12.1
+
+# Utilities
+tqdm==4.67.1
+wandb==0.18.7
+
+# Development and testing
+pytest==8.3.4
+pytest-benchmark==4.0.0
+
+# Optional: for advanced profiling
+# nsys and ncu are installed with CUDA toolkit
