@@ -5,7 +5,7 @@ HOST_TARGET = dp_host_launched
 DEVICE_TARGET = dp_device_launched
 
 all: $(HOST_TARGET) $(DEVICE_TARGET)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 $(HOST_TARGET): dp_host_launched.cu
 	$(NVCC) $(NVCC_FLAGS) -o $(HOST_TARGET) $<
 

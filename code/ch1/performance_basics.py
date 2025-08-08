@@ -8,6 +8,7 @@ This example demonstrates the core concepts from Chapter 1:
 - Hardware-software co-design principles
 - Performance profiling and benchmarking
 - PyTorch 2.8 nightly optimizations for Blackwell B200/B300
+- Latest profiling tools integration
 """
 
 import time
@@ -154,6 +155,12 @@ def configure_blackwell_optimizations():
         # Enhanced profiling configuration
         torch._inductor.config.triton.profiler_mode = "max-autotune"
         torch._inductor.config.triton.enable_blackwell_features = True
+        
+        # Enable dynamic shapes for better performance
+        torch._dynamo.config.automatic_dynamic_shapes = True
+        
+        # Enable advanced memory optimizations
+        torch._inductor.config.triton.enable_advanced_memory_optimizations = True
         
         print("Blackwell B200/B300 optimizations enabled")
 
@@ -322,6 +329,7 @@ def demonstrate_hardware_software_co_design():
     print("• Memory profiling helps identify bottlenecks")
     print("• Hardware-software co-design is crucial")
     print("• Use NVTX markers for detailed timeline analysis")
+    print("• Latest profiling tools provide comprehensive analysis")
     
     return compiled_results
 
@@ -489,6 +497,35 @@ def demonstrate_system_monitoring():
         print(f"PyTorch GPU Memory: {allocated:.2f} GB allocated, {cached:.2f} GB cached")
 
 
+def demonstrate_latest_profiling_tools():
+    """
+    Demonstrate the latest profiling tools and their capabilities.
+    """
+    print("\n=== Latest Profiling Tools Demo ===")
+    
+    print("Available profiling tools:")
+    print("1. Nsight Systems (nsys) - Timeline analysis")
+    print("2. Nsight Compute (ncu) - Kernel-level analysis")
+    print("3. PyTorch Profiler - Framework-level analysis")
+    print("4. HTA (Holistic Tracing Analysis) - Multi-GPU analysis")
+    print("5. Perf - System-level analysis")
+    print("6. Enhanced PyTorch profiler - Memory, FLOPs, modules")
+    
+    print("\nProfiling commands:")
+    print("# Nsight Systems timeline")
+    print("nsys profile -t cuda,nvtx,osrt -o timeline_profile python script.py")
+    
+    print("\n# Nsight Compute kernel analysis")
+    print("ncu --metrics achieved_occupancy,warp_execution_efficiency -o kernel_profile python script.py")
+    
+    print("\n# HTA for multi-GPU")
+    print("nsys profile -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile python script.py")
+    
+    print("\n# Perf system analysis")
+    print("perf record -g -p $(pgrep python) -o perf.data")
+    print("perf report -i perf.data")
+
+
 if __name__ == "__main__":
     # Run the demonstrations
     results = demonstrate_hardware_software_co_design()
@@ -496,6 +533,7 @@ if __name__ == "__main__":
     demonstrate_blackwell_optimizations()
     demonstrate_enhanced_profiling()
     demonstrate_system_monitoring()
+    demonstrate_latest_profiling_tools()
     
     print("\n=== Summary ===")
     print("This demo shows the core principles from Chapter 1 with PyTorch 2.8:")
@@ -506,4 +544,5 @@ if __name__ == "__main__":
     print("5. Blackwell B200/B300 specific features")
     print("6. System-level optimization considerations")
     print("7. Latest profiling tools integration")
+    print("8. Advanced monitoring and analysis capabilities")
     print("\nThese concepts will be explored in detail throughout the book.")

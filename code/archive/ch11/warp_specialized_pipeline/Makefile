@@ -3,7 +3,7 @@ CUDA_VERSION = 12.9NVCC_FLAGS = -O3 -arch=sm_100a -std=c++17
 TARGET = warp_specialized_pipeline
 
 all: $(TARGET)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 $(TARGET): warp_specialized_pipeline.cu
 	$(NVCC) $(NVCC_FLAGS) -o $(TARGET) $<
 

@@ -13,7 +13,7 @@ PYTHON_TARGETS = fusion_pytorch.py
 .PHONY: all clean cuda python test profile
 
 all: cuda
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 cuda: $(CUDA_TARGETS)
 
 python:

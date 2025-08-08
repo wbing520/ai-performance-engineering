@@ -20,7 +20,7 @@ CUDA_TARGETS = $(CUDA_SOURCES:.cu=)
 .PHONY: all clean cuda python profile help
 
 all: cuda
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Build all CUDA examples
 cuda: $(CUDA_TARGETS)
 

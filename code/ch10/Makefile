@@ -10,7 +10,7 @@ CUDA_TARGETS = double_buffered_pipeline warp_specialized_pipeline cooperative_pe
 .PHONY: all clean test profile benchmark analyze help
 
 all: $(CUDA_TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compilation rules
 double_buffered_pipeline: double_buffered_pipeline.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<

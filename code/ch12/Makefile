@@ -10,7 +10,7 @@ CUDA_TARGETS = atomic_work_queue cuda_graphs dynamic_parallelism
 .PHONY: all clean test profile benchmark analyze help
 
 all: $(CUDA_TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compilation rules
 atomic_work_queue: atomic_work_queue.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<

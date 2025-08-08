@@ -14,7 +14,7 @@ THUNDERMLA_SOURCES = flashmla_kernel.cu  # Same file contains both kernels
 
 # Default target
 all: $(TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compile FlashMLA kernel
 flashmla_kernel: $(FLASHMLA_SOURCES)
 	$(NVCC) $(NVCC_FLAGS) -o flashmla_kernel $(FLASHMLA_SOURCES) $(LIBS)

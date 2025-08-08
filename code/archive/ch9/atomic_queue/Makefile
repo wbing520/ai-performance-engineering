@@ -5,7 +5,7 @@ OPT     = -O3
 CUDA_VERSION = 12.9
 
 all: $(TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations"
 uneven_static: uneven_static.cu
 	$(NVCC) $(OPT) $(ARCH) -std=c++17 -DCUDA_VERSION=$(CUDA_VERSION) $< -o $@
 

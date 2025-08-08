@@ -13,7 +13,7 @@ SOURCES = nvtx_profiling.cu
 
 # Default target
 all: $(TARGET)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compile the CUDA program
 $(TARGET): $(SOURCES)
 	$(NVCC) $(NVCC_FLAGS) -o $(TARGET) $(SOURCES) $(LIBS)

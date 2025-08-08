@@ -3,7 +3,7 @@ CUDA_VERSION = 13.1NVCC := /usr/local/cuda-13.0/bin/nvcc
 CXXFLAGS := -O3 -std=c++17
 
 all: reduce_naive reduce_unrolled
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"	@echo "Building with Blackwell B200/B300 optimizations"
 reduce_naive: reduce_naive.cu
 	$(NVCC) $(CXXFLAGS) -o $@ $<
 

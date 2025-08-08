@@ -10,7 +10,7 @@ CUDA_TARGETS = basic_streams stream_ordered_allocator multi_stream_pipeline
 .PHONY: all clean test profile benchmark analyze help check-deps
 
 all: $(CUDA_TARGETS)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 # Compilation rules
 basic_streams: basic_streams.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<

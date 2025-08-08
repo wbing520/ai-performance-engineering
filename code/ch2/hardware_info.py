@@ -1,493 +1,436 @@
 #!/usr/bin/env python3
 """
 Chapter 2: AI System Hardware Overview
-Hardware Information and Monitoring
+Hardware Information and Benchmarking
 
-This example demonstrates the core concepts from Chapter 2:
-- GPU architecture and memory hierarchy
-- System monitoring and utilization
-- Hardware capabilities and limitations
+This example demonstrates hardware analysis and benchmarking:
+- GPU architecture detection and capabilities
+- Memory hierarchy analysis
 - Blackwell B200/B300 specific features
+- Performance benchmarking
+- Latest profiling tools integration
 """
 
 import torch
-import torch.cuda as cuda
 import psutil
 import GPUtil
-import numpy as np
-from typing import Dict, List, Tuple, Optional
-import subprocess
-import json
 import time
+import numpy as np
+from typing import Dict, Any, List
 import torch.cuda.nvtx as nvtx
 
 
-class HardwareMonitor:
-    """Monitor and display hardware information for AI systems."""
+def get_gpu_info() -> Dict[str, Any]:
+    """Get comprehensive GPU information including Blackwell B200/B300 features."""
+    if not torch.cuda.is_available():
+        return {"error": "CUDA not available"}
     
-    def __init__(self):
-        self.gpu_count = torch.cuda.device_count() if torch.cuda.is_available() else 0
-        
-    def get_gpu_architecture_info(self) -> Dict[str, any]:
-        """Get detailed GPU architecture information."""
-        if not torch.cuda.is_available():
-            return {"error": "CUDA not available"}
-            
-        gpu_info = {}
-        
-        for i in range(self.gpu_count):
-            props = cuda.get_device_properties(i)
+    device_props = torch.cuda.get_device_properties(0)
+    
+    # Calculate memory bandwidth (HBM3e for Blackwell)
+    memory_bandwidth = (2.0 * device_props.memoryClockRate * 0.001 * device_props.memoryBusWidth) / 8.0
+    
+    # Check for Blackwell B200/B300 features
+    is_blackwell = device_props.major >= 10  # SM100 for Blackwell
+    compute_capability = f"{device_props.major}.{device_props.minor}"
+    
+    return {
+        "name": device_props.name,
+        "compute_capability": compute_capability,
+        "total_memory_gb": device_props.total_memory / 1e9,
+        "memory_bandwidth_gbps": memory_bandwidth,
+        "max_threads_per_block": device_props.maxThreadsPerBlock,
+        "max_threads_per_sm": device_props.maxThreadsPerMultiProcessor,
+        "num_sms": device_props.multiProcessorCount,
+        "warp_size": device_props.warpSize,
+        "max_shared_memory_per_block": device_props.maxSharedMemoryPerBlock,
+        "max_shared_memory_per_sm": device_props.maxSharedMemoryPerMultiprocessor,
+        "l2_cache_size": device_props.l2CacheSize,
+        "architecture": "Blackwell B200/B300" if is_blackwell else "Other",
+        "hbm3e_memory": is_blackwell,  # Blackwell has HBM3e
+        "memory_bandwidth_tbps": 3.2 if is_blackwell else None,  # HBM3e bandwidth
+        "tma_support": is_blackwell,  # Tensor Memory Accelerator
+        "nvlink_c2c": is_blackwell,  # NVLink-C2C for direct GPU communication
+        "tensor_cores": "4th Generation" if is_blackwell else "3rd Generation",
+        "unified_memory": True,  # Grace-Blackwell unified memory
+        "max_unified_memory_gb": 30 if is_blackwell else None,  # 30TB unified memory
+    }
+
+
+def get_system_info() -> Dict[str, Any]:
+    """Get comprehensive system information."""
+    cpu_info = {
+        "physical_cores": psutil.cpu_count(logical=False),
+        "logical_cores": psutil.cpu_count(logical=True),
+        "cpu_percent": psutil.cpu_percent(interval=1, percpu=True),
+        "overall_percent": psutil.cpu_percent(interval=1),
+    }
+    
+    memory = psutil.virtual_memory()
+    memory_info = {
+        "total_gb": memory.total / 1e9,
+        "available_gb": memory.available / 1e9,
+        "used_gb": memory.used / 1e9,
+        "percent": memory.percent,
+    }
+    
+    # Get GPU information
+    gpu_info = {}
+    try:
+        gpus = GPUtil.getGPUs()
+        for i, gpu in enumerate(gpus):
             gpu_info[f"gpu_{i}"] = {
-                "name": props.name,
-                "compute_capability": f"{props.major}.{props.minor}",
-                "total_memory_gb": props.total_memory / (1024**3),
-                "multiprocessor_count": props.multi_processor_count,
-                "max_threads_per_block": props.max_threads_per_block,
-                "max_shared_memory_per_block": props.max_shared_memory_per_block,
-                "warp_size": props.warp_size,
-                "max_threads_per_multiprocessor": props.max_threads_per_multiprocessor,
-                "max_blocks_per_multiprocessor": props.max_blocks_per_multiprocessor,
-                "memory_clock_rate_mhz": props.memory_clock_rate,
-                "memory_bus_width": props.memory_bus_width,
-                "l2_cache_size": props.l2_cache_size,
-                "total_constant_memory": props.total_constant_memory,
-                "texture_alignment": props.texture_alignment,
-                "max_pitch": props.max_pitch,
-                "max_grid_size": props.max_grid_size,
-                "max_block_dim": props.max_block_dim,
-                "compute_mode": props.compute_mode,
-                "concurrent_kernels": props.concurrent_kernels,
-                "ecc_enabled": props.ecc_enabled,
-                "unified_addressing": props.unified_addressing,
-                "managed_memory": props.managed_memory,
-                "concurrent_managed_access": props.concurrent_managed_access,
-                "direct_managed_memory_access": props.direct_managed_memory_access,
-                "single_to_double_precision_performance_ratio": props.single_to_double_precision_performance_ratio,
-                "pageable_memory_access": props.pageable_memory_access,
-                "concurrent_host_access": props.concurrent_host_access,
+                "name": gpu.name,
+                "load": gpu.load,
+                "memory_used": gpu.memoryUsed,
+                "memory_total": gpu.memoryTotal,
+                "temperature": gpu.temperature,
+                "uuid": gpu.uuid,
             }
-            
-        return gpu_info
+    except:
+        pass
     
-    def get_blackwell_specific_info(self) -> Dict[str, any]:
-        """Get Blackwell B200/B300 specific information."""
-        blackwell_info = {}
-        
-        if not torch.cuda.is_available():
-            return {"error": "CUDA not available"}
-            
-        for i in range(self.gpu_count):
-            props = cuda.get_device_properties(i)
-            compute_cap = f"{props.major}.{props.minor}"
-            
-            # Check if this is a Blackwell GPU (SM100)
-            is_blackwell = compute_cap == "10.0"
-            
-            blackwell_info[f"gpu_{i}"] = {
-                "is_blackwell": is_blackwell,
-                "compute_capability": compute_cap,
-                "architecture": "Blackwell B200/B300" if is_blackwell else "Other",
-                "hbm3e_memory": is_blackwell,  # Blackwell has HBM3e
-                "tma_support": is_blackwell,    # Tensor Memory Accelerator
-                "nvlink_c2c": is_blackwell,    # Direct GPU-to-GPU communication
-                "memory_bandwidth_tbps": 3.2 if is_blackwell else None,  # HBM3e bandwidth
-                "tensor_cores_gen": 4 if is_blackwell else None,  # 4th generation
-                "max_memory_gb": 192 if is_blackwell else props.total_memory / (1024**3),  # B200 has 192GB
-                "power_consumption_w": 800 if is_blackwell else None,  # B200 power
-            }
-            
-        return blackwell_info
+    return {
+        "cpu": cpu_info,
+        "memory": memory_info,
+        "gpus": gpu_info,
+    }
+
+
+def demonstrate_blackwell_features():
+    """Demonstrate Blackwell B200/B300 specific features."""
+    print("\n=== Blackwell B200/B300 Features Demonstration ===\n")
     
-    def get_memory_hierarchy_info(self) -> Dict[str, any]:
-        """Get information about the memory hierarchy."""
-        memory_info = {}
-        
-        # System memory
-        system_memory = psutil.virtual_memory()
-        memory_info["system"] = {
-            "total_gb": system_memory.total / (1024**3),
-            "available_gb": system_memory.available / (1024**3),
-            "used_gb": system_memory.used / (1024**3),
-            "percent_used": system_memory.percent,
-        }
-        
-        # GPU memory
-        if torch.cuda.is_available():
-            for i in range(self.gpu_count):
-                memory_info[f"gpu_{i}_memory"] = {
-                    "total_gb": torch.cuda.get_device_properties(i).total_memory / (1024**3),
-                    "allocated_gb": torch.cuda.memory_allocated(i) / (1024**3),
-                    "cached_gb": torch.cuda.memory_reserved(i) / (1024**3),
-                    "free_gb": (torch.cuda.get_device_properties(i).total_memory - torch.cuda.memory_reserved(i)) / (1024**3),
-                }
-                
-        return memory_info
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping Blackwell features")
+        return
     
-    def get_system_utilization(self) -> Dict[str, any]:
-        """Get current system utilization metrics."""
-        utilization = {}
-        
-        # CPU utilization
-        cpu_percent = psutil.cpu_percent(interval=1, percpu=True)
-        utilization["cpu"] = {
-            "overall_percent": psutil.cpu_percent(interval=1),
-            "per_core_percent": cpu_percent,
-            "core_count": psutil.cpu_count(),
-            "physical_cores": psutil.cpu_count(logical=False),
-        }
-        
-        # Memory utilization
-        memory = psutil.virtual_memory()
-        utilization["memory"] = {
-            "percent_used": memory.percent,
-            "available_gb": memory.available / (1024**3),
-            "used_gb": memory.used / (1024**3),
-        }
-        
-        # GPU utilization
-        if torch.cuda.is_available():
-            try:
-                gpus = GPUtil.getGPUs()
-                utilization["gpu"] = {}
-                for i, gpu in enumerate(gpus):
-                    utilization["gpu"][f"gpu_{i}"] = {
-                        "utilization_percent": gpu.load * 100,
-                        "memory_used_gb": gpu.memoryUsed,
-                        "memory_total_gb": gpu.memoryTotal,
-                        "temperature_celsius": gpu.temperature,
-                    }
-            except:
-                utilization["gpu"] = {"error": "Could not get GPU utilization"}
-                
-        return utilization
+    gpu_info = get_gpu_info()
     
-    def get_nvlink_info(self) -> Dict[str, any]:
-        """Get NVLink information if available."""
-        nvlink_info = {}
-        
-        if not torch.cuda.is_available():
-            return {"error": "CUDA not available"}
-            
+    if gpu_info.get("architecture") == "Blackwell B200/B300":
+        print("✓ This is a Blackwell B200/B300 GPU")
+        print(f"✓ Compute Capability: {gpu_info['compute_capability']} (SM100)")
+        print(f"✓ Memory: {gpu_info['total_memory_gb']:.1f} GB HBM3e")
+        print(f"✓ Memory Bandwidth: {gpu_info['memory_bandwidth_tbps']} TB/s")
+        print("✓ 4th Generation Tensor Cores")
+        print("✓ TMA (Tensor Memory Accelerator)")
+        print("✓ NVLink-C2C (Direct GPU-to-GPU communication)")
+        print("✓ Unified Memory Architecture")
+        print(f"✓ Max Unified Memory: {gpu_info['max_unified_memory_gb']} TB")
+    else:
+        print("This is not a Blackwell B200/B300 GPU")
+        print(f"GPU: {gpu_info['name']}")
+        print(f"Compute Capability: {gpu_info['compute_capability']}")
+        print(f"Memory: {gpu_info['total_memory_gb']:.1f} GB")
+        print(f"Memory Bandwidth: {gpu_info['memory_bandwidth_gbps']:.1f} GB/s")
+
+
+def benchmark_memory_bandwidth():
+    """Benchmark memory bandwidth to demonstrate HBM3e performance."""
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping memory benchmark")
+        return
+    
+    print("\n=== Memory Bandwidth Benchmark ===")
+    
+    # Test different tensor sizes
+    sizes = [1024, 2048, 4096, 8192, 16384]
+    
+    for size in sizes:
         try:
-            # Try to get NVLink information using nvidia-smi
-            result = subprocess.run(
-                ["nvidia-smi", "nvlink", "--status"], 
-                capture_output=True, 
-                text=True
-            )
+            # Create large tensors
+            a = torch.randn(size, size, device='cuda')
+            b = torch.randn(size, size, device='cuda')
             
-            if result.returncode == 0:
-                nvlink_info["status"] = "Available"
-                nvlink_info["output"] = result.stdout
+            # Warmup
+            for _ in range(5):
+                _ = torch.mm(a, b)
+            
+            torch.cuda.synchronize()
+            start_time = time.time()
+            
+            # Benchmark matrix multiplication
+            with nvtx.annotate(f"gemm_{size}"):
+                for _ in range(10):
+                    c = torch.mm(a, b)
+            
+            torch.cuda.synchronize()
+            end_time = time.time()
+            
+            avg_time = (end_time - start_time) / 10
+            bytes_transferred = 2 * size * size * 4  # 2 matrices * size^2 * 4 bytes per float
+            bandwidth_gbps = (bytes_transferred / avg_time) / 1e9
+            
+            print(f"Size {size}x{size}: {avg_time:.4f}s, {bandwidth_gbps:.1f} GB/s")
+            
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                print(f"Size {size}x{size}: OOM")
             else:
-                nvlink_info["status"] = "Not available or error"
-                nvlink_info["error"] = result.stderr
-                
-        except FileNotFoundError:
-            nvlink_info["status"] = "nvidia-smi not found"
-            
-        return nvlink_info
+                print(f"Size {size}x{size}: Error")
+
+
+def benchmark_tensor_operations():
+    """Benchmark various tensor operations to demonstrate Blackwell optimizations."""
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping tensor benchmark")
+        return
     
-    def get_tensor_core_info(self) -> Dict[str, any]:
-        """Get information about Tensor Cores and compute capabilities."""
-        tensor_info = {}
-        
-        if not torch.cuda.is_available():
-            return {"error": "CUDA not available"}
-            
-        for i in range(self.gpu_count):
-            props = cuda.get_device_properties(i)
-            compute_cap = f"{props.major}.{props.minor}"
-            
-            # Determine Tensor Core support based on compute capability
-            tensor_core_support = {
-                "fp16": float(compute_cap) >= 7.0,  # Volta and later
-                "fp8": float(compute_cap) >= 8.9,   # Hopper and later
-                "fp4": float(compute_cap) >= 10.0,  # Blackwell and later
-                "bf16": float(compute_cap) >= 8.0,  # Ampere and later
-            }
-            
-            tensor_info[f"gpu_{i}"] = {
-                "compute_capability": compute_cap,
-                "tensor_core_support": tensor_core_support,
-                "sm_count": props.multi_processor_count,
-                "max_threads_per_sm": props.max_threads_per_multiprocessor,
-            }
-            
-        return tensor_info
+    print("\n=== Tensor Operations Benchmark ===")
     
-    def demonstrate_memory_hierarchy(self):
-        """Demonstrate the memory hierarchy with a practical example."""
-        print("=== Memory Hierarchy Demonstration ===\n")
-        
-        if not torch.cuda.is_available():
-            print("CUDA not available - running CPU-only demonstration")
-            return
-            
-        device = torch.device('cuda:0')
-        
-        # Demonstrate different memory types
-        print("1. Creating tensors in different memory locations:")
-        
-        # CPU memory
-        cpu_tensor = torch.randn(1000, 1000, device='cpu')
-        print(f"   CPU tensor: {cpu_tensor.device}, size: {cpu_tensor.numel() * cpu_tensor.element_size() / 1024**2:.2f} MB")
-        
-        # GPU global memory
-        gpu_tensor = torch.randn(1000, 1000, device=device)
-        print(f"   GPU tensor: {gpu_tensor.device}, size: {gpu_tensor.numel() * gpu_tensor.element_size() / 1024**2:.2f} MB")
-        
-        # Demonstrate memory transfer
-        print("\n2. Memory transfer demonstration:")
-        start_time = time.time()
-        gpu_tensor_from_cpu = cpu_tensor.to(device)
-        transfer_time = time.time() - start_time
-        print(f"   CPU to GPU transfer time: {transfer_time*1000:.2f} ms")
-        
-        # Demonstrate unified memory (if available)
-        if torch.cuda.get_device_properties(0).unified_addressing:
-            print("\n3. Unified memory demonstration:")
-            unified_tensor = torch.randn(1000, 1000, device=device, pin_memory=True)
-            print(f"   Unified memory tensor created: {unified_tensor.device}")
-        
-        # Memory usage summary
-        print("\n4. Current memory usage:")
-        memory_info = self.get_memory_hierarchy_info()
-        for key, info in memory_info.items():
-            if "gpu" in key:
-                print(f"   {key}: {info['allocated_gb']:.2f} GB allocated, {info['cached_gb']:.2f} GB cached")
+    # Test different operations
+    operations = [
+        ("Matrix Multiplication", lambda x, y: torch.mm(x, y)),
+        ("Element-wise Addition", lambda x, y: x + y),
+        ("Element-wise Multiplication", lambda x, y: x * y),
+        ("Matrix Transpose", lambda x, y: x.t()),
+        ("Reduction Sum", lambda x, y: x.sum()),
+    ]
     
-    def demonstrate_compute_capabilities(self):
-        """Demonstrate different compute capabilities and precision formats."""
-        print("\n=== Compute Capabilities Demonstration ===\n")
-        
-        if not torch.cuda.is_available():
-            print("CUDA not available")
-            return
+    size = 4096
+    a = torch.randn(size, size, device='cuda')
+    b = torch.randn(size, size, device='cuda')
+    
+    for op_name, op_func in operations:
+        try:
+            # Warmup
+            for _ in range(5):
+                if op_name == "Reduction Sum":
+                    _ = op_func(a, b)
+                elif op_name == "Matrix Transpose":
+                    _ = op_func(a, b)
+                else:
+                    _ = op_func(a, b)
             
-        device = torch.device('cuda:0')
-        props = cuda.get_device_properties(0)
-        compute_cap = f"{props.major}.{props.minor}"
-        
-        print(f"GPU: {props.name}")
-        print(f"Compute Capability: {compute_cap}")
-        print(f"SM Count: {props.multi_processor_count}")
-        print(f"Max Threads per SM: {props.max_threads_per_multiprocessor}")
-        
-        # Test different precision formats
-        print("\n1. Precision format demonstration:")
-        
-        # FP32 (standard precision)
-        fp32_tensor = torch.randn(1000, 1000, dtype=torch.float32, device=device)
-        print(f"   FP32 tensor: {fp32_tensor.dtype}, size: {fp32_tensor.numel() * fp32_tensor.element_size() / 1024**2:.2f} MB")
-        
-        # FP16 (half precision) - if supported
-        if float(compute_cap) >= 7.0:
-            fp16_tensor = torch.randn(1000, 1000, dtype=torch.float16, device=device)
-            print(f"   FP16 tensor: {fp16_tensor.dtype}, size: {fp16_tensor.numel() * fp16_tensor.element_size() / 1024**2:.2f} MB")
-            
-            # Demonstrate speedup
+            torch.cuda.synchronize()
             start_time = time.time()
-            _ = torch.mm(fp32_tensor, fp32_tensor)
-            fp32_time = time.time() - start_time
             
-            start_time = time.time()
-            _ = torch.mm(fp16_tensor, fp16_tensor)
-            fp16_time = time.time() - start_time
+            # Benchmark
+            with nvtx.annotate(f"tensor_op_{op_name.lower().replace(' ', '_')}"):
+                for _ in range(50):
+                    if op_name == "Reduction Sum":
+                        result = op_func(a, b)
+                    elif op_name == "Matrix Transpose":
+                        result = op_func(a, b)
+                    else:
+                        result = op_func(a, b)
             
-            if fp16_time > 0:
-                speedup = fp32_time / fp16_time
-                print(f"   FP16 speedup over FP32: {speedup:.2f}x")
-        
-        # BF16 (bfloat16) - if supported
-        if float(compute_cap) >= 8.0:
-            bf16_tensor = torch.randn(1000, 1000, dtype=torch.bfloat16, device=device)
-            print(f"   BF16 tensor: {bf16_tensor.dtype}, size: {bf16_tensor.numel() * bf16_tensor.element_size() / 1024**2:.2f} MB")
-        
-        # FP8 (8-bit precision) - if supported
-        if float(compute_cap) >= 8.9:
-            # Note: PyTorch doesn't have native FP8 yet, but we can demonstrate the concept
-            print(f"   FP8 support: Available (Hopper and later)")
-        
-        # FP4 (4-bit precision) - Blackwell specific
-        if float(compute_cap) >= 10.0:
-            print(f"   FP4 support: Available (Blackwell B200/B300)")
-        
-        # Demonstrate memory bandwidth
-        print("\n2. Memory bandwidth test:")
-        large_tensor = torch.randn(10000, 10000, device=device)
-        start_time = time.time()
-        _ = large_tensor + large_tensor
-        bandwidth_time = time.time() - start_time
-        
-        memory_accessed = large_tensor.numel() * large_tensor.element_size() * 2  # Read + write
-        bandwidth_gbps = (memory_accessed / bandwidth_time) / (1024**3)
-        print(f"   Estimated memory bandwidth: {bandwidth_gbps:.2f} GB/s")
+            torch.cuda.synchronize()
+            end_time = time.time()
+            
+            avg_time = (end_time - start_time) / 50
+            print(f"{op_name:25}: {avg_time:.6f}s")
+            
+        except Exception as e:
+            print(f"{op_name:25}: Error - {e}")
+
+
+def demonstrate_memory_hierarchy():
+    """Demonstrate memory hierarchy analysis."""
+    print("\n=== Memory Hierarchy Analysis ===")
     
-    def demonstrate_blackwell_features(self):
-        """Demonstrate Blackwell B200/B300 specific features."""
-        print("\n=== Blackwell B200/B300 Features Demonstration ===\n")
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping memory hierarchy")
+        return
+    
+    gpu_info = get_gpu_info()
+    
+    print("Memory Hierarchy (from fastest to slowest):")
+    print("1. Registers (per-thread)")
+    print("2. Shared Memory (per-block)")
+    print("3. L1 Cache (per-SM)")
+    print("4. L2 Cache (global)")
+    print("5. HBM3e Memory (global)")
+    print("6. CPU Memory (via unified memory)")
+    
+    print(f"\nMemory Specifications:")
+    print(f"• Shared Memory per Block: {gpu_info['max_shared_memory_per_block'] / 1024:.1f} KB")
+    print(f"• Shared Memory per SM: {gpu_info['max_shared_memory_per_sm'] / 1024:.1f} KB")
+    print(f"• L2 Cache Size: {gpu_info['l2_cache_size'] / 1024:.1f} KB")
+    print(f"• Global Memory: {gpu_info['total_memory_gb']:.1f} GB")
+    
+    if gpu_info.get('hbm3e_memory'):
+        print(f"• HBM3e Bandwidth: {gpu_info['memory_bandwidth_tbps']} TB/s")
+        print("• Unified Memory: 30 TB total")
+
+
+def demonstrate_profiling_capabilities():
+    """Demonstrate the latest profiling capabilities."""
+    print("\n=== Latest Profiling Capabilities ===")
+    
+    print("Available Profiling Tools:")
+    print("1. Nsight Systems (nsys) - Timeline analysis")
+    print("   Command: nsys profile -t cuda,nvtx,osrt -o timeline_profile python script.py")
+    
+    print("\n2. Nsight Compute (ncu) - Kernel-level analysis")
+    print("   Command: ncu --metrics achieved_occupancy,warp_execution_efficiency -o kernel_profile python script.py")
+    
+    print("\n3. PyTorch Profiler - Framework-level analysis")
+    print("   Command: python -c \"import torch.profiler; print('Available')\"")
+    
+    print("\n4. HTA (Holistic Tracing Analysis) - Multi-GPU analysis")
+    print("   Command: nsys profile -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile python script.py")
+    
+    print("\n5. Perf - System-level analysis")
+    print("   Command: perf record -g -p $(pgrep python) -o perf.data")
+    
+    print("\n6. Enhanced PyTorch Profiler - Memory, FLOPs, modules")
+    print("   Features: record_shapes=True, with_stack=True, with_flops=True, profile_memory=True")
+    
+    # Test PyTorch profiler availability
+    try:
+        from torch.profiler import profile, ProfilerActivity
+        print("\n✓ PyTorch Profiler is available")
+    except ImportError:
+        print("\n✗ PyTorch Profiler not available")
+
+
+def demonstrate_system_monitoring():
+    """Demonstrate comprehensive system monitoring."""
+    print("\n=== System Monitoring Demo ===")
+    
+    system_info = get_system_info()
+    
+    print("CPU Information:")
+    print(f"• Physical Cores: {system_info['cpu']['physical_cores']}")
+    print(f"• Logical Cores: {system_info['cpu']['logical_cores']}")
+    print(f"• Overall Usage: {system_info['cpu']['overall_percent']:.1f}%")
+    
+    print("\nMemory Information:")
+    print(f"• Total Memory: {system_info['memory']['total_gb']:.1f} GB")
+    print(f"• Available Memory: {system_info['memory']['available_gb']:.1f} GB")
+    print(f"• Memory Usage: {system_info['memory']['percent']:.1f}%")
+    
+    if system_info.get('gpus'):
+        print("\nGPU Information:")
+        for gpu_id, gpu_data in system_info['gpus'].items():
+            print(f"• {gpu_id}: {gpu_data['name']}")
+            print(f"  - Utilization: {gpu_data['load'] * 100:.1f}%")
+            print(f"  - Memory Used: {gpu_data['memory_used']} MB")
+            print(f"  - Memory Total: {gpu_data['memory_total']} MB")
+            print(f"  - Temperature: {gpu_data['temperature']}°C")
+    
+    # PyTorch GPU memory
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1e9
+        cached = torch.cuda.memory_reserved() / 1e9
+        print(f"\nPyTorch GPU Memory:")
+        print(f"• Allocated: {allocated:.2f} GB")
+        print(f"• Cached: {cached:.2f} GB")
+
+
+def demonstrate_blackwell_optimizations():
+    """Demonstrate Blackwell B200/B300 specific optimizations."""
+    print("\n=== Blackwell B200/B300 Optimizations ===")
+    
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping Blackwell optimizations")
+        return
+    
+    gpu_info = get_gpu_info()
+    
+    if gpu_info.get('architecture') == "Blackwell B200/B300":
+        print("Blackwell B200/B300 Optimizations:")
+        print("1. HBM3e Memory Optimizations")
+        print("   • High-bandwidth memory (3.2 TB/s)")
+        print("   • Optimized memory access patterns")
+        print("   • Unified memory architecture")
         
-        if not torch.cuda.is_available():
-            print("CUDA not available")
-            return
-            
-        device = torch.device('cuda:0')
-        props = cuda.get_device_properties(0)
-        compute_cap = f"{props.major}.{props.minor}"
+        print("\n2. Tensor Core Optimizations")
+        print("   • 4th Generation Tensor Cores")
+        print("   • FP8/FP4 precision support")
+        print("   • Enhanced matrix operations")
         
-        print(f"GPU: {props.name}")
-        print(f"Compute Capability: {compute_cap}")
+        print("\n3. TMA (Tensor Memory Accelerator)")
+        print("   • Efficient data movement")
+        print("   • Reduced memory latency")
+        print("   • Optimized memory bandwidth")
         
-        # Check if this is a Blackwell GPU
-        is_blackwell = compute_cap == "10.0"
+        print("\n4. NVLink-C2C")
+        print("   • Direct GPU-to-GPU communication")
+        print("   • High-speed data transfer")
+        print("   • Reduced communication overhead")
         
-        if is_blackwell:
+        print("\n5. Unified Memory")
+        print("   • 30 TB total unified memory")
+        print("   • Seamless CPU-GPU memory access")
+        print("   • Optimized memory management")
+    else:
+        print("This GPU does not support Blackwell B200/B300 optimizations")
+
+
+def main():
+    """Main function to demonstrate hardware analysis."""
+    print("=== Chapter 2: AI System Hardware Overview ===")
+    print("Hardware Information and Benchmarking Demo")
+    print("=" * 50)
+    
+    # Get hardware information
+    gpu_info = get_gpu_info()
+    system_info = get_system_info()
+    
+    print("\n1. GPU Information:")
+    print("-" * 20)
+    if "error" not in gpu_info:
+        print(f"GPU: {gpu_info['name']}")
+        print(f"Compute Capability: {gpu_info['compute_capability']}")
+        print(f"Memory: {gpu_info['total_memory_gb']:.1f} GB")
+        print(f"Memory Bandwidth: {gpu_info['memory_bandwidth_gbps']:.1f} GB/s")
+        print(f"Number of SMs: {gpu_info['num_sms']}")
+        print(f"Max Threads per Block: {gpu_info['max_threads_per_block']}")
+        print(f"Warp Size: {gpu_info['warp_size']}")
+    else:
+        print("CUDA not available")
+    
+    print("\n2. Blackwell B200/B300 Specific Information:")
+    print("-" * 40)
+    if "error" not in gpu_info:
+        if gpu_info.get('architecture') == "Blackwell B200/B300":
             print("✓ This is a Blackwell B200/B300 GPU")
-            print("✓ SM100 Architecture (Compute Capability 10.0)")
-            print("✓ HBM3e Memory (up to 3.2TB/s bandwidth)")
+            print(f"✓ Compute Capability: {gpu_info['compute_capability']} (SM100)")
+            print(f"✓ Memory: {gpu_info['total_memory_gb']:.1f} GB HBM3e")
+            print(f"✓ Memory Bandwidth: {gpu_info['memory_bandwidth_tbps']} TB/s")
             print("✓ 4th Generation Tensor Cores")
             print("✓ TMA (Tensor Memory Accelerator)")
             print("✓ NVLink-C2C (Direct GPU-to-GPU communication)")
-            
-            # Test HBM3e memory bandwidth
-            print("\nTesting HBM3e memory bandwidth...")
-            sizes = [1024, 2048, 4096, 8192]
-            
-            for size in sizes:
-                try:
-                    a = torch.randn(size, size, device=device)
-                    b = torch.randn(size, size, device=device)
-                    
-                    torch.cuda.synchronize()
-                    start_time = time.time()
-                    
-                    with nvtx.annotate(f"blackwell_gemm_{size}"):
-                        c = torch.mm(a, b)
-                    
-                    torch.cuda.synchronize()
-                    end_time = time.time()
-                    
-                    avg_time = end_time - start_time
-                    flops = 2 * size * size * size
-                    tflops = flops / (avg_time * 1e12)
-                    
-                    print(f"   Size {size}x{size}: {avg_time:.4f}s, {tflops:.2f} TFLOPS")
-                    
-                except RuntimeError as e:
-                    if "out of memory" in str(e):
-                        print(f"   Size {size}x{size}: OOM")
-                    else:
-                        print(f"   Size {size}x{size}: Error")
+            print("✓ Unified Memory Architecture")
+            print(f"✓ Max Unified Memory: {gpu_info['max_unified_memory_gb']} TB")
         else:
-            print("This is not a Blackwell GPU")
-            print(f"Current compute capability: {compute_cap}")
-            print("Blackwell GPUs have compute capability 10.0")
+            print("This is not a Blackwell B200/B300 GPU")
+            print(f"GPU: {gpu_info['name']}")
+            print(f"Compute Capability: {gpu_info['compute_capability']}")
+            print(f"Memory: {gpu_info['total_memory_gb']:.1f} GB")
+            print(f"Memory Bandwidth: {gpu_info['memory_bandwidth_gbps']:.1f} GB/s")
     
-    def print_hardware_summary(self):
-        """Print a comprehensive hardware summary."""
-        print("=== AI System Hardware Overview ===\n")
-        
-        print("1. GPU Architecture Information:")
-        print("-" * 40)
-        gpu_info = self.get_gpu_architecture_info()
-        
-        if "error" in gpu_info:
-            print(f"   {gpu_info['error']}")
-        else:
-            for gpu_id, info in gpu_info.items():
-                print(f"   {gpu_id}: {info['name']}")
-                print(f"     Compute Capability: {info['compute_capability']}")
-                print(f"     Memory: {info['total_memory_gb']:.1f} GB")
-                print(f"     SMs: {info['multiprocessor_count']}")
-                print(f"     Warp Size: {info['warp_size']}")
-        
-        print("\n2. Blackwell B200/B300 Specific Information:")
-        print("-" * 40)
-        blackwell_info = self.get_blackwell_specific_info()
-        
-        if "error" not in blackwell_info:
-            for gpu_id, info in blackwell_info.items():
-                print(f"   {gpu_id}: {info['architecture']}")
-                if info['is_blackwell']:
-                    print(f"     ✓ HBM3e Memory: {info['memory_bandwidth_tbps']} TB/s")
-                    print(f"     ✓ TMA Support: {info['tma_support']}")
-                    print(f"     ✓ NVLink-C2C: {info['nvlink_c2c']}")
-                    print(f"     ✓ Tensor Cores: {info['tensor_cores_gen']}th Generation")
-                    print(f"     ✓ Max Memory: {info['max_memory_gb']} GB")
-                    print(f"     ✓ Power: {info['power_consumption_w']}W")
-                else:
-                    print(f"     Compute Capability: {info['compute_capability']}")
-        
-        print("\n3. Memory Hierarchy:")
-        print("-" * 40)
-        memory_info = self.get_memory_hierarchy_info()
-        
-        print(f"   System Memory: {memory_info['system']['total_gb']:.1f} GB total")
-        print(f"   System Memory Used: {memory_info['system']['percent_used']:.1f}%")
-        
-        for key, info in memory_info.items():
-            if "gpu" in key and "memory" in key:
-                print(f"   {key}: {info['total_gb']:.1f} GB total, {info['allocated_gb']:.1f} GB allocated")
-        
-        print("\n4. Current Utilization:")
-        print("-" * 40)
-        utilization = self.get_system_utilization()
-        
-        print(f"   CPU: {utilization['cpu']['overall_percent']:.1f}%")
-        print(f"   Memory: {utilization['memory']['percent_used']:.1f}%")
-        
-        if "gpu" in utilization and "error" not in utilization["gpu"]:
-            for gpu_id, gpu_info in utilization["gpu"].items():
-                print(f"   {gpu_id}: {gpu_info['utilization_percent']:.1f}% utilization, {gpu_info['temperature_celsius']:.1f}°C")
-        
-        print("\n5. Tensor Core Support:")
-        print("-" * 40)
-        tensor_info = self.get_tensor_core_info()
-        
-        if "error" not in tensor_info:
-            for gpu_id, info in tensor_info.items():
-                print(f"   {gpu_id}: Compute Capability {info['compute_capability']}")
-                for precision, supported in info['tensor_core_support'].items():
-                    status = "✓" if supported else "✗"
-                    print(f"     {precision.upper()}: {status}")
-        
-        print("\n6. NVLink Status:")
-        print("-" * 40)
-        nvlink_info = self.get_nvlink_info()
-        print(f"   Status: {nvlink_info['status']}")
-
-
-def demonstrate_hardware_concepts():
-    """Demonstrate the key hardware concepts from Chapter 2."""
-    print("=== Chapter 2: AI System Hardware Overview Demo ===\n")
+    print("\n3. System Information:")
+    print("-" * 20)
+    print(f"CPU Cores: {system_info['cpu']['physical_cores']} physical, {system_info['cpu']['logical_cores']} logical")
+    print(f"CPU Usage: {system_info['cpu']['overall_percent']:.1f}%")
+    print(f"Memory: {system_info['memory']['total_gb']:.1f} GB total, {system_info['memory']['available_gb']:.1f} GB available")
+    print(f"Memory Usage: {system_info['memory']['percent']:.1f}%")
     
-    monitor = HardwareMonitor()
+    # Run demonstrations
+    demonstrate_blackwell_features()
+    benchmark_memory_bandwidth()
+    benchmark_tensor_operations()
+    demonstrate_memory_hierarchy()
+    demonstrate_profiling_capabilities()
+    demonstrate_system_monitoring()
+    demonstrate_blackwell_optimizations()
     
-    # Print comprehensive hardware summary
-    monitor.print_hardware_summary()
-    
-    # Demonstrate memory hierarchy
-    monitor.demonstrate_memory_hierarchy()
-    
-    # Demonstrate compute capabilities
-    monitor.demonstrate_compute_capabilities()
-    
-    # Demonstrate Blackwell features
-    monitor.demonstrate_blackwell_features()
-    
-    print("\n=== Key Takeaways from Chapter 2 ===")
-    print("1. Unified Memory Architecture: CPU and GPU share coherent memory space")
-    print("2. Memory Hierarchy: Registers → Shared Memory → L1 Cache → L2 Cache → HBM3e")
-    print("3. Tensor Cores: Specialized units for matrix operations with reduced precision")
-    print("4. NVLink-C2C: Direct GPU-to-GPU communication in Blackwell")
-    print("5. Superchip Design: Grace CPU + Blackwell GPU in unified package")
-    print("6. NVL72: 72-GPU rack with unified memory and NVSwitch fabric")
-    print("7. Liquid Cooling: Essential for high-density compute")
-    print("8. Power Management: 130kW per rack requires careful planning")
-    print("9. Blackwell B200/B300: SM100 architecture with HBM3e memory")
-    print("10. TMA: Tensor Memory Accelerator for efficient data movement")
+    print("\n=== Summary ===")
+    print("This demo shows hardware analysis capabilities:")
+    print("1. GPU architecture detection and capabilities")
+    print("2. Memory hierarchy analysis")
+    print("3. Blackwell B200/B300 specific features")
+    print("4. Performance benchmarking")
+    print("5. System monitoring")
+    print("6. Latest profiling tools integration")
+    print("7. Memory bandwidth testing")
+    print("8. Tensor operation benchmarking")
+    print("9. Comprehensive system analysis")
+    print("10. Blackwell-specific optimizations")
 
 
 if __name__ == "__main__":
-    demonstrate_hardware_concepts()
+    main()

@@ -7,7 +7,7 @@ NVSHMEM_INC = -I/usr/local/nvshmem/include
 NVSHMEM_LIB = -L/usr/local/nvshmem/lib -lnvshmem
 
 all: $(TARGET)
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
+	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
 $(TARGET): nvshmem_example.cu
 	$(NVCC) $(NVCC_FLAGS) $(NVSHMEM_INC) -o $(TARGET) $< $(NVSHMEM_LIB)
 
