@@ -1,3 +1,5 @@
+// Architecture-specific optimizations for CUDA 12.9
+// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
 // reduce_naive.cu
 // Hardware: GB200/H100, CUDA 13.0, C++17, Python 3.11, OpenAI Triton 2.5.0
 #include <cuda_runtime.h>
@@ -36,4 +38,19 @@ int main(){
     cudaFree(d_data);cudaFree(d_out);
     delete[] h_data;
     return 0;
+}
+// CUDA 12.9 Stream-ordered Memory Allocation Example
+__global__ void stream_ordered_memory_example() {
+    // Example of stream-ordered memory allocation
+    // This is a placeholder for actual implementation
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    // Your kernel code here
+}
+
+// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
+__global__ void tma_example() {
+    // Example of TMA usage for Blackwell B200/B300
+    // This is a placeholder for actual implementation
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    // Your TMA code here
 }

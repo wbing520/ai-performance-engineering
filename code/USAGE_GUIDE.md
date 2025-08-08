@@ -1,6 +1,6 @@
 # AI Systems Performance Engineering – Usage Guide
 
-This guide documents all the profiling scripts and command examples for the latest CUDA 12.9, PyTorch 2.8 nightly, Triton 3.4, and Blackwell B200/B300 GPU stack.
+This guide documents all the profiling scripts and command examples for the latest CUDA 12.9, PyTorch 2.8 nightly, Triton 3.4, and architecture switching support for Hopper H100/H200 and Blackwell B200/B300 GPUs.
 
 ## Chapter Overview
 
@@ -47,6 +47,9 @@ pip install -r requirements_latest.txt
 # Verify CUDA installation
 nvcc --version  # Should show CUDA 12.9
 python -c "import torch; print(torch.version.cuda)"  # Should show 12.9
+
+# Check architecture support
+python arch_config.py  # Shows current architecture
 ```
 
 ### Environment Setup

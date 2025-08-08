@@ -1,21 +1,42 @@
 #!/bin/bash
 
-# Update script for CUDA 12.9 and Blackwell B200/B300 compliance
-# This script updates all Makefiles to use the latest CUDA version and optimizations
+# Update script for CUDA 12.9 and Architecture Switching
+# Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
 
-echo "Updating CUDA versions and Blackwell B200/B300 optimizations..."
+echo "Updating CUDA versions and architecture switching support..."
+
+# Function to detect current architecture
+detect_architecture() {
+    if command -v nvidia-smi &> /dev/null; then
+        gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
+        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
+            echo "sm_90"
+        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
+            echo "sm_100"
+        else
+            echo "sm_90"  # Default to Hopper
+        fi
+    else
+        echo "sm_90"  # Default to Hopper
+    fi
+}
+
+# Detect current architecture
+CURRENT_ARCH=$(detect_architecture)
+echo "Detected architecture: $CURRENT_ARCH"
 
 # Find all Makefiles and update them
 find . -name "Makefile" -type f | while read -r makefile; do
-    echo "Updating $makefile..."
+    echo "Updating $makefile for $CURRENT_ARCH..."
     
-    # Update CUDA architecture to sm_100 for Blackwell B200/B300
-    sed -i.bak 's/-arch=sm_70/-arch=sm_100/g' "$makefile"
-    sed -i.bak 's/-arch=sm_75/-arch=sm_100/g' "$makefile"
-    sed -i.bak 's/-arch=sm_80/-arch=sm_100/g' "$makefile"
-    sed -i.bak 's/-arch=sm_86/-arch=sm_100/g' "$makefile"
-    sed -i.bak 's/-arch=sm_89/-arch=sm_100/g' "$makefile"
-    sed -i.bak 's/-arch=sm_90/-arch=sm_100/g' "$makefile"
+    # Update CUDA architecture to detected architecture
+    sed -i.bak "s/-arch=sm_70/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_75/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_80/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_86/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_89/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_90/-arch=$CURRENT_ARCH/g" "$makefile"
+    sed -i.bak "s/-arch=sm_100/-arch=$CURRENT_ARCH/g" "$makefile"
     
     # Add CUDA version definition if not present
     if ! grep -q "CUDA_VERSION" "$makefile"; then
@@ -27,10 +48,15 @@ CUDA_VERSION = 12.9' "$makefile"
     # Update nvcc flags to include CUDA version and NVTX
     sed -i.bak 's/nvcc.*-std=c++17/nvcc -std=c++17 -DCUDA_VERSION=$(CUDA_VERSION) -lnvtx3/g' "$makefile"
     
-    # Add Blackwell B200/B300 optimizations if not present
-    if ! grep -q "BLACKWELL_OPTIMIZED" "$makefile"; then
-        sed -i.bak '/^all:/a\
+    # Add architecture-specific optimizations if not present
+    if ! grep -q "ARCH_OPTIMIZED" "$makefile"; then
+        if [ "$CURRENT_ARCH" = "sm_90" ]; then
+            sed -i.bak '/^all:/a\
+	@echo "Building with Hopper H100/H200 optimizations (SM90)"' "$makefile"
+        elif [ "$CURRENT_ARCH" = "sm_100" ]; then
+            sed -i.bak '/^all:/a\
 	@echo "Building with Blackwell B200/B300 optimizations (SM100)"' "$makefile"
+        fi
     fi
     
     # Add enhanced profiling targets if not present
@@ -72,12 +98,13 @@ find . -name "run.sh" -type f | while read -r script; do
     
     # Only update if the script contains nvcc commands
     if grep -q "nvcc" "$script"; then
-        sed -i.bak 's/-arch=sm_70/-arch=sm_100/g' "$script"
-        sed -i.bak 's/-arch=sm_75/-arch=sm_100/g' "$script"
-        sed -i.bak 's/-arch=sm_80/-arch=sm_100/g' "$script"
-        sed -i.bak 's/-arch=sm_86/-arch=sm_100/g' "$script"
-        sed -i.bak 's/-arch=sm_89/-arch=sm_100/g' "$script"
-        sed -i.bak 's/-arch=sm_90/-arch=sm_100/g' "$script"
+        sed -i.bak "s/-arch=sm_70/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_75/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_80/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_86/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_89/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_90/-arch=$CURRENT_ARCH/g" "$script"
+        sed -i.bak "s/-arch=sm_100/-arch=$CURRENT_ARCH/g" "$script"
         sed -i.bak 's/nvcc.*-std=c++17/nvcc -std=c++17 -DCUDA_VERSION=12.9 -lnvtx3/g' "$script"
         rm -f "$script.bak"
     fi
@@ -118,21 +145,31 @@ done
 echo "CUDA version updates completed!"
 echo ""
 echo "Key changes made:"
-echo "- Updated architecture to sm_100 for Blackwell B200/B300 (Compute Capability 10.0)"
+echo "- Updated architecture to $CURRENT_ARCH for architecture switching"
 echo "- Added CUDA_VERSION=12.9 definitions"
 echo "- Updated nvcc flags to include CUDA version and NVTX"
-echo "- Added Blackwell B200/B300 optimization markers"
+echo "- Added architecture-specific optimization markers"
 echo "- Added enhanced profiling targets (HTA, Perf, comprehensive profiling)"
 echo "- Updated PyTorch to 2.8.0+cu129 (nightly builds)"
 echo "- Updated Triton to 3.4.0"
 echo "- Added CUDA 12.9 runtime libraries"
 echo ""
+echo "Architecture Support:"
+echo "- Hopper H100/H200: SM90 Architecture (Compute Capability 9.0)"
+echo "- Blackwell B200/B300: SM100 Architecture (Compute Capability 10.0)"
+echo ""
+echo "Hopper H100/H200 Features:"
+echo "- HBM3 Memory (up to 3.35TB/s bandwidth)"
+echo "- 4th Gen Tensor Cores"
+echo "- Transformer Engine"
+echo "- Dynamic Programming"
+echo ""
 echo "Blackwell B200/B300 Features:"
-echo "- SM100 Architecture (Compute Capability 10.0)"
 echo "- HBM3e Memory (up to 3.2TB/s bandwidth)"
 echo "- 4th Gen Tensor Cores"
 echo "- TMA (Tensor Memory Accelerator)"
-echo "- Multi-GPU NVLink-C2C"
+echo "- NVLink-C2C"
+echo "- Stream-ordered Memory"
 echo ""
 echo "Enhanced Profiling Tools:"
 echo "- Nsight Systems (latest timeline analysis)"

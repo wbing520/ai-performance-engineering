@@ -5,7 +5,7 @@ This guide covers the latest profiling tools and best practices for:
 - **CUDA 12.9**
 - **PyTorch 2.8 nightly**
 - **OpenAI Triton 3.4**
-- **Blackwell B200/B300 GPUs**
+- **Architecture switching: Hopper H100/H200 and Blackwell B200/B300 GPUs**
 
 ## Profiling Tools
 
@@ -61,12 +61,13 @@ ncu \
   python your_script.py
 ```
 
-**Key Features for Blackwell B200/B300**:
-- SM100 architecture support
+**Key Features for Architecture Support**:
+- SM90 (Hopper H100/H200) and SM100 (Blackwell B200/B300) architecture support
 - Tensor Core metrics
-- HBM3e memory analysis
+- HBM3/HBM3e memory analysis
 - Advanced occupancy analysis
-- TMA (Tensor Memory Accelerator) metrics
+- TMA (Tensor Memory Accelerator) metrics for Blackwell
+- Transformer Engine metrics for Hopper
 
 ### 3. PyTorch Profiler
 **Latest Version**: PyTorch 2.8 nightly
@@ -104,7 +105,7 @@ print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 - FLOP counting
 - Module-level analysis
 - TensorBoard integration
-- Blackwell-specific optimizations
+- Architecture-specific optimizations (Hopper and Blackwell)
 
 ### 4. Triton Profiler
 **Latest Version**: Triton 3.4
@@ -125,7 +126,7 @@ export TRITON_PROFILER_OUTPUT=triton_profile.json
 - Autotuning insights
 - Memory access patterns
 - Performance optimization suggestions
-- Blackwell B200/B300 optimizations
+- Architecture-specific optimizations (Hopper and Blackwell)
 
 ### 5. Holistic Tracing Analysis (HTA)
 **Purpose**: Multi-GPU and distributed profiling
@@ -201,26 +202,30 @@ perf report -i perf.data
 6. **Monitor Memory**: Track memory usage patterns
 7. **Use Perf**: System-level analysis
 
-### 2. Blackwell B200/B300 Specific
-- **SM100 Architecture**: Ensure proper targeting
-- **HBM3e Memory**: Monitor high-bandwidth memory usage
-- **Tensor Cores**: Analyze matrix operation performance
-- **Stream-ordered Memory**: Use `cudaMallocAsync`/`cudaFreeAsync`
-- **TMA**: Tensor Memory Accelerator analysis
+### 2. Architecture-Specific Considerations
+- **Hopper H100/H200 (SM90)**: 
+  - **HBM3 Memory**: Monitor high-bandwidth memory usage
+  - **Transformer Engine**: Analyze transformer-specific optimizations
+  - **Dynamic Programming**: Monitor dynamic programming features
+- **Blackwell B200/B300 (SM100)**:
+  - **HBM3e Memory**: Monitor high-bandwidth memory usage
+  - **TMA**: Tensor Memory Accelerator analysis
+  - **Stream-ordered Memory**: Use `cudaMallocAsync`/`cudaFreeAsync`
+  - **NVLink-C2C**: Direct GPU-to-GPU communication
 
 ### 3. PyTorch 2.8 Nightly Optimizations
 - **torch.compile**: Enable with `mode="max-autotune"`
 - **Dynamic Shapes**: Use `automatic_dynamic_shapes=True`
 - **Memory Profiling**: Enable `profile_memory=True`
 - **NVTX Integration**: Add custom markers
-- **Blackwell Optimizations**: Enable Blackwell-specific features
+- **Architecture Optimizations**: Enable architecture-specific features
 
 ### 4. Triton 3.4 Features
 - **Autotuning**: Use `triton.autotune_mode = "max-autotune"`
 - **Kernel Fusion**: Enable kernel combination
 - **Memory Coalescing**: Optimize memory access patterns
 - **Occupancy Tuning**: Maximize GPU utilization
-- **Blackwell Support**: Leverage Blackwell-specific features
+- **Architecture Support**: Leverage architecture-specific features
 
 ## Performance Metrics
 
@@ -235,6 +240,7 @@ perf report -i perf.data
 
 ### Expected Performance
 - **CUDA 12.9**: 10-15% improvement over CUDA 12.4
+- **Hopper H200**: 20-30% improvement over H100
 - **Blackwell B200/B300**: 30-50% improvement over H100
 - **PyTorch 2.8 nightly**: 20-30% improvement over stable releases
 - **Triton 3.4**: 15-20% improvement in kernel generation

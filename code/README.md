@@ -1,180 +1,300 @@
-# AI Performance Engineering Code Examples
+# AI Performance Engineering
 
-This repository contains updated code examples extracted from the AI Performance Engineering book, optimized for:
+A comprehensive guide to optimizing AI systems for maximum performance, efficiency, and scalability. This repository contains practical examples and code for performance engineering on modern AI hardware, including NVIDIA's Grace Blackwell superchips and NVL72 systems.
 
-- **PyTorch 2.8** with CUDA 12.9 support
-- **Triton 3.4** for custom kernel development
-- Latest profiling tools (nsys, ncu, PyTorch Profiler, HTA)
+## 🚀 Latest Updates
 
-## Directory Structure
+**Updated for PyTorch 2.8, CUDA 12.9, Triton 3.4, and Architecture Switching**
 
-### Fully Implemented Chapters
+This repository has been completely updated to support the latest AI hardware and software stack with architecture switching:
 
-**Chapter 3: OS, Docker, and Kubernetes Tuning** (`ch3/`)
-- NUMA-aware process binding and memory allocation
-- Container runtime optimizations
-- Kubernetes GPU orchestration
-- System-level performance tuning scripts
+- **PyTorch 2.8**: Latest PyTorch with enhanced compiler support and architecture-specific optimizations
+- **CUDA 12.9**: Latest CUDA toolkit with Hopper H100/H200 and Blackwell B200/B300 support
+- **Triton 3.4**: OpenAI's Triton for custom GPU kernel development
+- **Architecture Switching**: Support for both Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)
+- **Grace Blackwell Superchip**: Unified memory architecture examples
+- **NVL72 Systems**: Multi-GPU cluster optimization examples
 
-**Chapter 4: Distributed Networking Communication** (`ch4/`)
-- Communication/computation overlap examples
-- NCCL vs Gloo backend comparisons
-- DistributedDataParallel optimizations
-- Common distributed training pitfalls and solutions
+## 📚 Book Chapters
 
-**Chapter 13: Profiling, Tuning, and Scaling PyTorch** (`ch13/`)
-- Comprehensive PyTorch profiling examples
-- Memory optimization techniques
-- FSDP (Fully Sharded Data Parallel) implementation
-- Custom CUDA allocator configuration
+Each chapter contains practical code examples demonstrating key performance engineering concepts:
 
-### Chapter Summaries
+### Chapter 1: Introduction and AI System Overview
+- **`code/ch1/performance_basics.py`**: Basic performance measurement and goodput analysis
+- Demonstrates unified memory architecture, Tensor Core performance, and Transformer Engine
 
-**Chapters 1-2**: Conceptual overviews of AI systems performance engineering and hardware architecture (NVIDIA Grace Blackwell, NVL72)
+### Chapter 2: AI System Hardware Overview  
+- **`code/ch2/hardware_info.py`**: Grace Blackwell superchip hardware analysis
+- NVLink bandwidth testing, unified memory capabilities, and Blackwell specifications
 
-**Chapters 5-12**: Hardware and system fundamentals:
-- Storage optimization and GPUDirect Storage (Ch5)
-- CUDA programming fundamentals (Ch6)
-- GPU memory access pattern optimization (Ch7)
-- Occupancy tuning and warp efficiency (Ch8)
-- Arithmetic intensity and kernel fusion (Ch9)
-- Advanced memory management (Ch10)
-- Multi-GPU and distributed optimization (Ch11)
-- Cooperative groups and synchronization (Ch12)
+### Chapter 3: OS, Docker, and Kubernetes Tuning
+- **`code/ch3/bind_numa_affinity.py`**: NUMA binding and CPU pinning for GPU optimization
+- **`code/ch3/numa_bind.sh`**: Shell scripts for NUMA topology management
+- Memory pinning, CPU affinity, and DataLoader optimization
 
-**Chapters 14-20**: Advanced optimizations:
-- PyTorch compiler and Triton kernels (Ch14)
-- Model serving and inference optimization (Ch15)
-- Advanced profiling and analysis (Ch16)
-- Dynamic adaptive RL inference (Ch17)
-- FlashMLA and kernel tuning (Ch18)
-- Dynamic parallelism and precision (Ch19)
-- AI-assisted performance tuning (Ch20)
+### Chapter 4: Distributed Networking Communication
+- **`code/ch4/after_ddp.py`**: Distributed training with DDP communication overlap
+- NCCL vs Gloo backend comparison, gradient compression, and RDMA optimization
 
-## Key Features
+### Chapter 5: CUDA Programming Fundamentals
+- **`code/ch5/`**: CUDA kernel development and optimization
+- Memory coalescing, shared memory usage, and kernel fusion techniques
 
-### Updated Dependencies
-- PyTorch 2.8 with full CUDA 12.9 support
-- Triton 3.4 for custom kernel development
-- Latest NVIDIA libraries (NCCL, cuDNN, etc.)
-- Modern profiling tools integration
+### Chapter 6: GPU Memory Hierarchy Optimization
+- **`code/ch6/`**: Memory bandwidth optimization and cache utilization
+- Global memory access patterns, shared memory optimization, and L2 cache usage
 
-### Performance Optimizations
-- NUMA-aware CPU/GPU affinity binding
-- Communication/computation overlap patterns
-- Memory-efficient training techniques
-- Distributed scaling strategies
+### Chapter 7: Tensor Core and Matrix Operations
+- **`code/ch7/`**: Tensor Core optimization and matrix multiplication
+- FP8/FP4 precision, GEMM optimization, and custom kernel development
 
-### Profiling and Debugging
-- Multi-level profiling (PyTorch, Nsight, perf)
-- Memory usage analysis and optimization
-- Distributed training bottleneck identification
-- Automated performance regression testing
+### Chapter 8: CUDA Streams and Asynchronous Programming
+- **`code/ch8/`**: Stream-based parallelism and asynchronous execution
+- Kernel fusion, pipeline parallelism, and communication overlap
 
-## Usage Examples
+### Chapter 9: Dynamic Parallelism and CUDA Graphs
+- **`code/ch9/`**: Dynamic parallelism and CUDA graph optimization
+- Persistent kernels, graph capture, and dynamic workload distribution
+
+### Chapter 10: Advanced CUDA Features
+- **`code/ch10/`**: Advanced CUDA programming techniques
+- Cooperative groups, warp-level primitives, and custom atomic operations
+
+### Chapter 11: PyTorch Optimization
+- **`code/ch11/`**: PyTorch-specific optimizations and techniques
+- Compiler optimizations, memory management, and distributed training
+
+### Chapter 12: Triton for Custom GPU Kernels
+- **`code/ch12/`**: OpenAI Triton for high-performance GPU kernel development
+- Custom attention mechanisms, fused operations, and kernel autotuning
+
+### Chapter 13: Distributed Training Optimization
+- **`code/ch13/`**: Large-scale distributed training techniques
+- Model parallelism, pipeline parallelism, and memory optimization
+
+### Chapter 14: Inference Optimization
+- **`code/ch14/`**: High-throughput inference optimization
+- Model serving, quantization, and batch processing
+
+### Chapter 15: Model Compression and Quantization
+- **`code/ch15/`**: Model compression techniques for efficiency
+- Pruning, quantization, and knowledge distillation
+
+### Chapter 16: Memory Optimization
+- **`code/ch16/`**: Advanced memory management techniques
+- Gradient checkpointing, activation recomputation, and memory-efficient training
+
+### Chapter 17: Profiling and Debugging
+- **`code/ch17/`**: Performance profiling and debugging tools
+- NVIDIA Nsight, PyTorch profiler, and custom profiling utilities
+
+### Chapter 18: Model Serving and Deployment
+- **`code/ch18/`**: Production model serving optimization
+- vLLM, TensorRT, and high-throughput inference
+
+### Chapter 19: Advanced Optimization Techniques
+- **`code/ch19/`**: Cutting-edge optimization techniques
+- FlashAttention, sparse computation, and novel architectures
+
+### Chapter 20: Future Trends and Emerging Technologies
+- **`code/ch20/`**: Future directions in AI performance engineering
+- AI-assisted optimization, automated tuning, and emerging hardware
+
+## 🛠️ Installation
+
+### Prerequisites
+
+- **NVIDIA GPU**: Hopper H100/H200, Blackwell B200/B300, or compatible
+- **CUDA 12.9**: Latest CUDA toolkit
+- **Python 3.9+**: Python environment
+- **Linux**: Ubuntu 22.04+ recommended
 
 ### Quick Start
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-repo/ai-performance-engineering.git
+   cd ai-performance-engineering
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements_latest.txt
+   ```
+
+3. **Verify installation**:
+   ```bash
+   python code/ch1/performance_basics.py
+   ```
+
+### System Dependencies
+
+Install system packages for optimal performance:
+
 ```bash
-# Set up environment
-pip install -r requirements.txt
+# Ubuntu/Debian
+sudo apt update
+sudo apt install -y numactl nvidia-container-toolkit infiniband-diags perftest
 
-# Run NUMA-aware training
-python ch3/bind_numa_affinity.py
+# CentOS/RHEL
+sudo yum install -y numactl nvidia-container-toolkit infiniband-diags perftest
+```
 
-# Test distributed communication
-python ch4/nccl_benchmark.py --world-size 2
+## 🚀 Quick Examples
 
-# Profile PyTorch workload
-python ch13/train_deepseek_v3.py
+### Basic Performance Analysis
+```bash
+# Run basic performance measurement
+python code/ch1/performance_basics.py
+
+# Test hardware capabilities
+python code/ch2/hardware_info.py
+```
+
+### NUMA Optimization
+```bash
+# Test NUMA binding
+python code/ch3/bind_numa_affinity.py
+
+# Run NUMA topology analysis
+bash code/ch3/numa_bind.sh
 ```
 
 ### Distributed Training
 ```bash
-# Multi-GPU training with overlap optimization
-torchrun --nproc_per_node=4 ch4/after_ddp.py
+# Test DDP communication overlap
+python code/ch4/after_ddp.py --test ddp
 
-# FSDP training with memory optimization
-torchrun --nproc_per_node=4 ch13/fsdp_example.py
+# Compare NCCL vs Gloo backends
+python code/ch4/after_ddp.py --test nccl
 ```
 
-### System Optimization
+## 📊 Performance Benchmarks
+
+### Architecture Performance Comparison
+
+| Metric | Hopper H100 | Hopper H200 | Blackwell B200 | Blackwell B300 |
+|--------|-------------|-------------|----------------|----------------|
+| Memory | 80 GB | 141 GB | 192 GB | 288 GB |
+| Memory Bandwidth | 3.35 TB/s | 4.8 TB/s | 3.2 TB/s | 4.8 TB/s |
+| Tensor Core (FP4) | 4 PFLOPS | 6 PFLOPS | 20 PFLOPS | 30 PFLOPS |
+| NVLink Bandwidth | 900 GB/s | 1.8 TB/s | 1.8 TB/s | 1.8 TB/s |
+| Power | 700W | 700W | 800W | 1200W |
+
+### NVL72 System Specifications
+
+- **72 Blackwell GPUs** per rack
+- **36 Grace CPUs** per rack  
+- **30 TB unified memory** per rack
+- **1.44 exaFLOPS** peak compute (FP4)
+- **130 TB/s** bisection bandwidth
+- **130 kW** power consumption
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Set these environment variables for optimal performance:
+
 ```bash
-# Apply OS-level optimizations
-sudo bash ch3/system_tuning.sh
+# CUDA optimization
+export CUDA_LAUNCH_BLOCKING=0
+export CUDA_CACHE_DISABLE=0
 
-# Configure GPU settings
-bash ch3/gpu_setup_commands.sh
+# NCCL optimization
+export NCCL_IB_DISABLE=0
+export NCCL_P2P_DISABLE=0
+export NCCL_SHM_DISABLE=0
+
+# PyTorch optimization
+export TORCH_CUDNN_V8_API_ENABLED=1
+export TORCH_CUDNN_V8_API_DISABLED=0
+
+# Memory optimization
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 ```
 
-## Hardware Requirements
+### Docker Support
 
-### Minimum Requirements
-- 2+ NVIDIA GPUs (Volta architecture or newer)
-- CUDA 12.9+ compatible drivers
-- 16GB+ system RAM
-- Linux OS with NUMA support
+For containerized environments:
 
-### Recommended Configuration
-- NVIDIA NVL72 or similar multi-GPU system
-- InfiniBand or high-speed Ethernet networking
-- NVMe SSD storage
-- 64GB+ system RAM
-
-## Integration Notes
-
-### PyTorch 2.8 Compatibility
-All examples have been updated to use:
-- `torch.compile()` for automatic optimization
-- `torch.cuda.amp` for mixed precision training
-- Modern distributed training APIs
-- Latest memory management features
-
-### CUDA 12.9 Features
-- Enhanced unified memory support
-- Improved kernel launch efficiency
-- Advanced profiling capabilities
-- Better multi-GPU memory management
-
-### Triton 3.4 Integration
-- Custom kernel examples (where applicable)
-- JIT compilation optimizations
-- GPU-specific autotuning
-- Integration with PyTorch compiler
-
-## Performance Monitoring
-
-### Automated Benchmarking
 ```bash
-# Run comprehensive benchmarks
-python scripts/run_benchmarks.py
+# Build Docker image
+docker build -t ai-perf-eng .
 
-# Generate performance reports
-python scripts/analyze_performance.py
+# Run with GPU support
+docker run --gpus all --rm -it ai-perf-eng
 ```
 
-### Continuous Integration
-Examples include CI/CD configurations for:
-- Performance regression testing
-- Memory usage monitoring
-- Distributed scaling validation
-- Cross-platform compatibility
+## 📈 Performance Monitoring
 
-## Contributing
+### Real-time Monitoring
 
-When adding new examples:
-1. Ensure PyTorch 2.8+ compatibility
-2. Include proper error handling
-3. Add comprehensive documentation
-4. Provide benchmarking scripts
-5. Test on multiple GPU configurations
+```bash
+# GPU utilization and memory
+watch -n 1 nvidia-smi
 
-## Resources
+# Network performance
+ibstat
+ibv_devinfo
 
-- [PyTorch 2.8 Documentation](https://pytorch.org/docs/2.8/)
-- [CUDA 12.9 Programming Guide](https://docs.nvidia.com/cuda/)
-- [Triton 3.4 Documentation](https://triton-lang.org/)
-- [NVIDIA Developer Resources](https://developer.nvidia.com/)
+# System performance
+htop
+iostat
+```
 
-## License
+### Profiling Tools
 
-Examples are provided for educational purposes in conjunction with the AI Performance Engineering book.
+- **NVIDIA Nsight Systems**: Timeline analysis
+- **NVIDIA Nsight Compute**: Kernel profiling  
+- **PyTorch Profiler**: Framework-level profiling
+- **TensorBoard**: Training visualization
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements_dev.txt
+
+# Run tests
+pytest tests/
+
+# Format code
+black code/
+flake8 code/
+```
+
+## 📖 Documentation
+
+- **Book Chapters**: Each chapter contains detailed explanations and code examples
+- **API Reference**: Comprehensive documentation for all functions and classes
+- **Performance Guides**: Step-by-step optimization guides
+- **Troubleshooting**: Common issues and solutions
+
+## 🏆 Acknowledgments
+
+This repository is based on the comprehensive AI Performance Engineering book, covering:
+
+- **Hardware Optimization**: Grace Blackwell superchips, NVL72 systems
+- **Software Optimization**: PyTorch 2.8, CUDA 12.9, Triton 3.4
+- **System Optimization**: NUMA binding, memory pinning, network tuning
+- **Algorithm Optimization**: Distributed training, model parallelism, quantization
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **NVIDIA CUDA**: https://developer.nvidia.com/cuda-zone
+- **PyTorch**: https://pytorch.org/
+- **OpenAI Triton**: https://github.com/openai/triton
+- **NVIDIA Magnum IO**: https://developer.nvidia.com/magnum-io
+
+---
+
+**Note**: This repository is designed for educational and research purposes. For production deployments, ensure proper testing and validation of all optimizations in your specific environment.

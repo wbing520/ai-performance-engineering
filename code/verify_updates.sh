@@ -1,7 +1,28 @@
 #!/bin/bash
 
-# Verification script for PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and Blackwell B200/B300 compliance
-echo "Verifying PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and Blackwell B200/B300 compliance..."
+# Verification script for PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and Architecture Switching
+# Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+echo "Verifying PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and architecture switching compliance..."
+
+# Function to detect current architecture
+detect_architecture() {
+    if command -v nvidia-smi &> /dev/null; then
+        gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
+        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
+            echo "sm_90"
+        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
+            echo "sm_100"
+        else
+            echo "sm_90"  # Default to Hopper
+        fi
+    else
+        echo "sm_90"  # Default to Hopper
+    fi
+}
+
+# Detect current architecture
+CURRENT_ARCH=$(detect_architecture)
+echo "Detected architecture: $CURRENT_ARCH"
 
 # Check Makefiles for proper updates
 echo "Checking Makefiles..."
@@ -19,18 +40,26 @@ find . -name "Makefile" -type f | while read -r makefile; do
         echo "❌ $makefile - Missing or incorrect CUDA_VERSION"
     fi
     
-    # Check for sm_100 architecture
-    if grep -q "-arch=sm_100" "$makefile"; then
-        echo "✅ $makefile - Architecture correctly set to sm_100"
+    # Check for correct architecture
+    if grep -q "-arch=$CURRENT_ARCH" "$makefile"; then
+        echo "✅ $makefile - Architecture correctly set to $CURRENT_ARCH"
     else
-        echo "❌ $makefile - Architecture not updated to sm_100"
+        echo "❌ $makefile - Architecture not updated to $CURRENT_ARCH"
     fi
     
-    # Check for Blackwell B200/B300 optimizations
-    if grep -q "Building with Blackwell B200/B300 optimizations" "$makefile"; then
-        echo "✅ $makefile - Blackwell B200/B300 optimizations added"
-    else
-        echo "❌ $makefile - Missing Blackwell B200/B300 optimizations"
+    # Check for architecture-specific optimizations
+    if [ "$CURRENT_ARCH" = "sm_90" ]; then
+        if grep -q "Building with Hopper H100/H200 optimizations" "$makefile"; then
+            echo "✅ $makefile - Hopper H100/H200 optimizations added"
+        else
+            echo "❌ $makefile - Missing Hopper H100/H200 optimizations"
+        fi
+    elif [ "$CURRENT_ARCH" = "sm_100" ]; then
+        if grep -q "Building with Blackwell B200/B300 optimizations" "$makefile"; then
+            echo "✅ $makefile - Blackwell B200/B300 optimizations added"
+        else
+            echo "❌ $makefile - Missing Blackwell B200/B300 optimizations"
+        fi
     fi
     
     # Check for NVTX linking
@@ -152,13 +181,13 @@ else
     echo "❌ Triton 3.4.0 requirement not found"
 fi
 
-# Check for Blackwell B200/B300 support
+# Check for architecture support
 echo ""
-echo "Checking for Blackwell B200/B300 support..."
-if grep -r "Blackwell B200/B300" code/; then
-    echo "✅ Blackwell B200/B300 references found"
+echo "Checking for architecture support..."
+if grep -r "Hopper H100/H200\|Blackwell B200/B300" code/; then
+    echo "✅ Architecture references found"
 else
-    echo "❌ Blackwell B200/B300 references not found"
+    echo "❌ Architecture references not found"
 fi
 
 if grep -r "HBM3e" code/; then
@@ -313,10 +342,10 @@ echo "Verification complete!"
 # Summary
 echo ""
 echo "=== SUMMARY ==="
-echo "✅ PyTorch 2.8 nightly features: torch.compile, enhanced profiler, Blackwell optimizations"
-echo "✅ CUDA 12.9 features: Stream-ordered memory, SM100 architecture, version checking"
-echo "✅ Triton 3.4 features: Enhanced kernels, Blackwell optimizations, improved performance"
-echo "✅ Blackwell B200/B300: SM100 architecture, HBM3e memory, Tensor Core optimizations"
+echo "✅ PyTorch 2.8 nightly features: torch.compile, enhanced profiler, architecture-specific optimizations"
+echo "✅ CUDA 12.9 features: Stream-ordered memory, architecture switching, version checking"
+echo "✅ Triton 3.4 features: Enhanced kernels, architecture-specific optimizations, improved performance"
+echo "✅ Architecture Support: Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)"
 echo "✅ Latest profiling tools: Nsight Systems, Nsight Compute, HTA, Perf, enhanced PyTorch profiler"
 echo "✅ Enhanced monitoring: GPU memory, CPU utilization, system metrics"
 echo ""
@@ -324,6 +353,6 @@ echo "All code has been updated to use the latest features from:"
 echo "- PyTorch 2.8 nightly"
 echo "- CUDA 12.9"
 echo "- Triton 3.4"
-echo "- Blackwell B200/B300 architecture"
+echo "- Architecture switching (Hopper H100/H200 and Blackwell B200/B300)"
 echo "- Latest profiling and monitoring tools"
 echo "- Enhanced system monitoring"

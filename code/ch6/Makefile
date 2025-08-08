@@ -1,144 +1,67 @@
-# Makefile for Chapter 6 - GPU Architecture and CUDA Programming
-# Updated for CUDA 12.9 and Blackwell B200/B300 (SM100)
+# Architecture switching support
+# Set ARCH=sm_90 for Hopper H100/H200 or ARCH=sm_100 for Blackwell B200/B300
+ARCH ?= sm_90
 
+# CUDA configuration
+CUDA_VERSION = 12.9
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=sm_100 -DCUDA_VERSION=12.9 -lnvtx3
-PYTHON = python3
+NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION) -lnvtx3
 
-# CUDA examples
-CUDA_TARGETS = my_first_kernel simple_kernel 2d_kernel add_sequential add_parallel \
-               stream_ordered_allocator unified_memory launch_bounds_example occupancy_api
+# Get target name from directory
+TARGET = $(basename $(notdir $(CURDIR)))
 
-# Python examples
-PYTHON_TARGETS = add_sequential.py add_parallel.py
+# Default target
+all: $(TARGET)
+	@echo "Building with $(ARCH) architecture (CUDA $(CUDA_VERSION))"
+	@if [ "$(ARCH)" = "sm_90" ]; then \
+		echo "✓ Targeting Hopper H100/H200 (Compute Capability 9.0)"; \
+	elif [ "$(ARCH)" = "sm_100" ]; then \
+		echo "✓ Targeting Blackwell B200/B300 (Compute Capability 10.0)"; \
+	fi
 
-.PHONY: all clean cuda python test profile
-
-all: cuda
-	@echo "Building with Blackwell B200/B300 optimizations (SM100)"	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
-cuda: $(CUDA_TARGETS)
-
-python:
-	@echo "Python examples ready to run:"
-	@echo "  python $(PYTHON_TARGETS)"
-
-# CUDA compilation rules with Blackwell B200/B300 optimizations
-my_first_kernel: my_first_kernel.cu
+$(TARGET): $(TARGET).cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
-simple_kernel: simple_kernel.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+# Architecture-specific targets
+hopper: ARCH=sm_90
+hopper: $(TARGET)
+	@echo "Built for Hopper H100/H200"
 
-2d_kernel: 2d_kernel.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+blackwell: ARCH=sm_100
+blackwell: $(TARGET)
+	@echo "Built for Blackwell B200/B300"
 
-add_sequential: add_sequential.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+# Enhanced profiling targets
+profile-nsys: $(TARGET)
+	@echo "Nsight Systems timeline profiling..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas -o nsys_profile_$(ARCH) ./$(TARGET)
 
-add_parallel: add_parallel.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+profile-ncu: $(TARGET)
+	@echo "Nsight Compute kernel profiling..."
+	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o ncu_profile_$(ARCH) ./$(TARGET)
 
-stream_ordered_allocator: stream_ordered_allocator.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+profile-hta: $(TARGET)
+	@echo "HTA (Holistic Tracing Analysis) profiling..."
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile_$(ARCH) ./$(TARGET)
 
-unified_memory: unified_memory.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+profile-perf: $(TARGET)
+	@echo "Perf system-level profiling..."
+	perf record -g -p $$(pgrep $(TARGET)) -o perf.data_$(ARCH) ./$(TARGET)
+	perf report -i perf.data_$(ARCH)
 
-launch_bounds_example: launch_bounds_example.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
-
-occupancy_api: occupancy_api.cu
-	$(NVCC) $(NVCC_FLAGS) -o $@ $<
-
-# Test targets
-test: cuda
-	@echo "Running basic functionality tests..."
-	./my_first_kernel
-	./simple_kernel
-	./2d_kernel
-	./add_parallel
-	./occupancy_api
-	$(PYTHON) add_parallel.py
-
-# Performance comparison
-compare: add_sequential add_parallel
-	@echo "Comparing sequential vs parallel performance..."
-	./add_sequential
-	./add_parallel
-	$(PYTHON) add_sequential.py
-	$(PYTHON) add_parallel.py
-
-# Enhanced profiling targets with latest tools
-profile: add_parallel occupancy_api
-	@echo "Profiling with Nsight Systems (latest)..."
-	nsys profile --force-overwrite=true --stats=true -t cuda,nvtx,osrt -o add_parallel_profile ./add_parallel
-	@echo "Profiling with Nsight Compute (latest)..."
-	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed -o occupancy_profile ./occupancy_api
-
-profile-comparison: add_sequential add_parallel
-	@echo "Profiling sequential vs parallel with enhanced tools..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o sequential_profile ./add_sequential
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o parallel_profile ./add_parallel
-
-# Blackwell B200/B300 specific profiling
-profile-blackwell: add_parallel
-	@echo "Profiling with Blackwell B200/B300 optimizations..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o blackwell_profile ./add_parallel
-	ncu --metrics dram_read_throughput,dram_write_throughput,sm__throughput.avg.pct_of_peak_sustained_elapsed -o blackwell_memory_profile ./add_parallel
-
-# Memory profiling
-profile-memory: add_parallel
-	@echo "Memory profiling with latest tools..."
-	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o memory_profile ./add_parallel
-
-# HTA (Holistic Tracing Analysis) profiling
-profile-hta: add_parallel
-	@echo "HTA profiling for multi-GPU analysis..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile ./add_parallel
-
-# Perf profiling for system-level analysis
-profile-perf: add_parallel
-	@echo "Perf profiling for system-level analysis..."
-	perf record -g -p $$(pgrep add_parallel) -o perf.data ./add_parallel
-	perf report -i perf.data
-
-# Enhanced profiling with all tools
-profile-all: add_parallel
+profile-all: $(TARGET)
 	@echo "Comprehensive profiling with all tools..."
 	@echo "1. Nsight Systems timeline..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline ./add_parallel
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline_$(ARCH) ./$(TARGET)
 	@echo "2. Nsight Compute kernel analysis..."
-	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel ./add_parallel
+	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel_$(ARCH) ./$(TARGET)
 	@echo "3. Memory profiling..."
-	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory ./add_parallel
+	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory_$(ARCH) ./$(TARGET)
 	@echo "4. HTA analysis..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta ./add_parallel
+	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta_$(ARCH) ./$(TARGET)
 
 clean:
-	rm -f $(CUDA_TARGETS)
-	rm -f *.o
-	rm -f *.nsys-rep *.ncu-rep
-	rm -f *_profile.* *.qdrep *.sqlite
-	rm -f perf.data
+	rm -f $(TARGET) *.o *.so *.a
+	rm -f nsys_profile_* ncu_profile_* hta_profile_* perf.data_* comprehensive_*
 
-help:
-	@echo "Available targets:"
-	@echo "  all              - Build all CUDA examples"
-	@echo "  cuda             - Build CUDA examples"
-	@echo "  python           - List Python examples"
-	@echo "  test             - Run basic functionality tests"
-	@echo "  compare          - Compare sequential vs parallel performance"
-	@echo "  profile          - Profile with Nsight tools"
-	@echo "  profile-comparison - Profile sequential vs parallel"
-	@echo "  profile-blackwell - Profile with Blackwell B200/B300 optimizations"
-	@echo "  profile-memory   - Memory profiling"
-	@echo "  profile-hta      - HTA profiling for multi-GPU"
-	@echo "  profile-perf     - Perf profiling for system-level"
-	@echo "  profile-all      - Comprehensive profiling with all tools"
-	@echo "  clean            - Remove built files and profiles"
-	@echo "  help             - Show this help message"
-	@echo ""
-	@echo "Architecture: SM100 (Blackwell B200/B300)"
-	@echo "CUDA Version: 12.9"
-	@echo "Optimization: -O3 with latest flags"
-	@echo "Profiling: Nsight Systems, Nsight Compute, HTA, Perf"
+.PHONY: all hopper blackwell profile-nsys profile-ncu profile-hta profile-perf profile-all clean

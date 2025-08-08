@@ -1,5 +1,5 @@
 # AI Performance Engineering - Latest Requirements
-# PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, Blackwell B200/B300
+# PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, Architecture Switching Support
 
 # Core PyTorch ecosystem (nightly builds)
 --find-links https://download.pytorch.org/whl/torch_stable.html
