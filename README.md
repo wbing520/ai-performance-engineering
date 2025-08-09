@@ -82,11 +82,11 @@ For detailed architecture specifications and performance benchmarks, see [`code/
 
 ### 🔧 Latest Features
 
-**Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4:**
+**Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3:**
 
 - **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.9**: Latest CUDA features, improved kernel performance
-- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
+- **CUDA 12.8**: Latest CUDA features, improved kernel performance
+- **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
 - **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **Perf**: Enhanced system-level analysis
@@ -322,4 +322,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Built with ❤️ for the AI performance engineering community*
+*Built with ❤️ in San Francisco for the AI performance engineering community*
