@@ -1,5 +1,15 @@
 # Chapter 8: Occupancy Tuning, Warp Efficiency, and Instruction-Level Parallelism
 
+## Summary
+These examples demonstrate keeping SMs busy through occupancy tuning, reducing warp divergence, and exploiting instruction‑level parallelism, with profiling to validate gains.
+
+## Performance Takeaways
+- Reduce warp divergence via predication and structured control flow
+- Increase ILP with loop unrolling and independent operations
+- Balance occupancy with register/shared‑memory pressure for net gains
+- Validate improvements with warp efficiency and occupancy metrics
+- Translate kernel‑level wins into application throughput improvements
+
 This chapter covers advanced GPU optimization techniques focusing on keeping the GPU fully utilized through better warp scheduling and parallelism.
 
 ## Examples
@@ -46,6 +56,6 @@ python -c "import torch; torch.profiler.profile(...)"
 
 ## Requirements
 
-- CUDA 12.9+
+- CUDA 12.8+
 - PyTorch 2.8+
 - Nsight Compute/Systems for profiling

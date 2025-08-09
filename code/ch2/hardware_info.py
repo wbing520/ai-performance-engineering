@@ -34,7 +34,7 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
+            "memory_bandwidth": "8.0 TB/s",
             "tensor_cores": "4th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
@@ -70,37 +70,47 @@ import torch.cuda.nvtx as nvtx
 
 
 def get_gpu_info() -> Dict[str, Any]:
-    """Get comprehensive GPU information including Blackwell B200/B300 features."""
+    """Get comprehensive GPU information."""
     if not torch.cuda.is_available():
         return {"error": "CUDA not available"}
     
     device_props = torch.cuda.get_device_properties(0)
     
-    # Calculate memory bandwidth (HBM3e for Blackwell)
-    memory_bandwidth = (2.0 * device_props.memoryClockRate * 0.001 * device_props.memoryBusWidth) / 8.0
+    # Calculate memory bandwidth (use default values for missing attributes)
+    # Note: memoryClockRate and memoryBusWidth are not available in current PyTorch version
+    compute_capability = f"{device_props.major}.{device_props.minor}"
+    
+    # Estimate memory bandwidth based on compute capability
+    if device_props.major >= 10:  # Blackwell B200/B300
+        memory_bandwidth = 8.0  # TB/s for HBM3e
+    elif device_props.major == 9:  # Hopper H100/H200
+        memory_bandwidth = 3.35  # TB/s for HBM3
+    else:
+        memory_bandwidth = 1.0  # Default GB/s for other architectures
     
     # Check for Blackwell B200/B300 features
     is_blackwell = device_props.major >= 10  # SM100 for Blackwell
-    compute_capability = f"{device_props.major}.{device_props.minor}"
+    is_hopper = device_props.major == 9  # SM90 for Hopper
     
     return {
         "name": device_props.name,
         "compute_capability": compute_capability,
         "total_memory_gb": device_props.total_memory / 1e9,
-        "memory_bandwidth_gbps": memory_bandwidth,
-        "max_threads_per_block": device_props.maxThreadsPerBlock,
-        "max_threads_per_sm": device_props.maxThreadsPerMultiProcessor,
-        "num_sms": device_props.multiProcessorCount,
-        "warp_size": device_props.warpSize,
-        "max_shared_memory_per_block": device_props.maxSharedMemoryPerBlock,
-        "max_shared_memory_per_sm": device_props.maxSharedMemoryPerMultiprocessor,
-        "l2_cache_size": device_props.l2CacheSize,
-        "architecture": "Blackwell B200/B300" if is_blackwell else "Other",
+        "memory_bandwidth_gbps": memory_bandwidth * 1000 if memory_bandwidth < 10 else memory_bandwidth * 1000,  # Convert to GB/s
+        "max_threads_per_block": device_props.max_threads_per_multi_processor,
+        "max_threads_per_sm": device_props.max_threads_per_multi_processor,
+        "num_sms": device_props.multi_processor_count,
+        "warp_size": device_props.warp_size,
+        "max_shared_memory_per_block": device_props.shared_memory_per_block,
+        "max_shared_memory_per_sm": device_props.shared_memory_per_multiprocessor,
+        "l2_cache_size": device_props.L2_cache_size,
+        "architecture": "Blackwell B200/B300" if is_blackwell else "Hopper H100/H200" if is_hopper else "Other",
         "hbm3e_memory": is_blackwell,  # Blackwell has HBM3e
-        "memory_bandwidth_tbps": 3.2 if is_blackwell else None,  # HBM3e bandwidth
-        "tma_support": is_blackwell,  # Tensor Memory Accelerator
+        "hbm3_memory": is_hopper,  # Hopper has HBM3
+        "memory_bandwidth_tbps": memory_bandwidth if is_blackwell or is_hopper else None,
+        "tma_support": is_blackwell or is_hopper,  # Tensor Memory Accelerator (Hopper & Blackwell)
         "nvlink_c2c": is_blackwell,  # NVLink-C2C for direct GPU communication
-        "tensor_cores": "4th Generation" if is_blackwell else "3rd Generation",
+        "tensor_cores": "5th Generation" if is_blackwell else "4th Generation" if is_hopper else "2nd Generation",
         "unified_memory": True,  # Grace-Blackwell unified memory
         "max_unified_memory_gb": 30 if is_blackwell else None,  # 30TB unified memory
     }
@@ -199,7 +209,7 @@ def benchmark_memory_bandwidth():
             start_time = time.time()
             
             # Benchmark matrix multiplication
-            with nvtx.annotate(f"gemm_{size}"):
+            with nvtx.range(f"gemm_{size}"):
                 for _ in range(10):
                     c = torch.mm(a, b)
             
@@ -255,7 +265,7 @@ def benchmark_tensor_operations():
             start_time = time.time()
             
             # Benchmark
-            with nvtx.annotate(f"tensor_op_{op_name.lower().replace(' ', '_')}"):
+            with nvtx.range(f"tensor_op_{op_name.lower().replace(' ', '_')}"):
                 for _ in range(50):
                     if op_name == "Reduction Sum":
                         result = op_func(a, b)
@@ -484,20 +494,12 @@ def main():
 if __name__ == "__main__":
     main()
 
-# Architecture-specific optimizations
-if torch.cuda.is_available():
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
-    
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+# Note: Architecture-specific optimizations are handled in arch_config.py
+# The following configuration options are not available in the current PyTorch version:
+# - torch._inductor.config.triton.use_hopper_optimizations
+# - torch._inductor.config.triton.hbm3_optimizations
+# - torch._inductor.config.triton.use_blackwell_optimizations
+# - torch._inductor.config.triton.hbm3e_optimizations
+# - torch._inductor.config.triton.tma_support
+# - torch._inductor.config.triton.autotune_mode
+# - torch._dynamo.config.automatic_dynamic_shapes

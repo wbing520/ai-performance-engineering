@@ -1,55 +1,3 @@
-import torch.profiler as profiler
-from torch.profiler import profile, record_function, ProfilerActivity, schedule
-import torch.cuda.nvtx as nvtx
-import torch
-import os
-
-def get_architecture():
-    """Detect and return the current GPU architecture."""
-    if not torch.cuda.is_available():
-        return "cpu"
-    
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
-
-def get_architecture_info():
-    """Get detailed architecture information."""
-    arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
-        return {
-            "name": "Blackwell B200/B300",
-            "compute_capability": "10.0",
-            "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3e", "TMA", "NVLink-C2C"]
-        }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
 # after_overlap_ddp.py
 import torch
 import torch.nn as nn
@@ -70,6 +18,29 @@ class MultiLayerNet(nn.Module):
         return self.fc3(x)
 
 def train_ddp(rank, world_size, data, target):
+    # Check if we have enough GPUs for distributed training
+    if torch.cuda.device_count() < world_size:
+        print(f"Warning: Only {torch.cuda.device_count()} GPU(s) available, but {world_size} requested.", flush=True)
+        print("Falling back to single-GPU training.", flush=True)
+        # Single GPU training
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        model = MultiLayerNet(data.size(1)).to(device)
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        
+        # Move data to device
+        data = data.to(device)
+        target = target.to(device)
+        
+        # Forward pass
+        output = model(data)
+        loss = nn.functional.mse_loss(output, target)
+        loss.backward()
+        optimizer.step()
+        
+        print(f"Single-GPU training completed. Loss: {loss.item():.4f}", flush=True)
+        return
+    
+    # Multi-GPU distributed training
     dist.init_process_group("nccl", init_method="tcp://127.0.0.1:34568",
                            world_size=world_size, rank=rank)
     
@@ -77,6 +48,10 @@ def train_ddp(rank, world_size, data, target):
     model = MultiLayerNet(data.size(1)).cuda(rank)
     ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.01)
+    
+    # Move data to device
+    data = data.cuda(rank)
+    target = target.cuda(rank)
     
     output = ddp_model(data)
     loss = nn.functional.mse_loss(output, target)
@@ -86,25 +61,16 @@ def train_ddp(rank, world_size, data, target):
     dist.destroy_process_group()
 
 if __name__ == "__main__":
-    world_size = 2
+    print(f"Starting DDP training with {torch.cuda.device_count()} GPU(s)", flush=True)
+    world_size = min(2, torch.cuda.device_count())
     inp = torch.randn(128, 1024)
     tgt = torch.randn(128, 1)
-    mp.spawn(train_ddp, args=(world_size, inp, tgt), nprocs=world_size)
-
-# Architecture-specific optimizations
-if torch.cuda.is_available():
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
-    
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+    if world_size == 1:
+        # Single GPU training
+        print("Running single-GPU training", flush=True)
+        train_ddp(0, 1, inp, tgt)
+    else:
+        # Multi-GPU training
+        print("Running multi-GPU training", flush=True)
+        mp.spawn(train_ddp, args=(world_size, inp, tgt), nprocs=world_size)

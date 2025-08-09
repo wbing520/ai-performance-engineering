@@ -37,8 +37,8 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
+            "memory_bandwidth": "8.0 TB/s",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:
@@ -128,15 +128,10 @@ if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
+    # Enable latest PyTorch 2.8 features (only use existing config options)
+    try:
+        torch._inductor.config.triton.unique_kernel_names = True
+    except AttributeError:
+        pass
     
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+    print(f"Running on {device_props.name} with compute capability {compute_capability}")

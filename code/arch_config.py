@@ -2,7 +2,7 @@
 """
 Architecture switching configuration for AI Performance Engineering.
 Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100).
-Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4.
+Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3.
 """
 
 import torch
@@ -41,7 +41,7 @@ class ArchitectureConfig:
                 "memory_bandwidth": "3.35 TB/s",
                 "tensor_cores": "4th Gen",
                 "features": ["HBM3", "Transformer Engine", "Dynamic Programming", "TMA"],
-                "cuda_features": ["CUDA Graphs", "Dynamic Parallelism", "Unified Memory", "TMA", "HBM3"],
+                "cuda_features": ["CUDA Graphs", "Dynamic Parallelism", "Unified Memory", "HBM3", "TMA"],
                 "pytorch_optimizations": [
                     "torch.compile with max-autotune",
                     "Dynamic shapes support",
@@ -50,14 +50,13 @@ class ArchitectureConfig:
                     "HBM3 optimizations"
                 ],
                 "triton_features": [
-                    "Triton 3.4 optimizations",
+                    "Triton 3.3 optimizations",
                     "Hopper-specific kernels",
-                    "HBM3 memory access patterns",
-                    "TMA support"
+                    "HBM3 memory access patterns"
                 ],
                 "profiling_tools": [
-                    "Nsight Systems 2024.1",
-                    "Nsight Compute 2024.1",
+                    "Nsight Systems 2025.1",
+                    "Nsight Compute 2025.1",
                     "HTA for multi-GPU",
                     "Enhanced PyTorch profiler",
                     "Perf system analysis"
@@ -67,8 +66,8 @@ class ArchitectureConfig:
                 "name": "Blackwell B200/B300",
                 "compute_capability": "10.0",
                 "sm_version": "sm_100",
-                "memory_bandwidth": "3.2 TB/s",
-                "tensor_cores": "4th Gen",
+                "memory_bandwidth": "8.0 TB/s",
+                "tensor_cores": "5th Gen",
                 "features": ["HBM3e", "TMA", "NVLink-C2C", "Stream-ordered Memory"],
                 "cuda_features": ["Stream-ordered Memory", "TMA", "HBM3e Optimizations", "NVLink-C2C"],
                 "pytorch_optimizations": [
@@ -79,15 +78,15 @@ class ArchitectureConfig:
                     "NVLink-C2C communication"
                 ],
                 "triton_features": [
-                    "Triton 3.4 Blackwell optimizations",
+                    "Triton 3.3 Blackwell optimizations",
                     "HBM3e memory access patterns",
                     "TMA kernel support",
                     "Stream-ordered memory",
                     "Blackwell-specific kernels"
                 ],
                 "profiling_tools": [
-                    "Nsight Systems 2024.1",
-                    "Nsight Compute 2024.1",
+                    "Nsight Systems 2025.1",
+                    "Nsight Compute 2025.1",
                     "HTA for multi-GPU",
                     "Enhanced PyTorch profiler",
                     "Perf system analysis",
@@ -143,25 +142,50 @@ class ArchitectureConfig:
         if not torch.cuda.is_available():
             return
         
-        if self.arch == "hopper":
-            # Hopper H100/H200 optimizations
-            torch._inductor.config.triton.use_hopper_optimizations = True
-            torch._inductor.config.triton.hbm3_optimizations = True
-            torch._inductor.config.triton.tma_support = True
-            torch._inductor.config.triton.transformer_engine = True
-        elif self.arch == "blackwell":
-            # Blackwell B200/B300 optimizations
-            torch._inductor.config.triton.use_blackwell_optimizations = True
-            torch._inductor.config.triton.hbm3e_optimizations = True
-            torch._inductor.config.triton.tma_support = True
-            torch._inductor.config.triton.stream_ordered_memory = True
-            torch._inductor.config.triton.nvlink_c2c = True
+        # Only configure options that actually exist in the current PyTorch version
+        if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
+            torch._inductor.config.triton.unique_kernel_names = True
+        
+        # Note: The following options are not available in the current PyTorch version
+        # They are commented out to avoid AttributeError
+        # 
+        # if self.arch == "hopper":
+        #     # Hopper H100/H200 optimizations
+        #     if hasattr(torch._inductor.config.triton, 'use_hopper_optimizations'):
+        #         torch._inductor.config.triton.use_hopper_optimizations = True
+        #     if hasattr(torch._inductor.config.triton, 'hbm3_optimizations'):
+        #         torch._inductor.config.triton.hbm3_optimizations = True
+        #     if hasattr(torch._inductor.config.triton, 'tma_support'):
+        #         torch._inductor.config.triton.tma_support = True
+        #     if hasattr(torch._inductor.config.triton, 'transformer_engine'):
+        #         torch._inductor.config.triton.transformer_engine = True
+        # elif self.arch == "blackwell":
+        #     # Blackwell B200/B300 optimizations
+        #     if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
+        #         torch._inductor.config.triton.use_blackwell_optimizations = True
+        #     if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
+        #         torch._inductor.config.triton.hbm3e_optimizations = True
+        #     if hasattr(torch._inductor.config.triton, 'tma_support'):
+        #         torch._inductor.config.triton.tma_support = True
+        #     if hasattr(torch._inductor.config.triton, 'stream_ordered_memory'):
+        #         torch._inductor.config.triton.stream_ordered_memory = True
+        #     if hasattr(torch._inductor.config.triton, 'nvlink_c2c'):
+        #         torch._inductor.config.triton.nvlink_c2c = True
         
         # Common optimizations for both architectures
-        torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
-        torch._dynamo.config.automatic_dynamic_shapes = True
-        torch._inductor.config.triton.enable_advanced_memory_optimizations = True
+        # Note: These options are not available in the current PyTorch version
+        # if hasattr(torch._inductor.config.triton, 'autotune_mode'):
+        #     torch._inductor.config.triton.autotune_mode = "max-autotune"
+        # if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
+        #     torch._dynamo.config.automatic_dynamic_shapes = True
+        # if hasattr(torch._inductor.config.triton, 'enable_advanced_memory_optimizations'):
+        #     torch._inductor.config.triton.enable_advanced_memory_optimizations = True
+        
+        # Set environment variables for optimization instead
+        import os
+        os.environ['TORCH_CUDNN_V8_API_ENABLED'] = '1'
+        os.environ['TORCH_CUDNN_V8_API_DISABLED'] = '0'
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128,expandable_segments:True'
     
     def print_info(self):
         """Print architecture information."""

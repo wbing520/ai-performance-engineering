@@ -3,7 +3,7 @@
 # Comprehensive Profiling Script
 # Combines all profiling tools for maximum performance analysis
 # Supports Hopper H100/H200 and Blackwell B200/B300
-# Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4
+# Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
 
@@ -30,7 +30,7 @@ fi
 echo "=== Comprehensive Profiling for $SCRIPT_NAME ==="
 echo "Architecture: $ARCH"
 echo "Duration: $PROFILE_DURATION seconds"
-echo "PyTorch 2.8, CUDA 12.9, Triton 3.4 Support"
+echo "PyTorch 2.8, CUDA 12.8, Triton 3.3 Support"
 echo ""
 
 # Set environment variables for optimal profiling
@@ -223,8 +223,8 @@ cat > "comprehensive_report_${ARCH}.md" << EOF
 - **Timestamp**: $TIMESTAMP
 - **Duration**: $PROFILE_DURATION seconds
 - **PyTorch**: 2.8
-- **CUDA**: 12.9
-- **Triton**: 3.4
+- **CUDA**: 12.8
+- **Triton**: 3.3
 
 ## Architecture Details
 EOF
@@ -234,7 +234,7 @@ if [ "$ARCH" = "sm_90" ]; then
 - **GPU**: Hopper H100/H200
 - **Compute Capability**: 9.0
 - **Memory**: HBM3
-- **Features**: Transformer Engine, Dynamic Programming, TMA
+- **Features**: Transformer Engine, Dynamic Programming
 - **Optimizations**: HBM3 optimizations, Hopper-specific kernels
 EOF
 elif [ "$ARCH" = "sm_100" ]; then
@@ -286,7 +286,7 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 - **View**: chrome://tracing/ (load pytorch_trace_${ARCH}.json)
 
 ### 8. Triton Profiler
-- **Analysis**: Triton 3.4 kernel profiling and optimization
+- **Analysis**: Triton 3.3 kernel profiling and optimization
 
 ## Performance Recommendations
 
@@ -308,9 +308,9 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 
 ## Latest Features Used
 - **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.9**: Latest CUDA features, improved kernel performance
-- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
-- **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
+- **CUDA 12.8**: Latest CUDA features, improved kernel performance
+- **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
+- **Enhanced Profiling**: Nsight Systems 2025.1, Nsight Compute 2025.1
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **Perf**: Enhanced system-level analysis
 

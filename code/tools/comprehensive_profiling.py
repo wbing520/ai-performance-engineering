@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Profiling Tools Demo
-Latest profiling tools for PyTorch 2.8, CUDA 12.9, and Blackwell B200/B300
+Latest profiling tools for PyTorch 2.8, CUDA 12.8, and Blackwell B200/B300
 
 This script demonstrates:
 - Nsight Systems (nsys) timeline analysis
@@ -531,7 +531,7 @@ def main():
     Main function to demonstrate comprehensive profiling tools.
     """
     print("=== Comprehensive Profiling Tools Demo ===")
-    print("PyTorch 2.8, CUDA 12.9, Triton 3.4 Support")
+    print("PyTorch 2.8, CUDA 12.8, Triton 3.4 Support")
     print("Enhanced for Hopper H100/H200 and Blackwell B200/B300")
     print()
     
@@ -562,7 +562,7 @@ def main():
     print("8. Module-level analysis")
     print("9. Architecture-specific features")
     print("10. Automated profiling pipeline")
-    print("11. Latest CUDA 12.9 support")
+    print("11. Latest CUDA 12.8 support")
     print("12. Triton 3.4 integration")
 
 

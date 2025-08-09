@@ -1,5 +1,15 @@
 # Chapter 20: AI-Assisted Performance Optimizations and Scaling Toward Multi-Million GPU Clusters
 
+## Summary
+These examples demonstrate AI‑assisted performance engineering—LLMs generating/optimizing kernels—and explore scaling paths toward ultra‑large systems.
+
+## Performance Takeaways
+- Achieve human‑competitive kernel speedups via AI‑generated candidates
+- Use a verifier harness for correctness, safety, and performance measurement
+- Iterate with feedback/prompt refinement and autotuning to explore large spaces
+- Apply guardrails to mitigate risk; decide when human‑in‑the‑loop is required
+- Project optimization workflows toward next‑gen ultra‑scale systems
+
 Code examples demonstrating AI-assisted optimization workflows and scaling concepts for ultra-large AI systems.
 
 ## Examples
@@ -17,7 +27,7 @@ Code examples demonstrating AI-assisted optimization workflows and scaling conce
 ## Requirements
 
 - PyTorch 2.8+
-- CUDA 12.9+ with nvcc compiler
+- CUDA 12.8+ with nvcc compiler
 - NVIDIA GPUs with Ampere architecture or newer
 - Sufficient disk space for temporary kernel compilation
 

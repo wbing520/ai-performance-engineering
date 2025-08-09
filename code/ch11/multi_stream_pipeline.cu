@@ -1,9 +1,8 @@
-// Architecture-specific optimizations for CUDA 12.9
+// Architecture-specific optimizations for CUDA 12.8
 // Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
 // multi_stream_pipeline.cu
 // Combined intra-kernel and inter-kernel pipelining example
 
-#include <cuda/pipeline>
 #include <cooperative_groups.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -30,28 +29,20 @@ __device__ float computeTile(const float* tile_data, int lane_id) {
     return sum;
 }
 
-// Warp-specialized pipeline kernel with intra-kernel optimization
-extern "C"
-__global__ void warp_specialized_pipeline_kernel(
+// Simplified warp-specialized kernel without complex pipeline
+__global__ void warp_specialized_kernel(
     const float* __restrict__ A_global,
     const float* __restrict__ B_global,
     float* __restrict__ C_global,
     int numTiles)
 {
-    // Create a cooperative thread block (CTA) object
-    thread_block cta = this_thread_block();
-
-    // Allocate 3 × TILE_SIZE floats in shared memory
+    // Allocate shared memory
     extern __shared__ float shared_mem[];
     float* A_tile = shared_mem;                    // [0 ... TILE_SIZE-1]
     float* B_tile = shared_mem + TILE_SIZE;        // [TILE_SIZE ... 2*TILE_SIZE-1]
     float* C_tile = shared_mem + 2 * TILE_SIZE;    // [2*TILE_SIZE ... 3*TILE_SIZE-1]
 
-    // Create a 3-stage pipeline object
-    __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 3> pipelineState;
-    auto pipeline = cuda::make_pipeline<cuda::thread_scope_block, 3>(cta, &pipelineState);
-
-    // Compute warp_id (0, 1, or 2) and lane_id (0–31)
+    // Compute warp_id and lane_id
     int warp_id = threadIdx.x >> 5;
     int lane_id = threadIdx.x & 31;
 
@@ -60,58 +51,70 @@ __global__ void warp_specialized_pipeline_kernel(
     int totalWarps = gridDim.x * warps_per_block;
     int global_warp = warp_id + (blockIdx.x * warps_per_block);
 
-    // Persistent loop: each warp handles tiles in strided fashion
+    // Process tiles in strided fashion
     for (int tile = global_warp; tile < numTiles; tile += totalWarps) {
         size_t offset = size_t(tile) * TILE_SIZE;
 
-        // Stage 0: Loader Warp (warp_id == 0)
-        if (warp_id == 0) {
-            pipeline.producer_acquire(0);
-
-            // Load data asynchronously
-            if (offset + lane_id < numTiles * TILE_SIZE && lane_id < TILE_SIZE) {
-                cuda::memcpy_async(cta,
-                    A_tile + lane_id,
-                    A_global + offset + lane_id,
-                    sizeof(float),
-                    pipeline);
-
-                cuda::memcpy_async(cta,
-                    B_tile + lane_id,
-                    B_global + offset + lane_id,
-                    sizeof(float),
-                    pipeline);
+        // Load data (warp 0)
+        if (warp_id == 0 && lane_id < TILE_SIZE) {
+            if (offset + lane_id < numTiles * TILE_SIZE) {
+                A_tile[lane_id] = A_global[offset + lane_id];
+                B_tile[lane_id] = B_global[offset + lane_id];
             }
-
-            pipeline.producer_commit(0);
         }
 
-        // Stage 1: Compute Warp (warp_id == 1)
-        if (warp_id == 1) {
-            pipeline.consumer_wait(0);
+        // Synchronize to ensure data is loaded
+        __syncthreads();
 
-            // Compute on the loaded tiles
-            if (lane_id < TILE_SIZE) {
-                float resultA = computeTile(A_tile, lane_id);
-                float resultB = computeTile(B_tile, lane_id);
-                C_tile[lane_id] = resultA + resultB;
-            }
-
-            pipeline.producer_commit(1);
-            pipeline.consumer_release(0);
+        // Compute (warp 1)
+        if (warp_id == 1 && lane_id < TILE_SIZE) {
+            float resultA = computeTile(A_tile, lane_id);
+            float resultB = computeTile(B_tile, lane_id);
+            C_tile[lane_id] = resultA + resultB;
         }
 
-        // Stage 2: Storer Warp (warp_id == 2)
-        if (warp_id == 2) {
-            pipeline.consumer_wait(1);
+        // Synchronize to ensure computation is done
+        __syncthreads();
 
-            // Write results back to global memory
-            if (offset + lane_id < numTiles * TILE_SIZE && lane_id < TILE_SIZE) {
+        // Store results (warp 2)
+        if (warp_id == 2 && lane_id < TILE_SIZE) {
+            if (offset + lane_id < numTiles * TILE_SIZE) {
                 C_global[offset + lane_id] = C_tile[lane_id];
             }
-
-            pipeline.consumer_release(1);
         }
+
+        // Synchronize before next iteration
+        __syncthreads();
+    }
+}
+
+// Simple kernels for the event synchronization example
+__global__ void preprocess_kernel(float* data, int N) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        data[idx] = data[idx] * 2.0f + 1.0f;
+    }
+}
+
+__global__ void process_kernel(const float* input, float* output, int N) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        output[idx] = sqrtf(input[idx] * input[idx] + 1.0f);
+    }
+}
+
+__global__ void finalize_kernel(const float* input, float* output, int N) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        output[idx] = input[idx] * 0.5f;
+    }
+}
+
+// Simple kernel for host callbacks
+__global__ void simple_kernel(float* data, int N) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        data[idx] = sinf((float)idx * 0.01f);
     }
 }
 
@@ -175,7 +178,7 @@ void launch_multistream_warp_pipeline(
         dim3 gridDim(1);
         size_t shmemBytes = 3 * TILE_SIZE * sizeof(float);
 
-        warp_specialized_pipeline_kernel<<<
+        warp_specialized_kernel<<<
             gridDim, blockDim, shmemBytes, stream>>>(
             d_A, d_B, d_C, 1);
 
@@ -265,15 +268,7 @@ void demonstrateEventSynchronization() {
     cudaMemcpyAsync(d_data, h_data, bytes, cudaMemcpyHostToDevice, producer_stream);
     
     // Simple preprocessing kernel
-    auto preprocess = [](float* data, int N) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < N) {
-            data[idx] = data[idx] * 2.0f + 1.0f;
-        }
-    };
-    
-    // Launch preprocessing kernel
-    preprocess<<<grid, block, 0, producer_stream>>>(d_data, N);
+    preprocess_kernel<<<grid, block, 0, producer_stream>>>(d_data, N);
     
     // Record event when data is ready
     cudaEventRecord(data_ready, producer_stream);
@@ -282,14 +277,7 @@ void demonstrateEventSynchronization() {
     cudaStreamWaitEvent(consumer_stream, data_ready, 0);
     
     // Processing kernel
-    auto process = [](const float* input, float* output, int N) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < N) {
-            output[idx] = sqrtf(input[idx] * input[idx] + 1.0f);
-        }
-    };
-    
-    process<<<grid, block, 0, consumer_stream>>>(d_data, d_intermediate, N);
+    process_kernel<<<grid, block, 0, consumer_stream>>>(d_data, d_intermediate, N);
     
     // Record event when processing is done
     cudaEventRecord(processing_done, consumer_stream);
@@ -298,14 +286,7 @@ void demonstrateEventSynchronization() {
     cudaStreamWaitEvent(output_stream, processing_done, 0);
     
     // Final processing and output
-    auto finalize = [](const float* input, float* output, int N) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < N) {
-            output[idx] = input[idx] * 0.5f;
-        }
-    };
-    
-    finalize<<<grid, block, 0, output_stream>>>(d_intermediate, d_result, N);
+    finalize_kernel<<<grid, block, 0, output_stream>>>(d_intermediate, d_result, N);
     
     cudaMemcpyAsync(h_result, d_result, bytes, cudaMemcpyDeviceToHost, output_stream);
 
@@ -362,18 +343,11 @@ void demonstrateHostCallbacks() {
 
     printf("Launching kernels with host callbacks...\n");
 
-    // Simple kernel
-    auto simple_kernel = [](float* data, int N) {
-        int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if (idx < N) {
-            data[idx] = sinf((float)idx * 0.01f);
-        }
-    };
-
+    // Launch parameters
     dim3 grid((N + 255) / 256);
     dim3 block(256);
 
-    // Launch kernel and register callback
+    // Simple kernel
     simple_kernel<<<grid, block, 0, stream>>>(d_data, N);
     
     // Register host callback to execute when kernel completes

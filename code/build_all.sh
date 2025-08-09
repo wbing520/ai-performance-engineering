@@ -2,12 +2,12 @@
 
 # Comprehensive Build Script for Architecture Switching
 # Supports Hopper H100/H200 and Blackwell B200/B300
-# Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4
+# Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
 
 echo "=== AI Performance Engineering - Comprehensive Build ==="
-echo "PyTorch 2.8, CUDA 12.9, Triton 3.4, Architecture Switching Support"
+echo "PyTorch 2.8, CUDA 12.8, Triton 3.3, Architecture Switching Support"
 echo ""
 
 # Function to detect current architecture
@@ -32,12 +32,12 @@ check_cuda_version() {
         cuda_version=$(nvcc --version | grep "release" | awk '{print $6}' | cut -c2-)
         echo "CUDA Version: $cuda_version"
         
-        # Check if CUDA 12.9 is available
-        if [[ "$cuda_version" == "12.9"* ]]; then
-            echo "✓ CUDA 12.9 detected"
+        # Check if CUDA 12.8 is available
+        if [[ "$cuda_version" == "12.8"* ]]; then
+            echo "✓ CUDA 12.8 detected"
             return 0
         else
-            echo "⚠ CUDA 12.9 not detected, using available version: $cuda_version"
+            echo "⚠ CUDA 12.8 not detected, using available version: $cuda_version"
             return 1
         fi
     else
@@ -71,11 +71,11 @@ check_triton_version() {
         triton_version=$(python -c "import triton; print(triton.__version__)" 2>/dev/null || echo "Not installed")
         echo "Triton Version: $triton_version"
         
-        if [[ "$triton_version" == "3.4"* ]]; then
-            echo "✓ Triton 3.4 detected"
+        if [[ "$triton_version" == "3.3"* ]]; then
+            echo "✓ Triton 3.3 detected"
             return 0
         else
-            echo "⚠ Triton 3.4 not detected, using available version: $triton_version"
+            echo "⚠ Triton 3.3 not detected, using available version: $triton_version"
             return 1
         fi
     else

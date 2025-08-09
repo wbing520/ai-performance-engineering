@@ -211,10 +211,16 @@ void demonstrateComputeDataOverlap() {
                        cudaMemcpyHostToDevice, 
                        copyH2DStream);
         
-        // Compute on previous batch (if exists)
+        // Compute on previous batch (if exists) - write to d_output
         if (batch > 0) {
             int prevOffset = (batch - 1) * batchSize;
-            ker_A<<<grid, block, 0, computeStream>>>(d_input + prevOffset, batchSize);
+            // Copy input to output first, then compute on output
+            cudaMemcpyAsync(d_output + prevOffset,
+                           d_input + prevOffset,
+                           batchBytes,
+                           cudaMemcpyDeviceToDevice,
+                           computeStream);
+            ker_A<<<grid, block, 0, computeStream>>>(d_output + prevOffset, batchSize);
         }
         
         // D2H copy for batch before previous (if exists)
@@ -231,7 +237,12 @@ void demonstrateComputeDataOverlap() {
     // Process remaining batches
     // Compute on last batch
     int lastOffset = (numBatches - 1) * batchSize;
-    ker_A<<<grid, block, 0, computeStream>>>(d_input + lastOffset, batchSize);
+    cudaMemcpyAsync(d_output + lastOffset,
+                   d_input + lastOffset,
+                   batchBytes,
+                   cudaMemcpyDeviceToDevice,
+                   computeStream);
+    ker_A<<<grid, block, 0, computeStream>>>(d_output + lastOffset, batchSize);
     
     // Copy out last two batches
     int secondLastOffset = (numBatches - 2) * batchSize;
@@ -257,6 +268,7 @@ void demonstrateComputeDataOverlap() {
     
     printf("3-way overlap completed in %ld ms\n", duration.count());
     printf("Output sample: %.6f\n", h_output[batchSize]);
+    printf("Input sample: %.6f\n", h_input[batchSize]);
     
     // Cleanup
     cudaStreamDestroy(computeStream);

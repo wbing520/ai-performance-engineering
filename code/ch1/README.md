@@ -1,5 +1,15 @@
 # Chapter 1: Introduction and AI System Overview
 
+## Summary
+These examples demonstrate foundational performance-engineering concepts: measuring goodput, profiling bottlenecks, and aligning software with hardware capabilities (mechanical sympathy) to establish a robust baseline.
+
+## Performance Takeaways
+- Quantify goodput vs raw throughput and compute overall efficiency
+- Identify CPU/GPU bottlenecks via profiling timelines and counters
+- Understand batch-size effects on utilization, latency, and stability
+- Distinguish memory-bound vs compute-bound behavior and act accordingly
+- Establish a reproducible baseline and success criteria for future chapters
+
 This directory contains code examples that demonstrate the core concepts from Chapter 1 of the AI Performance Engineering book.
 
 ## Key Concepts Demonstrated

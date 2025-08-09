@@ -2,7 +2,7 @@
 
 # Comprehensive Architecture Switching Update Script
 # Updates all code and scripts to support Hopper H100/H200 and Blackwell B200/B300
-# with PyTorch 2.8, CUDA 12.9, and Triton 3.4
+# with PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
 
@@ -10,8 +10,8 @@ echo "=== AI Performance Engineering - Architecture Switching Update ==="
 echo "Updating all code and scripts for:"
 echo "- Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)"
 echo "- PyTorch 2.8 nightly"
-echo "- CUDA 12.9"
-echo "- Triton 3.4"
+echo "- CUDA 12.8"
+echo "- Triton 3.3"
 echo "- Latest profiling tools (nsys, ncu, HTA, perf)"
 echo ""
 
@@ -39,7 +39,7 @@ echo "Detected architecture: $CURRENT_ARCH"
 echo "Updating requirements_latest.txt..."
 cat > requirements_latest.txt << 'EOF'
 # AI Performance Engineering - Latest Requirements
-# PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, Architecture Switching Support
+# PyTorch 2.8 nightly, CUDA 12.8, Triton 3.3, Architecture Switching Support
 
 # Core PyTorch ecosystem (nightly builds)
 --find-links https://download.pytorch.org/whl/torch_stable.html
@@ -47,20 +47,20 @@ torch==2.8.0+cu129
 torchvision==0.23.0+cu129
 torchaudio==2.8.0+cu129
 
-# CUDA and GPU acceleration (CUDA 12.9)
-nvidia-cuda-runtime-cu12==12.9.140
-nvidia-cuda-nvrtc-cu12==12.9.140
+# CUDA and GPU acceleration (CUDA 12.8)
+nvidia-cuda-runtime-cu12==12.8.*
+nvidia-cuda-nvrtc-cu12==12.8.*
 nvidia-cudnn-cu12==9.0.0.29
-nvidia-cublas-cu12==12.9.2.65
+nvidia-cublas-cu12==12.8.*
 nvidia-cufft-cu12==11.2.2.12
 nvidia-curand-cu12==10.4.0.141
 nvidia-cusolver-cu12==12.2.0.141
 nvidia-cusparse-cu12==12.3.0.141
 nvidia-nccl-cu12==2.20.5
-nvidia-nvtx-cu12==12.9.140
+nvidia-nvtx-cu12==12.8.*
 
 # Triton for GPU kernel development (latest)
-triton==3.4.0
+triton==3.3.0
 
 # Performance monitoring and profiling (latest)
 nvidia-ml-py3==11.525.84
@@ -143,7 +143,7 @@ find . -name "Makefile" -type f | while read -r makefile; do
 ARCH ?= $CURRENT_ARCH
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=\$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=\$(CUDA_VERSION) -lnvtx3
 
@@ -256,17 +256,17 @@ EOF
     rm -f "$pyfile.bak"
 done
 
-# Update CUDA files with latest CUDA 12.9 features
-echo "Updating CUDA files with CUDA 12.9 features..."
+# Update CUDA files with latest CUDA 12.8 features
+echo "Updating CUDA files with CUDA 12.8 features..."
 find . -name "*.cu" -type f | while read -r cufile; do
     echo "Updating $cufile..."
     
-    # Add CUDA 12.9 features if not present
+    # Add CUDA 12.8 features if not present
     if ! grep -q "cudaMallocAsync" "$cufile"; then
         # Add stream-ordered memory allocation example
         cat >> "$cufile" << 'EOF'
 
-// CUDA 12.9 Stream-ordered Memory Allocation Example
+// CUDA 12.8 Stream-ordered Memory Allocation Example
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
@@ -274,7 +274,7 @@ __global__ void stream_ordered_memory_example() {
     // Your kernel code here
 }
 
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
+// CUDA 12.8 TMA (Tensor Memory Accelerator) Example
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation
@@ -288,7 +288,7 @@ EOF
     if ! grep -q "sm_100" "$cufile"; then
         # Add architecture detection
         sed -i.bak '1i\
-// Architecture-specific optimizations for CUDA 12.9\
+// Architecture-specific optimizations for CUDA 12.8\
 // Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)\
 ' "$cufile"
     fi
@@ -525,7 +525,7 @@ class ArchitectureConfig:
                 "name": "Blackwell B200/B300",
                 "compute_capability": "10.0",
                 "sm_version": "sm_100",
-                "memory_bandwidth": "3.2 TB/s",
+                "memory_bandwidth": "8.0 TB/s",
                 "tensor_cores": "4th Gen",
                 "features": ["HBM3e", "TMA", "NVLink-C2C"],
                 "cuda_features": ["Stream-ordered Memory", "TMA", "HBM3e Optimizations"],
@@ -605,7 +605,7 @@ cat > test_architecture_switching.py << 'EOF'
 #!/usr/bin/env python3
 """
 Comprehensive test script for architecture switching.
-Tests PyTorch 2.8, CUDA 12.9, and Triton 3.4 features.
+Tests PyTorch 2.8, CUDA 12.8, and Triton 3.3 features.
 """
 
 import torch
@@ -664,8 +664,8 @@ def test_pytorch_28_features():
         print(f"❌ Triton optimizations failed: {e}")
 
 def test_cuda_129_features():
-    """Test CUDA 12.9 features."""
-    print("\n=== CUDA 12.9 Features Test ===")
+    """Test CUDA 12.8 features."""
+    print("\n=== CUDA 12.8 Features Test ===")
     
     # Test stream-ordered memory allocation
     try:
@@ -720,8 +720,8 @@ def test_profiling_tools():
         print(f"❌ NVTX failed: {e}")
 
 def test_triton_34():
-    """Test Triton 3.4 features."""
-    print("\n=== Triton 3.4 Features Test ===")
+    """Test Triton 3.3 features."""
+    print("\n=== Triton 3.3 Features Test ===")
     
     try:
         import triton
@@ -909,10 +909,10 @@ echo ""
 echo "=== Update Complete ==="
 echo ""
 echo "Key updates made:"
-echo "✓ Updated requirements_latest.txt with PyTorch 2.8, CUDA 12.9, Triton 3.4"
+echo "✓ Updated requirements_latest.txt with PyTorch 2.8, CUDA 12.8, Triton 3.3"
 echo "✓ Updated all Makefiles with architecture switching support"
 echo "✓ Updated Python files with PyTorch 2.8 features"
-echo "✓ Updated CUDA files with CUDA 12.9 features"
+echo "✓ Updated CUDA files with CUDA 12.8 features"
 echo "✓ Created enhanced profiling scripts (nsys, ncu, HTA, perf)"
 echo "✓ Updated arch_config.py with latest features"
 echo "✓ Created comprehensive test script"
@@ -925,8 +925,8 @@ echo "- Blackwell B200/B300: SM100 Architecture (Compute Capability 10.0)"
 echo ""
 echo "Latest Features:"
 echo "- PyTorch 2.8 nightly with torch.compile and max-autotune"
-echo "- CUDA 12.9 with stream-ordered memory and TMA"
-echo "- Triton 3.4 with enhanced kernel generation"
+echo "- CUDA 12.8 with stream-ordered memory and TMA"
+echo "- Triton 3.3 with enhanced kernel generation"
 echo "- Latest profiling tools (nsys, ncu, HTA, perf)"
 echo ""
 echo "Usage:"

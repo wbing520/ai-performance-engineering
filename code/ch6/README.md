@@ -1,5 +1,15 @@
 # Chapter 6: GPU Architecture, CUDA Programming, and Maximizing Occupancy
 
+## Summary
+These examples demonstrate core CUDA programming patterns and occupancy tuning (launch parameters, unified and stream-ordered memory) to maximize parallel performance.
+
+## Performance Takeaways
+- Choose launch configurations that raise occupancy without overusing registers
+- Apply stream‑ordered allocation to avoid global syncs and allocator stalls
+- Use unified memory prefetch/advice to match access patterns and reduce faults
+- Translate occupancy and memory metrics into end‑to‑end kernel speedups
+- Leverage the Occupancy API to compute optimal block sizes per kernel
+
 This chapter introduces GPU architecture fundamentals and CUDA programming patterns for AI workloads, focusing on memory hierarchy, thread execution models, and occupancy optimization.
 
 ## Code Examples
@@ -42,7 +52,7 @@ This chapter introduces GPU architecture fundamentals and CUDA programming patte
 
 ## Requirements
 
-- CUDA 12.9+
+- CUDA 12.8+
 - NVIDIA GPU with compute capability 5.0+
 - For optimal performance: Blackwell, Hopper, or Ada Lovelace architecture
 

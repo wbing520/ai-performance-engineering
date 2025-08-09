@@ -37,7 +37,7 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
+            "memory_bandwidth": "8.0 TB/s",
             "tensor_cores": "4th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }

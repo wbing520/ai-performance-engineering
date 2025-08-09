@@ -1,5 +1,15 @@
 # Chapter 13: Profiling, Tuning, and Scaling PyTorch
 
+## Summary
+These examples demonstrate comprehensive PyTorch profiling and optimization—memory analysis, FSDP scaling, and Nsight/HTA integration—to find and fix real bottlenecks.
+
+## Performance Takeaways
+- Identify operators/kernels dominating CUDA time and address hot paths
+- Reduce peak memory and fragmentation with allocator tuning and techniques
+- Scale model/training with FSDP while maintaining efficiency
+- Correlate framework traces with system timelines (Nsight, HTA) across GPUs
+- Combine torch.compile and CUDA Graphs to reduce Python and launch overheads
+
 This directory contains comprehensive examples for profiling, debugging, and optimizing PyTorch workloads across single-GPU and distributed multi-GPU environments.
 
 ## Files Overview
@@ -337,5 +347,54 @@ export TORCH_COMPILE_DEBUG=1
 3. **Measure Impact**: Always benchmark before and after optimizations
 4. **Monitor in Production**: Set up continuous performance monitoring
 5. **Share Results**: Use trace exports for collaboration and debugging
+
+## Recent Fixes and Updates
+
+### Compatibility Fixes (August 2025)
+
+The following fixes have been applied to ensure compatibility with PyTorch 2.8 and CUDA 12.8:
+
+1. **NumPy Compatibility**: Downgraded NumPy to <2.0 to resolve compatibility issues with SciPy and other dependencies
+2. **Deprecated API Updates**:
+   - Replaced `use_cuda=True` with `activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]` in profiler
+   - Updated `torch.cuda.amp.GradScaler()` to `torch.amp.GradScaler('cuda')`
+   - Updated `torch.cuda.amp.autocast()` to `torch.amp.autocast('cuda')`
+   - Added `use_reentrant=False` parameter to `torch.utils.checkpoint.checkpoint()`
+
+3. **Architecture-Specific Optimizations**: Made all architecture-specific optimizations optional with proper error handling:
+   - Hopper optimizations (H100/H200) are applied only if available
+   - Blackwell optimizations (B200/B300) are applied only if available
+   - Graceful fallback when features are not available
+
+4. **Trace Export Fixes**:
+   - Fixed duplicate trace export issue
+   - Added proper directory creation for HTA traces
+   - Added error handling for trace export
+
+5. **Memory Snapshot Handling**:
+   - Fixed snapshot iteration issue in custom_allocator.py
+   - Added proper type checking for snapshot events
+
+6. **Dependencies**:
+   - Installed required packages: transformers, datasets, accelerate, sentencepiece, tokenizers
+   - Resolved version conflicts with NumPy and SciPy
+
+### Running the Examples
+
+All scripts should now run successfully on Hopper (H100/H200) and Blackwell (B200/B300) architectures:
+
+```bash
+# Run all examples
+python train_deepseek_v3.py      # PyTorch Profiler with trace export
+python memory_profiling.py        # Memory profiling and optimization
+python fsdp_example.py           # FSDP distributed training
+python custom_allocator.py       # Custom CUDA allocator demo
+```
+
+### Known Issues
+
+- Some warnings about NumPy version compatibility with SciPy (non-critical)
+- CUDA factory registration warnings (non-critical, related to multiple CUDA installations)
+- FSDP warnings about sharding strategy when running on single GPU (expected behavior)
 
 For more advanced techniques, refer to the PyTorch documentation and NVIDIA developer resources.

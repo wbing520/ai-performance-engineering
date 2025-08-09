@@ -1,5 +1,15 @@
 # Chapter 10: Intra-Kernel Pipelining, Warp Specialization, and Cooperative Thread Block Clusters
 
+## Summary
+These examples demonstrate advanced intra‑kernel pipelining, warp specialization, persistent kernels, and cooperative groups to hide memory latency and boost utilization.
+
+## Performance Takeaways
+- Implement double‑buffered pipelines to overlap memory and compute
+- Use warp specialization to concurrently exercise different hardware units
+- Employ persistent kernels to remove repeated launch overhead
+- Apply cooperative groups/clusters for grid‑level coordination when needed
+- Achieve 2–3× speedups on memory‑bound kernels by eliminating idle cycles
+
 This chapter introduces advanced CUDA techniques for maximizing GPU utilization through intra-kernel pipelining, warp specialization, and cooperative thread groups.
 
 ## Code Examples

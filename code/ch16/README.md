@@ -1,5 +1,15 @@
 # Chapter 16: Profiling, Debugging, and Tuning Inference at Scale
 
+## Summary
+These examples demonstrate production inference optimization with deep instrumentation, dynamic batching/scheduling, quantization, prefix caching, and actionable monitoring.
+
+## Performance Takeaways
+- Tie GPU/system metrics to user‑visible latency/throughput outcomes
+- Optimize dynamic batching to balance latency SLOs and utilization
+- Apply GPTQ/AWQ/SmoothQuant for speed/memory trade‑offs with guardrails
+- Use prefix caching to reduce compute via higher cache hit rates
+- Employ cascading/streaming to improve UX while maximizing resource use
+
 Code examples demonstrating comprehensive profiling, monitoring, and optimization techniques for large-scale LLM inference systems.
 
 ## Files Overview

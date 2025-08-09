@@ -1,5 +1,15 @@
 # Chapter 5: GPU-based Storage I/O Optimizations
 
+## Summary
+These examples demonstrate accelerating data pipelines with GPUDirect Storage, sequential-access patterns, pinned memory, and DataLoader tuning to raise end-to-end throughput.
+
+## Performance Takeaways
+- Use GPUDirect Storage to reduce CPU overhead and increase IO throughput
+- Prefer sequential access patterns to achieve multi‑x read bandwidth gains
+- Tune num_workers/prefetch/pin_memory for balanced, non‑starving pipelines
+- Monitor I/O and GPU utilization to catch data bottlenecks early
+- Achieve 2–10× vs random access; 20%+ throughput from GDS in favorable setups
+
 This directory contains code examples that demonstrate the core storage I/O optimization concepts from Chapter 5 of the AI Performance Engineering book.
 
 ## Key Concepts Demonstrated

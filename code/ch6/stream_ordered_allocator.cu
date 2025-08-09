@@ -5,6 +5,7 @@
 
 #include <cuda_runtime.h>
 #include <stdio.h>
+#include <cstdint>
 
 __global__ void computeKernel(float* data, float* result, int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;

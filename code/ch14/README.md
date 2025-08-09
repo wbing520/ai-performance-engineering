@@ -1,5 +1,15 @@
 # Chapter 14: PyTorch Compiler and Triton Programming
 
+## Summary
+These examples demonstrate accelerating models with torch.compile (graph capture, dynamic shapes) and writing high‑performance custom kernels in Triton.
+
+## Performance Takeaways
+- Eliminate graph breaks to unlock compiler fusion and scheduling
+- Use dynamic shapes judiciously; understand recompilation trade‑offs
+- Write Triton kernels (vector, matmul, fused ops) and autotune configs
+- Compare custom kernels vs PyTorch built‑ins to guide when custom wins
+- Profile and debug compiled models/kernels to realize consistent speedups
+
 This directory contains comprehensive examples for PyTorch 2.8's torch.compile optimization and OpenAI's Triton 3.4 for custom GPU kernel development.
 
 ## Files Overview
@@ -203,7 +213,7 @@ model.compiled_layer2 = torch.compile(model.layer2, mode='reduce-overhead')
 ## Hardware Requirements
 
 - **GPU**: NVIDIA GPUs with CUDA Compute Capability 7.0+
-- **CUDA**: Version 12.9 or later
+- **CUDA**: Version 12.8 or later
 - **Memory**: Minimum 8GB GPU memory for larger examples
 - **PyTorch**: Version 2.8 with CUDA support
 - **Triton**: Version 3.4 compatible with PyTorch 2.8

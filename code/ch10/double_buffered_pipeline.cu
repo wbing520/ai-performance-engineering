@@ -46,8 +46,8 @@ __global__ void gemm_tiled_pipeline(
     };
 
     // 3) Two-stage pipeline object
-    __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 2> state;
-    auto pipe = cuda::make_pipeline(cta, &state);
+    __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 2> pipelineState;
+    auto pipe = cuda::make_pipeline(cta, &pipelineState);
 
     // 4) Thread coords in the tile
     int tx = threadIdx.x, ty = threadIdx.y;
@@ -87,7 +87,7 @@ __global__ void gemm_tiled_pipeline(
     for (int tile = 0; tile < numTiles; ++tile) {
         // ---- Stage 0: prefetch tile+1 into buffer[next] ----
         if (tile + 1 < numTiles) {
-            pipe.producer_acquire(next);
+            pipe.producer_acquire();
 
             // A next-tile
             int aRow = block_row + ty;
@@ -115,17 +115,17 @@ __global__ void gemm_tiled_pipeline(
                 );
             }
 
-            pipe.producer_commit(next);
+            pipe.producer_commit();
         }
 
         // ---- Stage 1: compute on buffer[curr] ----
-        pipe.consumer_wait(curr);
+        pipe.consumer_wait();
         accum += computeTile(
             A_buf[curr],
             B_buf[curr],
             tx, ty
         );
-        pipe.consumer_release(curr);
+        pipe.consumer_release();
 
         // ---- Swap buffers for next iteration ----
         curr = next;
@@ -147,9 +147,9 @@ __global__ void gemm_tiled_naive(
     float* __restrict__ C_global,
     int M, int N, int K)
 {
-    extern __shared__ float shared_mem[];
-    float* A_tile = shared_mem;
-    float* B_tile = shared_mem + TILE_SIZE * TILE_SIZE;
+    extern __shared__ float naive_shared_mem[];
+    float* A_tile = naive_shared_mem;
+    float* B_tile = naive_shared_mem + TILE_SIZE * TILE_SIZE;
 
     int tx = threadIdx.x, ty = threadIdx.y;
     int block_row = blockIdx.y * TILE_SIZE;
@@ -307,20 +307,4 @@ int main(int argc, char** argv) {
     cudaEventDestroy(stop);
 
     return 0;
-}
-
-// CUDA 12.9 Stream-ordered Memory Allocation Example
-__global__ void stream_ordered_memory_example() {
-    // Example of stream-ordered memory allocation
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your kernel code here
-}
-
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
-__global__ void tma_example() {
-    // Example of TMA usage for Blackwell B200/B300
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your TMA code here
 }

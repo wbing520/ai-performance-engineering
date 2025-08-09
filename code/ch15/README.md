@@ -1,5 +1,15 @@
 # Chapter 15: Multi-Node Inference, Parallelism, Decoding, and Routing Optimizations
 
+## Summary
+These examples demonstrate high‑throughput, low‑latency inference via disaggregated prefill/decode, MoE routing, speculative decoding, and multi‑dimensional parallelism.
+
+## Performance Takeaways
+- Disaggregate prefill and decode to remove resource interference
+- Combine TP/PP/EP/DP to meet SLOs at target cost/throughput
+- Transfer/manage KV cache efficiently to reduce end‑to‑end latency
+- Apply speculative decoding to accelerate token generation without quality loss
+- Balance routing/load for MoE to prevent hot experts and maintain goodput
+
 This chapter covers advanced optimization techniques for efficient, high-performance multi-node inference for massive LLMs, including disaggregated prefill-decode architectures and various parallelism strategies.
 
 ## Files Overview

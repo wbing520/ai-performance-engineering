@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 // Kernel with launch bounds annotation
-__global__ __launch_bounds__(256, 16)
+__global__ __launch_bounds__(256, 8)
 void myKernel(float* input, float* output, int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     

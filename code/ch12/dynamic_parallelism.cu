@@ -47,15 +47,17 @@ __global__ void recursiveKernel(float* data, int N, int depth, int max_depth) {
         // Process current level
         data[idx] = data[idx] * 0.9f + 0.1f;
         
-        // Launch next level if conditions are met
-        if (depth < max_depth - 1 && (idx % (1 << (depth + 1))) == 0) {
+        // Launch next level if conditions are met (limit recursion)
+        if (depth < max_depth - 1 && (idx % (1 << (depth + 2))) == 0 && N > 256) {
             int next_N = N / 2;
             if (next_N > 0) {
                 dim3 next_grid((next_N + 255) / 256);
                 dim3 next_block(256);
                 
-                // Recursive launch
-                recursiveKernel<<<next_grid, next_block>>>(data, next_N, depth + 1, max_depth);
+                // Recursive launch (limit to avoid too many launches)
+                if (next_grid.x <= 4) { // Limit grid size
+                    recursiveKernel<<<next_grid, next_block>>>(data, next_N, depth + 1, max_depth);
+                }
             }
         }
     }
@@ -431,11 +433,12 @@ int main() {
     printf("Device: %s\n", prop.name);
     printf("Compute Capability: %d.%d\n", prop.major, prop.minor);
     
-    // Check for dynamic parallelism support
-    if (prop.major >= 3 && prop.minor >= 5) {
+    // Check for dynamic parallelism support (CC 3.5+)
+    if ((prop.major > 3) || (prop.major == 3 && prop.minor >= 5)) {
         printf("Dynamic Parallelism: Supported\n");
     } else {
         printf("Dynamic Parallelism: Not supported (requires CC 3.5+)\n");
+        printf("Current CC: %d.%d\n", prop.major, prop.minor);
         return 1;
     }
     
@@ -486,7 +489,6 @@ int main() {
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your kernel code here
 }
 
@@ -494,6 +496,5 @@ __global__ void stream_ordered_memory_example() {
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your TMA code here
 }

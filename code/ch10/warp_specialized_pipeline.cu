@@ -17,18 +17,15 @@ using namespace cooperative_groups;
 // with each lane handling one element.
 __device__ float computeTile(const float* tile_data, int lane_id) {
     float sum = 0.0f;
-    #pragma unroll 8
-    for (int k = 0; k < TILE_SIZE; k += 32) {
-        if (k + lane_id < TILE_SIZE) {
-            sum += tile_data[lane_id * TILE_SIZE + k + lane_id] * tile_data[(k + lane_id) * TILE_SIZE + lane_id];
-        }
+    if (lane_id < TILE_SIZE) {
+        // Simple computation: just sum the element at lane_id
+        sum = tile_data[lane_id];
     }
     return sum;
 }
 
 // warp_specialized_pipeline_kernel
 // - Uses 3 warps per block: warp 0 = loader, warp 1 = compute, warp 2 = storer.
-// - A 3-stage cuda::pipeline object ensures load/compute/store overlap.
 // - Shared memory is partitioned into A_tile[], B_tile[], and C_tile[] of length TILE_SIZE each.
 // - Each warp processes a strided subset of `numTiles` total tiles.
 extern "C"
@@ -50,16 +47,12 @@ __global__ void warp_specialized_pipeline_kernel(
     // [2*TILE_SIZE ... 3*TILE_SIZE-1]
     float* C_tile = shared_mem + 2 * TILE_SIZE;
 
-    // 3) Create a 3-stage pipeline object (shared across the block)
-    __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 3> pipelineState;
-    auto pipeline = cuda::make_pipeline<cuda::thread_scope_block, 3>(cta, &pipelineState);
-
-    // 4) Compute warp_id (0, 1, or 2) and lane_id (0–31)
+    // 3) Compute warp_id (0, 1, or 2) and lane_id (0–31)
     int thread_idx = threadIdx.x;
     int warp_id = thread_idx >> 5; // divide by 32
     int lane_id = thread_idx & 31; // mod 32
 
-    // 5) Determine how many warps in the entire grid,
+    // 4) Determine how many warps in the entire grid,
     // and each warp's starting tile index
     int warps_per_block = blockDim.x >> 5;
     int totalWarps = gridDim.x * warps_per_block;
@@ -67,39 +60,24 @@ __global__ void warp_specialized_pipeline_kernel(
     // Each warp in the grid gets a unique global_warp ID
     int global_warp = warp_id + (blockIdx.x * warps_per_block);
 
-    // 6) Persistent loop: each warp handles tiles in a strided fashion
+    // 5) Persistent loop: each warp handles tiles in a strided fashion
     for (int tile = global_warp; tile < numTiles; tile += totalWarps) {
         size_t offset = size_t(tile) * TILE_SIZE;
 
         // Stage 0: Loader Warp (warp_id == 0)
         if (warp_id == 0) {
-            // Acquire stage 0
-            pipeline.producer_acquire(0);
-
-            // Asynchronously copy one float per lane from A_global and B_global into shared memory
-            if (offset + lane_id < numTiles * TILE_SIZE) {
-                cuda::memcpy_async(cta,
-                    A_tile + lane_id,
-                    A_global + offset + lane_id,
-                    sizeof(float),
-                    pipeline);
-
-                cuda::memcpy_async(cta,
-                    B_tile + lane_id,
-                    B_global + offset + lane_id,
-                    sizeof(float),
-                    pipeline);
+            // Load data into shared memory
+            if (offset + lane_id < numTiles * TILE_SIZE && lane_id < TILE_SIZE) {
+                A_tile[lane_id] = A_global[offset + lane_id];
+                B_tile[lane_id] = B_global[offset + lane_id];
             }
-
-            // Commit stage 0 so consumers can wait on it
-            pipeline.producer_commit(0);
         }
+
+        // Synchronize all warps
+        cta.sync();
 
         // Stage 1: Compute Warp (warp_id == 1)
         if (warp_id == 1) {
-            // Wait for loader (Stage 0) to finish
-            pipeline.consumer_wait(0);
-
             // Compute on the tiles from A_tile and B_tile
             float resultA = computeTile(A_tile, lane_id);
             float resultB = computeTile(B_tile, lane_id);
@@ -108,33 +86,22 @@ __global__ void warp_specialized_pipeline_kernel(
             if (lane_id < TILE_SIZE) {
                 C_tile[lane_id] = resultA + resultB;
             }
-
-            // Commit Stage 1 so the storer warp can pick it up
-            pipeline.producer_commit(1);
-
-            // Release Stage 0 so the loader can reuse it for the next tile
-            pipeline.consumer_release(0);
         }
+
+        // Synchronize all warps
+        cta.sync();
 
         // Stage 2: Storer Warp (warp_id == 2)
         if (warp_id == 2) {
-            // Wait for compute (Stage 1) to finish
-            pipeline.consumer_wait(1);
-
             // Write C_tile from shared memory back to global memory
             if (offset + lane_id < numTiles * TILE_SIZE && lane_id < TILE_SIZE) {
                 C_global[offset + lane_id] = C_tile[lane_id];
             }
-
-            // Release Stage 1 so compute can reuse it for the next tile
-            pipeline.consumer_release(1);
         }
-    }
 
-    // Note: In a real persistent-kernel launch,
-    // you would set gridDim.x * (blockDim.x/32)
-    // to have fewer warps than numTiles, and let
-    // this loop exhaust all tiles before exiting.
+        // Synchronize all warps before next iteration
+        cta.sync();
+    }
 }
 
 // Naive version for comparison
@@ -144,9 +111,9 @@ __global__ void naive_kernel(
     float* __restrict__ C_global,
     int numTiles)
 {
-    extern __shared__ float shared_mem[];
-    float* A_tile = shared_mem;
-    float* B_tile = shared_mem + TILE_SIZE;
+    extern __shared__ float naive_shared_mem[];
+    float* A_tile = naive_shared_mem;
+    float* B_tile = naive_shared_mem + TILE_SIZE;
 
     int thread_idx = threadIdx.x + blockIdx.x * blockDim.x;
     int warp_id = thread_idx >> 5;
@@ -266,6 +233,10 @@ int main(int argc, char** argv) {
     for (int i = 0; i < iterations; ++i) {
         naive_kernel<<<naive_blocks, naive_threads, naive_shared>>>(
             d_A, d_B, d_C_naive, numTiles);
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            printf("Naive kernel error: %s\n", cudaGetErrorString(err));
+        }
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -278,6 +249,10 @@ int main(int argc, char** argv) {
     for (int i = 0; i < iterations; ++i) {
         warp_specialized_pipeline_kernel<<<blocks, threads_per_block, shared_mem>>>(
             d_A, d_B, d_C_specialized, numTiles);
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            printf("Warp-specialized kernel error: %s\n", cudaGetErrorString(err));
+        }
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -297,11 +272,15 @@ int main(int argc, char** argv) {
     }
 
     printf("\n=== Results ===\n");
-    printf("Naive time:              %.2f ms (avg: %.3f ms)\n", 
+    printf("Naive time:              %.3f ms (avg: %.3f ms)\n", 
            naive_time, naive_time / iterations);
-    printf("Warp-specialized time:   %.2f ms (avg: %.3f ms)\n", 
+    printf("Warp-specialized time:   %.3f ms (avg: %.3f ms)\n", 
            specialized_time, specialized_time / iterations);
-    printf("Speedup:                 %.2fx\n", naive_time / specialized_time);
+    if (specialized_time > 0.001f && naive_time > 0.001f) {
+        printf("Speedup:                 %.2fx\n", naive_time / specialized_time);
+    } else {
+        printf("Speedup:                 N/A (timing too small)\n");
+    }
     printf("Max difference:          %.2e\n", max_diff);
 
     // Test cooperative kernel
@@ -378,20 +357,4 @@ int main(int argc, char** argv) {
     cudaEventDestroy(stop);
 
     return 0;
-}
-
-// CUDA 12.9 Stream-ordered Memory Allocation Example
-__global__ void stream_ordered_memory_example() {
-    // Example of stream-ordered memory allocation
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your kernel code here
-}
-
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
-__global__ void tma_example() {
-    // Example of TMA usage for Blackwell B200/B300
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your TMA code here
 }

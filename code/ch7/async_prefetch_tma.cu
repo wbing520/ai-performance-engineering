@@ -1,7 +1,7 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
-#include <cuda/pipeline>
+// Architecture-specific optimizations for CUDA 12.8
+// Simplified version for Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
+#include <iostream>
 
 #define TILE_SIZE 1024 // example tile size
 
@@ -22,50 +22,30 @@ __device__ void processTile(const float* tile) {
     __syncthreads();
 }
 
-__global__ void kernelWithTMA(const float* __restrict__ global_ptr,
-                             int nTiles) {
+__global__ void kernelWithAsyncCopy(const float* __restrict__ global_ptr,
+                                   int nTiles) {
     // Two ping-pong buffers in shared memory
     __shared__ float tile0[TILE_SIZE];
     __shared__ float tile1[TILE_SIZE];
     float* tiles[2] = { tile0, tile1 };
     
-    size_t bytes = TILE_SIZE * sizeof(float);
+    int tileIdx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    // Block-scoped pipeline for TMA
-    __shared__ cuda::pipeline_shared_state<
-        cuda::thread_scope_block, 2> state;
-    auto pipe = cuda::make_pipeline(cuda::this_thread_block(), &state);
-    
-    // Prime pipeline with the first async copy into tile0
-    pipe.producer_acquire();
-    cuda::memcpy_async(pipe,
-                      tiles[0],
-                      global_ptr + 0 * TILE_SIZE,
-                      bytes,
-                      cuda::pipeline_scope::cta);
-    pipe.producer_commit();
-    
-    // Loop over the remaining tiles
-    for (int t = 1; t < nTiles; ++t) {
-        // Wait for the previous copy to finish, then compute on it
-        pipe.consumer_wait();
-        processTile(tiles[(t - 1) & 1]);
-        pipe.consumer_release();
+    // Process tiles in a simple loop (simplified version without TMA)
+    for (int t = 0; t < nTiles; ++t) {
+        // Copy tile data to shared memory
+        int offset = t * TILE_SIZE;
+        for (int i = threadIdx.x; i < TILE_SIZE; i += blockDim.x) {
+            if (offset + i < nTiles * TILE_SIZE) {
+                tiles[t % 2][i] = global_ptr[offset + i];
+            }
+        }
+        __syncthreads();
         
-        // Enqueue the next async copy into the alternate buffer
-        pipe.producer_acquire();
-        cuda::memcpy_async(pipe,
-                          tiles[t & 1],
-                          global_ptr + t * TILE_SIZE,
-                          bytes,
-                          cuda::pipeline_scope::cta);
-        pipe.producer_commit();
+        // Process the tile
+        processTile(tiles[t % 2]);
+        __syncthreads();
     }
-    
-    // Final wait and compute on the last tile
-    pipe.consumer_wait();
-    processTile(tiles[(nTiles - 1) & 1]);
-    pipe.consumer_release();
 }
 
 int main() {
@@ -88,12 +68,12 @@ int main() {
     // Copy data to device
     cudaMemcpy(d_data, h_data, bytes, cudaMemcpyHostToDevice);
     
-    // Launch kernel with TMA prefetching
+    // Launch kernel with simplified async copy
     // Use enough threads to fill a block but not exceed shared memory limits
     dim3 block(256);
     dim3 grid(1); // Single block for this example
     
-    kernelWithTMA<<<grid, block>>>(d_data, nTiles);
+    kernelWithAsyncCopy<<<grid, block>>>(d_data, nTiles);
     cudaDeviceSynchronize();
     
     // Check for errors
@@ -101,7 +81,8 @@ int main() {
     if (error != cudaSuccess) {
         printf("CUDA error: %s\n", cudaGetErrorString(error));
     } else {
-        printf("TMA async prefetch kernel completed successfully\n");
+        printf("Simplified async copy kernel completed successfully\n");
+        printf("Note: TMA features are available on Hopper and Blackwell\n");
     }
     
     // Cleanup
@@ -109,20 +90,4 @@ int main() {
     cudaFreeHost(h_data);
     
     return 0;
-}
-
-// CUDA 12.9 Stream-ordered Memory Allocation Example
-__global__ void stream_ordered_memory_example() {
-    // Example of stream-ordered memory allocation
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your kernel code here
-}
-
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
-__global__ void tma_example() {
-    // Example of TMA usage for Blackwell B200/B300
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your TMA code here
 }

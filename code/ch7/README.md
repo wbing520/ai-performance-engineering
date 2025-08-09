@@ -1,5 +1,15 @@
 # Chapter 7: Profiling and Tuning GPU Memory Access Patterns
 
+## Summary
+These examples demonstrate memory-efficiency techniques—coalesced and vectorized access, shared-memory tiling, bank-conflict avoidance, and async prefetch—to increase effective bandwidth.
+
+## Performance Takeaways
+- Convert uncoalesced into coalesced patterns to raise memory throughput
+- Use vectorized loads/stores to saturate memory bandwidth more efficiently
+- Tile into shared memory to increase reuse and arithmetic intensity
+- Avoid bank conflicts for stable, predictable memory performance
+- Use TMA/async prefetch to hide DRAM latency behind compute
+
 This chapter contains code examples demonstrating GPU memory optimization techniques:
 
 ## Examples
@@ -40,6 +50,6 @@ Each example includes:
 
 ## Requirements
 
-- CUDA 12.9+
+- CUDA 12.8+
 - PyTorch 2.8+
 - Nsight Compute for profiling

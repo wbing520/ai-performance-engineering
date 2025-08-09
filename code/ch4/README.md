@@ -1,5 +1,15 @@
 # Chapter 4: Tuning Distributed Networking Communication
 
+## Summary
+These examples demonstrate optimizing distributed training via communication–compute overlap, correct backend selection (NCCL vs Gloo), and diagnostics to avoid common networking pitfalls.
+
+## Performance Takeaways
+- Overlap gradient communication with compute to cut iteration time
+- Quantify NCCL vs Gloo bandwidth/latency differences and select correctly
+- Tune DDP bucket sizes and settings to increase overlap and reduce stalls
+- Detect stragglers and communication hot‑spots to stabilize scaling efficiency
+- Avoid anti‑patterns (per‑iteration communicator init) that add seconds of overhead
+
 This directory contains code examples for optimizing distributed communication in AI training and inference systems, focusing on overlapping communication with computation and avoiding common pitfalls.
 
 ## Files Overview
@@ -153,7 +163,7 @@ ddp_model = DistributedDataParallel(
 - **Minimum**: 2 NVIDIA GPUs with NVLink or PCIe
 - **Recommended**: NVL72 rack or multi-node with InfiniBand
 - **Network**: InfiniBand (preferred) or high-speed Ethernet
-- **CUDA**: 12.9+ with compatible drivers
+- **CUDA**: 12.8+ with compatible drivers
 
 ## Expected Performance Gains
 

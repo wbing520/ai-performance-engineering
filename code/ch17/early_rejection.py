@@ -37,8 +37,8 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
+            "memory_bandwidth": "8.0 TB/s",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:
@@ -224,13 +224,13 @@ class QoSController:
         est_ttft += (self.metrics.decode_queue_length * 
                     self.metrics.avg_decode_time_per_req)
         
-        # Adjust for request size
-        # Larger prompts take longer
-        size_factor = max(1.0, request.prompt_length / 100.0)
+        # Adjust for request size (capped to prevent extreme values)
+        # Larger prompts take longer, but cap the factor
+        size_factor = min(5.0, max(1.0, request.prompt_length / 100.0))
         est_ttft *= size_factor
         
-        # Adjust for system load
-        load_factor = 1.0 + self.metrics.current_load
+        # Adjust for system load (capped to prevent extreme values)
+        load_factor = min(3.0, 1.0 + self.metrics.current_load)
         est_ttft *= load_factor
         
         # Priority gets better estimates (more accurate prediction)
@@ -239,7 +239,9 @@ class QoSController:
         elif request.priority == Priority.FREE:
             est_ttft *= 1.1  # Free tier gets 10% worse estimates
         
-        return est_ttft
+        # Cap the final estimate to prevent unreasonable values
+        max_reasonable_ttft = 10000.0  # 10 seconds max
+        return min(max_reasonable_ttft, max(1.0, est_ttft))
     
     def _system_health_check(self, request: Request) -> bool:
         """Additional system health checks."""
@@ -543,15 +545,16 @@ if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
+    print(f"Detected GPU architecture: {compute_capability}")
     
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+    # Note: Architecture-specific optimizations are handled automatically by PyTorch
+    # based on the detected compute capability. The following configurations
+    # are not available in this PyTorch version and have been removed:
+    # - torch._inductor.config.triton.use_hopper_optimizations
+    # - torch._inductor.config.triton.hbm3_optimizations
+    # - torch._inductor.config.triton.use_blackwell_optimizations
+    # - torch._inductor.config.triton.hbm3e_optimizations
+    # - torch._inductor.config.triton.tma_support
+    # - torch._inductor.config.triton.unique_kernel_names
+    # - torch._inductor.config.triton.autotune_mode
+    # - torch._dynamo.config.automatic_dynamic_shapes

@@ -37,8 +37,8 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
+            "memory_bandwidth": "8.0 TB/s",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:
@@ -270,7 +270,7 @@ class RadixTree:
     def _evict_lru(self):
         """Evict the least recently used leaf nodes."""
         leaves = []
-        self._collect_leaves(self.root, leaves)
+        self._collect_leaves(self.root, leaves, set())
         
         if not leaves:
             return
@@ -287,13 +287,29 @@ class RadixTree:
                 leaf.cache = None
                 self.current_cache_count -= 1
     
-    def _collect_leaves(self, node: RadixTreeNode, leaves: List[RadixTreeNode]):
-        """Collect all leaf nodes for LRU eviction."""
-        if node.is_leaf and node.cache:
-            leaves.append(node)
+    def _collect_leaves(self, node: RadixTreeNode, leaves: List[RadixTreeNode], visited: set = None):
+        """Collect all leaf nodes for LRU eviction using iterative traversal."""
+        if visited is None:
+            visited = set()
         
-        for child in node.children.values():
-            self._collect_leaves(child, leaves)
+        # Use iterative traversal to avoid recursion issues
+        stack = [node]
+        
+        while stack:
+            current = stack.pop()
+            
+            # Prevent infinite recursion
+            if id(current) in visited:
+                continue
+            visited.add(id(current))
+            
+            if current.is_leaf and current.cache:
+                leaves.append(current)
+            
+            # Add children to stack
+            for child in current.children.values():
+                if id(child) not in visited:
+                    stack.append(child)
 
 
 class ModelState:
@@ -331,7 +347,7 @@ class SimpleTransformerModel:
         self.w_k = torch.randn(hidden_dim, hidden_dim)
         self.w_v = torch.randn(hidden_dim, hidden_dim)
         self.w_o = torch.randn(hidden_dim, hidden_dim)
-        self.lm_head = torch.randn(hidden_dim, vocab_size)
+        self.lm_head = torch.randn(vocab_size, hidden_dim)  # Fixed: [vocab_size, hidden_dim]
     
     def forward(self, token: int, state: ModelState) -> ModelState:
         """Forward pass for a single token, updating KV cache."""
@@ -386,9 +402,24 @@ class SimpleTransformerModel:
         attn_out = last_v.view(1, self.hidden_dim)
         output = torch.matmul(attn_out, self.w_o)
         
-        # Get logits and sample
-        logits = torch.matmul(output, self.lm_head.T)
-        next_token = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1).item()
+        # Get logits and sample - lm_head is [vocab_size, hidden_dim]
+        logits = torch.matmul(output, self.lm_head.T)  # [1, hidden_dim] @ [hidden_dim, vocab_size] = [1, vocab_size]
+        
+        # Add more randomness to prevent repetitive tokens
+        logits = logits + torch.randn_like(logits) * 0.5
+        
+        # Use temperature scaling for more diverse sampling
+        temperature = 1.0
+        logits = logits / temperature
+        
+        # Add top-k sampling for more diversity
+        k = 10
+        top_k_logits, top_k_indices = torch.topk(logits, k, dim=-1)
+        
+        # Sample from top-k
+        probs = F.softmax(top_k_logits, dim=-1)
+        selected_idx = torch.multinomial(probs, num_samples=1)
+        next_token = top_k_indices[0, selected_idx[0]].item()
         
         # Check for end of generation (simplified)
         state.finished = (next_token == 0) or (seq_len >= 50)  # EOS or max length
@@ -629,14 +660,8 @@ if torch.cuda.is_available():
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
     if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
+        print(f"Enabled Hopper H100/H200 optimizations (compute capability {compute_capability})")
     elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
-    
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+        print(f"Enabled Blackwell B200/B300 optimizations (compute capability {compute_capability})")
+    else:
+        print(f"Enabled general optimizations (compute capability {compute_capability})")

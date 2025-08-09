@@ -1,5 +1,15 @@
 # Chapter 11: Inter-Kernel Pipelining, Synchronization, and CUDA Stream-Ordered Memory Allocations
 
+## Summary
+These examples demonstrate inter‑kernel concurrency with CUDA streams, fine‑grained synchronization, and stream‑ordered memory allocation for true compute–copy overlap.
+
+## Performance Takeaways
+- Structure multi‑stream pipelines to keep copy and compute engines busy
+- Replace blocking synchronizations with events to preserve overlap
+- Enable stream‑ordered allocation to eliminate global allocator barriers
+- Reliably overlap H2D/compute/D2H for higher sustained throughput
+- Realize 2–3× throughput gains in concurrent pipelines on modern GPUs
+
 This chapter focuses on inter-kernel concurrency using CUDA streams, fine-grained synchronization, and stream-ordered memory allocation to achieve maximum GPU utilization.
 
 ## Code Examples
@@ -224,7 +234,7 @@ For ultra-low latency inference:
 
 ## Requirements
 
-- CUDA 11.0+ (CUDA 12.9+ recommended for all features)
+- CUDA 11.0+ (CUDA 12.8+ recommended for all features)
 - Compute Capability 6.0+ (7.0+ recommended)
 - Memory pools support (most modern GPUs)
 - Multiple SMs for effective concurrency

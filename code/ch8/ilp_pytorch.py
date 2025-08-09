@@ -34,7 +34,7 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
+            "memory_bandwidth": "8.0 TB/s",
             "tensor_cores": "4th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
@@ -186,23 +186,16 @@ def matrix_operations_ilp():
     
     # Try to overlap matrix operations (PyTorch may optimize this automatically)
     def overlapped_matrix_ops(A, B, C, D):
-        # Split into smaller chunks to potentially allow overlap
-        mid = A.size(0) // 2
+        # Instead of complex splitting, let's do the operations in a way that might allow for better ILP
+        # by using torch.cuda.amp.autocast() for mixed precision or other optimizations
         
-        A1, A2 = A[:mid], A[mid:]
-        B1, B2 = B[:mid], B[mid:]
-        C1, C2 = C[:mid], C[mid:]
-        D1, D2 = D[:mid], D[mid:]
+        # Compute the operations in a way that might allow for better parallelism
+        result1 = torch.mm(A, B)
+        result2 = torch.mm(C, D)
         
-        # Compute partial results
-        partial1_1 = torch.mm(A1, B1)
-        partial1_2 = torch.mm(A2, B2)
-        partial2_1 = torch.mm(C1, D1)
-        partial2_2 = torch.mm(C2, D2)
-        
-        # Combine results
-        result1 = torch.cat([partial1_1, partial1_2], dim=0)
-        result2 = torch.cat([partial2_1, partial2_2], dim=0)
+        # Add some additional operations that might be independent
+        result1 = result1 + torch.mm(A.t(), B.t())
+        result2 = result2 + torch.mm(C.t(), D.t())
         
         return result1 + result2
     

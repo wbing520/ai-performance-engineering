@@ -132,7 +132,7 @@ void SimpleModel::attention_computation(int seq_len) {
     eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
     eventAttrib.colorType = NVTX_COLOR_ARGB;
     eventAttrib.color = 0xFF00FF00; // Green
-    eventAttrib.messageType = NVTX_MESSAGE_STRING;
+    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
     eventAttrib.message.ascii = "Attention";
     nvtxRangePushEx(&eventAttrib);
     
@@ -152,7 +152,7 @@ void SimpleModel::feedforward_computation() {
     eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
     eventAttrib.colorType = NVTX_COLOR_ARGB;
     eventAttrib.color = 0xFF0000FF; // Blue
-    eventAttrib.messageType = NVTX_MESSAGE_STRING;
+    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
     eventAttrib.message.ascii = "FeedForward";
     nvtxRangePushEx(&eventAttrib);
     
@@ -172,7 +172,7 @@ void SimpleModel::update_kv_cache(int position) {
     eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
     eventAttrib.colorType = NVTX_COLOR_ARGB;
     eventAttrib.color = 0xFFFFFF00; // Yellow
-    eventAttrib.messageType = NVTX_MESSAGE_STRING;
+    eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
     eventAttrib.message.ascii = "KV_Cache_Update";
     nvtxRangePushEx(&eventAttrib);
     
@@ -203,7 +203,7 @@ void run_inference_with_profiling(const std::vector<Token>& prompt_tokens,
         eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
         eventAttrib.colorType = NVTX_COLOR_ARGB;
         eventAttrib.color = 0xFFFF0000; // Red for prefill
-        eventAttrib.messageType = NVTX_MESSAGE_STRING;
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
         eventAttrib.message.ascii = "Prefill_Stage";
         nvtxRangePushEx(&eventAttrib);
         
@@ -224,7 +224,7 @@ void run_inference_with_profiling(const std::vector<Token>& prompt_tokens,
         eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
         eventAttrib.colorType = NVTX_COLOR_ARGB;
         eventAttrib.color = 0xFF800080; // Purple for decode
-        eventAttrib.messageType = NVTX_MESSAGE_STRING;
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
         eventAttrib.message.ascii = "Decode_Stage";
         nvtxRangePushEx(&eventAttrib);
         
@@ -297,7 +297,7 @@ void simulate_multi_gpu_communication() {
         eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
         eventAttrib.colorType = NVTX_COLOR_ARGB;
         eventAttrib.color = 0xFFFFA500; // Orange
-        eventAttrib.messageType = NVTX_MESSAGE_STRING;
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
         eventAttrib.message.ascii = "AllReduce_Communication";
         nvtxRangePushEx(&eventAttrib);
         
@@ -315,7 +315,7 @@ void simulate_multi_gpu_communication() {
         eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
         eventAttrib.colorType = NVTX_COLOR_ARGB;
         eventAttrib.color = 0xFF00FFFF; // Cyan
-        eventAttrib.messageType = NVTX_MESSAGE_STRING;
+        eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
         eventAttrib.message.ascii = "AllToAll_Communication";
         nvtxRangePushEx(&eventAttrib);
         

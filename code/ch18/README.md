@@ -1,5 +1,15 @@
 # Chapter 18: Advanced Prefill-Decode and KV Cache Tuning
 
+## Summary
+These examples demonstrate faster decode and KV‑cache movement using FlashMLA/ThunderMLA kernels, FlexDecoding, and high‑bandwidth GPU‑to‑GPU transfers.
+
+## Performance Takeaways
+- Accelerate decode with FlashMLA/ThunderMLA kernel optimizations
+- Employ FlexDecoding to compile optimized prefill/decode kernels per pattern
+- Use NIXL RDMA for zero‑copy KV transfers and overlap with compute
+- Apply PagedAttention and compression to increase KV capacity and efficiency
+- Tune buffer sizes and overlap strategies to minimize hand‑off latency
+
 Code examples demonstrating advanced decode kernels, KV cache optimizations, and fast GPU-to-GPU transfer techniques for disaggregated inference.
 
 ## Examples
@@ -19,7 +29,7 @@ Code examples demonstrating advanced decode kernels, KV cache optimizations, and
 
 ## Requirements
 
-- CUDA 12.9+ with Ampere (SM 8.0) or newer for optimal FlashMLA performance
+- CUDA 12.8+ with Ampere (SM 8.0) or newer for optimal FlashMLA performance
 - PyTorch 2.8+ with flex_attention support
 - NVIDIA NIXL library for RDMA transfers
 - InfiniBand or NVLink for high-speed interconnects

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive test script for architecture switching.
-Tests PyTorch 2.8, CUDA 12.9, and Triton 3.4 features.
+Tests PyTorch 2.8, CUDA 12.8, and Triton 3.4 features.
 """
 
 import torch
@@ -59,9 +59,9 @@ def test_pytorch_28_features():
     except Exception as e:
         print(f"❌ Triton optimizations failed: {e}")
 
-def test_cuda_129_features():
-    """Test CUDA 12.9 features."""
-    print("\n=== CUDA 12.9 Features Test ===")
+def test_cuda_128_features():
+    """Test CUDA 12.8 features."""
+    print("\n=== CUDA 12.8 Features Test ===")
     
     # Test stream-ordered memory allocation
     try:
@@ -178,7 +178,7 @@ def main():
     
     test_architecture_detection()
     test_pytorch_28_features()
-    test_cuda_129_features()
+    test_cuda_128_features()
     test_profiling_tools()
     test_triton_34()
     test_performance()

@@ -3,7 +3,7 @@
 # PyTorch Profiling Script
 # Uses latest PyTorch 2.8 profiler features
 # Supports Hopper H100/H200 and Blackwell B200/B300
-# Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4
+# Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
 
@@ -30,7 +30,7 @@ fi
 echo "=== PyTorch Profiling for $SCRIPT_NAME ==="
 echo "Architecture: $ARCH"
 echo "Profile Mode: $PROFILE_MODE"
-echo "PyTorch 2.8, CUDA 12.9, Triton 3.4 Support"
+echo "PyTorch 2.8, CUDA 12.8, Triton 3.3 Support"
 echo ""
 
 # Set environment variables for optimal PyTorch profiling
@@ -59,7 +59,7 @@ cat > "pytorch_profiler_wrapper.py" << 'EOF'
 """
 PyTorch Profiler Wrapper
 Uses latest PyTorch 2.8 profiler features
-Updated for PyTorch 2.8, CUDA 12.9, and Triton 3.4
+Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.4
 """
 
 import torch
@@ -272,8 +272,8 @@ cat > "pytorch_report_${ARCH}.md" << EOF
 - **Profile Mode**: $PROFILE_MODE
 - **Timestamp**: $TIMESTAMP
 - **PyTorch**: 2.8
-- **CUDA**: 12.9
-- **Triton**: 3.4
+- **CUDA**: 12.8
+- **Triton**: 3.3
 
 ## Architecture Details
 EOF
@@ -337,8 +337,8 @@ cat >> "pytorch_report_${ARCH}.md" << EOF
 
 ## Latest Features Used
 - **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.9**: Latest CUDA features, improved kernel performance
-- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
+- **CUDA 12.8**: Latest CUDA features, improved kernel performance
+- **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
 - **Enhanced Profiler**: Improved profiling capabilities
 - **Architecture Optimizations**: Hopper/Blackwell-specific features
 

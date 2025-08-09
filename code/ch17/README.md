@@ -1,5 +1,15 @@
 # Chapter 17: Scaling Disaggregated Prefill and Decode for Inference
 
+## Summary
+These examples demonstrate disaggregated inference control planes—dynamic routing, QoS tiers, and early rejection—to meet SLOs under variable load.
+
+## Performance Takeaways
+- Route requests dynamically based on load, cache hits, and SLO pressures
+- Protect SLOs with early rejection and multi‑tier QoS policies
+- Apply latency‑aware scheduling heuristics and measure impact
+- Autoscale prefill/decode pools to maintain efficiency under bursts
+- Increase goodput on mixed traffic while tightening tail latency
+
 Code examples demonstrating disaggregated inference systems with dynamic routing and quality of service controls.
 
 ## Examples

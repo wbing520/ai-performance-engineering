@@ -1,5 +1,15 @@
 # Chapter 12: Dynamic Scheduling, CUDA Graphs, and Device-Initiated Kernel Orchestration
 
+## Summary
+These examples demonstrate dynamic work distribution and CUDA Graphs (including device‑initiated launch) to reduce CPU overhead and maintain balanced, continuous GPU execution.
+
+## Performance Takeaways
+- Use dynamic work queues to balance irregular workloads across SMs
+- Capture/replay with CUDA Graphs to remove per‑kernel launch overhead
+- Launch graphs from device to eliminate CPU round‑trips in critical loops
+- Update/conditional nodes to adapt graphs without costly recapture
+- Combine queues + graphs for up to ~3× speedups on complex pipelines
+
 This chapter focuses on advanced GPU orchestration techniques including dynamic work queues, CUDA graphs for reducing launch overhead, and device-initiated kernel launches that eliminate CPU involvement in scheduling decisions.
 
 ## Code Examples
@@ -300,7 +310,7 @@ for batch in dataloader:
 
 ## Requirements
 
-- CUDA 11.0+ (CUDA 12.9+ recommended for all features)
+- CUDA 11.0+ (CUDA 12.8+ recommended for all features)
 - Compute Capability 3.5+ (dynamic parallelism)
 - Compute Capability 7.5+ (CUDA graphs, device launch)
 - Adequate L2 cache for atomic performance

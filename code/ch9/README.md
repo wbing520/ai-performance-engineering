@@ -1,5 +1,15 @@
 # Chapter 9: Kernel Fusion and Arithmetic Intensity
 
+## Summary
+These examples demonstrate kernel fusion to raise arithmetic intensity and cut memory traffic, using CUDA, CUTLASS, inline PTX, and torch.compile‑based fusion.
+
+## Performance Takeaways
+- Fuse dependent kernels to reduce global memory round‑trips and launch overhead
+- Raise arithmetic intensity to shift workloads away from memory‑bound regimes
+- Apply CUTLASS GEMM best‑practices tuned for target architectures
+- Use torch.compile to realize automated fusion; learn limits and graph breaks
+- Profile to choose fusion granularity that maximizes speedup and maintainability
+
 This chapter focuses on kernel fusion techniques to improve arithmetic intensity and reduce memory bandwidth requirements in AI workloads.
 
 ## Code Examples
@@ -141,7 +151,7 @@ AI = (FLOPs) / (Bytes transferred)
 
 ## Requirements
 
-- CUDA 12.9+
+- CUDA 12.8+
 - PyTorch 2.8+
 - CUTLASS (for CUTLASS examples)
 - Nsight Compute/Systems for profiling

@@ -37,8 +37,8 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
-            "tensor_cores": "4th Gen",
+            "memory_bandwidth": "8.0 TB/s",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:
@@ -89,7 +89,7 @@ class ParallelismStrategy(Enum):
 class InferenceConfig:
     """Configuration for multi-node inference."""
     model_size: int = 7_000_000_000  # 7B parameters
-    num_gpus: int = 8
+    num_gpus: int = None  # Will be set to actual GPU count
     batch_size: int = 32
     sequence_length: int = 2048
     num_experts: int = 8
@@ -97,6 +97,18 @@ class InferenceConfig:
     capacity_factor: float = 1.2
     use_speculative: bool = True
     use_disaggregated: bool = True
+    
+    def __post_init__(self):
+        """Initialize num_gpus to actual available GPUs if not set."""
+        if self.num_gpus is None:
+            if torch.cuda.is_available():
+                self.num_gpus = torch.cuda.device_count()
+            else:
+                self.num_gpus = 1  # Fallback to CPU simulation
+        # Ensure we don't exceed available GPUs
+        if torch.cuda.is_available():
+            available_gpus = torch.cuda.device_count()
+            self.num_gpus = min(self.num_gpus, available_gpus)
 
 
 class DisaggregatedInferenceSystem:
@@ -111,10 +123,12 @@ class DisaggregatedInferenceSystem:
     def setup_prefill_workers(self):
         """Initialize dedicated prefill GPU workers."""
         print("Setting up prefill workers...")
-        for i in range(self.config.num_gpus // 2):
+        num_prefill_workers = max(1, self.config.num_gpus // 2)
+        for i in range(num_prefill_workers):
+            gpu_id = i % self.config.num_gpus  # Use modulo to avoid exceeding GPU count
             worker = PrefillWorker(
                 worker_id=i,
-                gpu_id=i,
+                gpu_id=gpu_id,
                 config=self.config
             )
             self.prefill_workers.append(worker)
@@ -122,10 +136,12 @@ class DisaggregatedInferenceSystem:
     def setup_decode_workers(self):
         """Initialize dedicated decode GPU workers."""
         print("Setting up decode workers...")
-        for i in range(self.config.num_gpus // 2, self.config.num_gpus):
+        num_decode_workers = max(1, self.config.num_gpus // 2)
+        for i in range(num_decode_workers):
+            gpu_id = (i + self.config.num_gpus // 2) % self.config.num_gpus  # Use modulo to avoid exceeding GPU count
             worker = DecodeWorker(
-                worker_id=i - self.config.num_gpus // 2,
-                gpu_id=i,
+                worker_id=i,
+                gpu_id=gpu_id,
                 config=self.config
             )
             self.decode_workers.append(worker)
@@ -203,7 +219,12 @@ class PrefillWorker:
         self.worker_id = worker_id
         self.gpu_id = gpu_id
         self.config = config
-        self.device = torch.device(f"cuda:{gpu_id}")
+        
+        # Handle device assignment
+        if torch.cuda.is_available() and gpu_id < torch.cuda.device_count():
+            self.device = torch.device(f"cuda:{gpu_id}")
+        else:
+            self.device = torch.device("cpu")
         
         # Initialize model components
         self.attention_layers = self._create_attention_layers()
@@ -216,9 +237,9 @@ class PrefillWorker:
             layer = nn.MultiheadAttention(
                 embed_dim=4096,
                 num_heads=32,
-                batch_first=True,
-                device=self.device
+                batch_first=True
             )
+            layer = layer.to(self.device)
             layers.append(layer)
         return layers
         
@@ -227,10 +248,11 @@ class PrefillWorker:
         layers = nn.ModuleList()
         for i in range(6):  # 6 FFN layers
             layer = nn.Sequential(
-                nn.Linear(4096, 16384, device=self.device),
+                nn.Linear(4096, 16384),
                 nn.GELU(),
-                nn.Linear(16384, 4096, device=self.device)
+                nn.Linear(16384, 4096)
             )
+            layer = layer.to(self.device)
             layers.append(layer)
         return layers
         
@@ -238,7 +260,11 @@ class PrefillWorker:
         """Process prompt and generate KV cache."""
         # Tokenize prompt
         tokens = self._tokenize(prompt)
-        x = torch.tensor(tokens, device=self.device).unsqueeze(0)
+        
+        # Convert tokens to embeddings (simulate embedding layer)
+        # In practice, this would use a proper embedding layer
+        embed_dim = 4096
+        x = torch.randn(1, len(tokens), embed_dim, device=self.device)  # batch_size=1, seq_len, embed_dim
         
         kv_cache = {}
         
@@ -246,9 +272,14 @@ class PrefillWorker:
         for i, layer in enumerate(self.attention_layers):
             # Generate KV cache for this layer
             with torch.no_grad():
-                output, (key_cache, value_cache) = layer(
-                    x, x, x, need_weights=False, use_cache=True
-                )
+                # Use the attention layer without cache first
+                output = layer(x, x, x, need_weights=False)
+                
+                # Simulate KV cache generation
+                # In practice, this would extract key and value tensors from the attention computation
+                batch_size, seq_len, embed_dim = x.shape
+                key_cache = torch.randn(batch_size, seq_len, embed_dim, device=self.device)
+                value_cache = torch.randn(batch_size, seq_len, embed_dim, device=self.device)
                 
             kv_cache[f"layer_{i}_k"] = key_cache
             kv_cache[f"layer_{i}_v"] = value_cache
@@ -270,13 +301,20 @@ class DecodeWorker:
         self.worker_id = worker_id
         self.gpu_id = gpu_id
         self.config = config
-        self.device = torch.device(f"cuda:{gpu_id}")
+        
+        # Handle device assignment
+        if torch.cuda.is_available() and gpu_id < torch.cuda.device_count():
+            self.device = torch.device(f"cuda:{gpu_id}")
+        else:
+            self.device = torch.device("cpu")
+            
         self.kv_cache = {}
         
         # Initialize model components
         self.attention_layers = self._create_attention_layers()
         self.ffn_layers = self._create_ffn_layers()
-        self.lm_head = nn.Linear(4096, 50000, device=self.device)  # Vocab size
+        self.lm_head = nn.Linear(4096, 50000)  # Vocab size
+        self.lm_head = self.lm_head.to(self.device)
         
     def _create_attention_layers(self) -> nn.ModuleList:
         """Create attention layers for decode."""
@@ -285,9 +323,9 @@ class DecodeWorker:
             layer = nn.MultiheadAttention(
                 embed_dim=4096,
                 num_heads=32,
-                batch_first=True,
-                device=self.device
+                batch_first=True
             )
+            layer = layer.to(self.device)
             layers.append(layer)
         return layers
         
@@ -296,10 +334,11 @@ class DecodeWorker:
         layers = nn.ModuleList()
         for i in range(6):  # 6 FFN layers
             layer = nn.Sequential(
-                nn.Linear(4096, 16384, device=self.device),
+                nn.Linear(4096, 16384),
                 nn.GELU(),
-                nn.Linear(16384, 4096, device=self.device)
+                nn.Linear(16384, 4096)
             )
+            layer = layer.to(self.device)
             layers.append(layer)
         return layers
         
@@ -319,7 +358,10 @@ class DecodeWorker:
         
         # Simulate autoregressive generation
         vocab = ["the", "a", "is", "was", "in", "on", "at", "to", "for", "<EOS>"]
-        token = np.random.choice(vocab, p=[0.2, 0.15, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.01])
+        # Normalize probabilities to sum to 1.0
+        probs = np.array([0.2, 0.15, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.0])
+        probs = probs / probs.sum()  # Normalize to sum to 1.0
+        token = np.random.choice(vocab, p=probs)
         
         return token
 
@@ -524,10 +566,9 @@ def benchmark_inference_system():
     """Benchmark the disaggregated inference system."""
     print("=== Multi-Node Inference Benchmark ===\n")
     
-    # Configuration
+    # Configuration - will automatically detect available GPUs
     config = InferenceConfig(
         model_size=7_000_000_000,
-        num_gpus=8,
         batch_size=32,
         sequence_length=2048,
         num_experts=8,
@@ -536,6 +577,8 @@ def benchmark_inference_system():
         use_speculative=True,
         use_disaggregated=True
     )
+    
+    print(f"Using {config.num_gpus} GPU(s) for inference")
     
     # Test disaggregated inference
     print("1. Testing Disaggregated Prefill-Decode Architecture")
@@ -598,18 +641,31 @@ if __name__ == "__main__":
 
 # Architecture-specific optimizations
 if torch.cuda.is_available():
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
-    
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+    try:
+        device_props = torch.cuda.get_device_properties(0)
+        compute_capability = f"{device_props.major}.{device_props.minor}"
+        
+        # Only apply optimizations if torch._inductor is available
+        if hasattr(torch, '_inductor'):
+            if compute_capability == "9.0":  # Hopper H100/H200
+                if hasattr(torch._inductor.config.triton, 'use_hopper_optimizations'):
+                    torch._inductor.config.triton.use_hopper_optimizations = True
+                if hasattr(torch._inductor.config.triton, 'hbm3_optimizations'):
+                    torch._inductor.config.triton.hbm3_optimizations = True
+            elif compute_capability == "10.0":  # Blackwell B200/B300
+                if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
+                    torch._inductor.config.triton.use_blackwell_optimizations = True
+                if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
+                    torch._inductor.config.triton.hbm3e_optimizations = True
+                if hasattr(torch._inductor.config.triton, 'tma_support'):
+                    torch._inductor.config.triton.tma_support = True
+            
+            # Enable latest PyTorch 2.8 features if available
+            if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
+                torch._inductor.config.triton.unique_kernel_names = True
+            if hasattr(torch._inductor.config.triton, 'autotune_mode'):
+                torch._inductor.config.triton.autotune_mode = "max-autotune"
+            if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
+                torch._dynamo.config.automatic_dynamic_shapes = True
+    except Exception as e:
+        print(f"Warning: Could not apply architecture-specific optimizations: {e}")

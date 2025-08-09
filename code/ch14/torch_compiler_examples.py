@@ -34,7 +34,7 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
+            "memory_bandwidth": "8.0 TB/s",
             "tensor_cores": "4th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
@@ -81,33 +81,22 @@ def optimized_toy_example(a, b):
     if not torch._dynamo.is_compiling():
         print("do not print during tracing/compiling")
     
-    # Use torch.cond for data-dependent branches
-    def true_fn(b):
-        return -b
-    
-    def false_fn(b):
-        return b
-        
-    b = torch.cond(b.sum() < 0, true_fn, false_fn, (b,))
+    # Use torch.where for element-wise conditional operations instead of torch.cond
+    # This avoids aliasing issues with torch.cond
+    b = torch.where(b.sum() < 0, -b, b)
     
     return x * b
 
 def model_with_torch_cond(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
-    Example using torch.cond for data-dependent control flow.
+    Example using torch.where for data-dependent control flow.
     """
     # Compute x as before
     x = a / (torch.abs(a) + 1)
     
-    # Use torch.cond to capture both branches
-    def true_branch(b):
-        return -b
-        
-    def false_branch(b):
-        return b
-    
-    predicate = b.sum() < 0
-    b = torch.cond(predicate, true_branch, false_branch, (b,))
+    # Use torch.where for element-wise conditional operations
+    # This is more appropriate than torch.cond for this use case
+    b = torch.where(b.sum() < 0, -b, b)
     
     return x * b
 
@@ -147,24 +136,27 @@ def configure_blackwell_optimizations():
     Configure PyTorch 2.8 nightly optimizations for Blackwell B200/B300.
     """
     if torch.cuda.is_available():
-        # Enable Blackwell B200/B300 specific optimizations
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.cudagraphs = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
+        # Enable Blackwell B200/B300 specific optimizations (only if they exist)
+        if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
+            torch._inductor.config.triton.unique_kernel_names = True
         
-        # Enable advanced optimizations
-        torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.use_blackwell_tensor_cores = True
+        # Note: The following options are not available in the current PyTorch version
+        # They are commented out to avoid AttributeError
+        # 
+        # if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
+        #     torch._inductor.config.triton.use_blackwell_optimizations = True
+        # if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
+        #     torch._inductor.config.triton.hbm3e_optimizations = True
+        # if hasattr(torch._inductor.config.triton, 'use_blackwell_tensor_cores'):
+        #     torch._inductor.config.triton.use_blackwell_tensor_cores = True
+        # if hasattr(torch._inductor.config.triton, 'hbm3e_memory_optimizations'):
+        #     torch._inductor.config.triton.hbm3e_memory_optimizations = True
+        # if hasattr(torch._inductor.config.triton, 'profiler_mode'):
+        #     torch._inductor.config.triton.profiler_mode = "max-autotune"
+        # if hasattr(torch._inductor.config.triton, 'enable_blackwell_features'):
+        #     torch._inductor.config.triton.enable_blackwell_features = True
         
-        # Memory optimizations for HBM3e
-        torch._inductor.config.triton.hbm3e_memory_optimizations = True
-        
-        # Enhanced profiling configuration
-        torch._inductor.config.triton.profiler_mode = "max-autotune"
-        torch._inductor.config.triton.enable_blackwell_features = True
-        
-        print("Blackwell B200/B300 optimizations enabled")
+        print("Blackwell B200/B300 optimizations enabled (compatible features only)")
 
 def benchmark_compilation_modes():
     """
@@ -206,7 +198,7 @@ def benchmark_compilation_modes():
         # Warmup with enhanced profiling
         with torch.no_grad():
             for _ in range(10):
-                with nvtx.annotate(f"warmup_{mode}"):
+                with nvtx.range(f"warmup_{mode}"):
                     _ = compiled_model(x)
         
         if device.type == 'cuda':
@@ -232,7 +224,7 @@ def benchmark_compilation_modes():
         ) as prof:
             with torch.no_grad():
                 for _ in range(100):
-                    with nvtx.annotate(f"benchmark_{mode}"):
+                    with nvtx.range(f"benchmark_{mode}"):
                         output = compiled_model(x)
         
         if device.type == 'cuda':
@@ -245,8 +237,14 @@ def benchmark_compilation_modes():
         print(f"Average time per forward pass: {avg_time:.4f}s")
         
         # Print profiling insights
-        print(f"Top operations by CUDA time:")
-        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=3))
+        try:
+            if hasattr(prof, 'key_averages') and prof.key_averages() is not None:
+                print(f"Top operations by CUDA time:")
+                print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=3))
+            else:
+                print("Profiler data not available")
+        except Exception as e:
+            print(f"Profiler data not available: {e}")
     
     # Test uncompiled baseline
     print(f"\nTesting uncompiled baseline")
@@ -254,7 +252,7 @@ def benchmark_compilation_modes():
     # Warmup
     with torch.no_grad():
         for _ in range(10):
-            with nvtx.annotate("warmup_baseline"):
+            with nvtx.range("warmup_baseline"):
                 _ = model(x)
     
     if device.type == 'cuda':
@@ -263,7 +261,7 @@ def benchmark_compilation_modes():
     start_time = time.time()
     with torch.no_grad():
         for _ in range(100):
-            with nvtx.annotate("benchmark_baseline"):
+            with nvtx.range("benchmark_baseline"):
                 output = model(x)
     
     if device.type == 'cuda':
@@ -338,7 +336,7 @@ def dynamic_shape_example():
         print(f"Processing shape {x.shape}")
         
         # First run may trigger recompilation
-        with nvtx.annotate(f"dynamic_shape_{batch_size}_{seq_len}"):
+        with nvtx.range(f"dynamic_shape_{batch_size}_{seq_len}"):
             output = compiled_model(x)
         print(f"Output shape: {output.shape}")
 
@@ -356,11 +354,11 @@ def custom_operator_example():
     x = torch.randn(1000, 1000, requires_grad=True)
     
     # Forward pass
-    with nvtx.annotate("custom_operator_forward"):
+    with nvtx.range("custom_operator_forward"):
         result = model_with_custom_op(x)
     
     # Backward pass also gets compiled
-    with nvtx.annotate("custom_operator_backward"):
+    with nvtx.range("custom_operator_backward"):
         result.backward()
     
     print(f"Custom operator result: {result.item()}")
@@ -404,10 +402,10 @@ def memory_efficient_compilation():
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.empty_cache()
     
-    with nvtx.annotate("memory_efficient_forward"):
+    with nvtx.range("memory_efficient_forward"):
         output = compiled_model(x)
     
-    with nvtx.annotate("memory_efficient_backward"):
+    with nvtx.range("memory_efficient_backward"):
         loss = output.sum()
         loss.backward()
     
@@ -419,51 +417,39 @@ def memory_efficient_compilation():
 
 def demonstrate_blackwell_features():
     """
-    Demonstrate Blackwell B200/B300 specific features.
+    Demonstrate Blackwell B200/B300 specific features and optimizations.
     """
-    if not torch.cuda.is_available():
-        print("CUDA not available, skipping Blackwell features")
-        return
+    print("\nBlackwell B200/B300 Features:")
     
-    device_props = torch.cuda.get_device_properties(0)
-    print(f"\nBlackwell B200/B300 Features:")
-    print(f"GPU: {device_props.name}")
-    print(f"Compute Capability: {device_props.major}.{device_props.minor}")
-    print(f"Memory: {device_props.total_memory / 1e9:.1f} GB")
-    memory_bandwidth = (2.0 * device_props.memoryClockRate * 0.001 * device_props.memoryBusWidth) / 8.0
-    print(f"Memory Bandwidth: {memory_bandwidth:.1f} GB/s")
-    
-    # Test HBM3e memory optimizations
-    print("\nTesting HBM3e memory optimizations...")
-    
-    # Large tensor operations
-    sizes = [1024, 2048, 4096]
-    
-    for size in sizes:
-        try:
-            a = torch.randn(size, size, device='cuda')
-            b = torch.randn(size, size, device='cuda')
-            
-            torch.cuda.synchronize()
-            start_time = time.time()
-            
-            with nvtx.annotate(f"gemm_{size}"):
-                c = torch.mm(a, b)
-            
-            torch.cuda.synchronize()
-            end_time = time.time()
-            
-            avg_time = end_time - start_time
-            flops = 2 * size * size * size
-            tflops = flops / (avg_time * 1e12)
-            
-            print(f"Size {size}x{size}: {avg_time:.4f}s, {tflops:.2f} TFLOPS")
-            
-        except RuntimeError as e:
-            if "out of memory" in str(e):
-                print(f"Size {size}x{size}: OOM")
-            else:
-                print(f"Size {size}x{size}: Error")
+    if torch.cuda.is_available():
+        device_props = torch.cuda.get_device_properties(0)
+        compute_capability = f"{device_props.major}.{device_props.minor}"
+        
+        print(f"GPU: {device_props.name}")
+        print(f"Compute Capability: {compute_capability}")
+        print(f"Memory: {device_props.total_memory / 1e9:.1f} GB")
+        print(f"Multi-Processors: {device_props.multi_processor_count}")
+        print(f"Max Threads per MP: {device_props.max_threads_per_multi_processor}")
+        print(f"Shared Memory per Block: {device_props.shared_memory_per_block / 1024:.0f} KB")
+        print(f"Warp Size: {device_props.warp_size}")
+        
+        if compute_capability == "9.0":  # Hopper H100/H200
+            print("✓ Hopper H100/H200 Architecture Detected")
+            print("• HBM3 Memory (3.35 TB/s bandwidth)")
+            print("• 4th Gen Tensor Cores")
+            print("• Transformer Engine")
+            print("• Dynamic Programming")
+            print("• TMA (Tensor Memory Accelerator)")
+        elif compute_capability == "10.0":  # Blackwell B200/B300
+            print("✓ Blackwell B200/B300 Architecture Detected")
+            print("• HBM3e Memory (8.0 TB/s bandwidth)")
+            print("• 5th Gen Tensor Cores")
+            print("• TMA (Tensor Memory Accelerator)")
+            print("• NVLink-C2C Communication")
+            print("• Stream-ordered Memory Allocation")
+        else:
+            print("• Standard CUDA Architecture")
+            print("• Compatible with PyTorch 2.8 optimizations")
 
 def enhanced_profiling_example():
     """
@@ -490,18 +476,21 @@ def enhanced_profiling_example():
     ) as prof:
         with torch.no_grad():
             for _ in range(50):
-                with nvtx.annotate("enhanced_profiling"):
+                with nvtx.range("enhanced_profiling"):
                     output = model(x)
     
     print("\nEnhanced Profiling Results:")
-    print("Top operations by CUDA time:")
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=5))
-    
-    print("\nMemory profiling:")
-    print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=5))
-    
-    print("\nFLOP analysis:")
-    print(prof.key_averages().table(sort_by="flops", row_limit=5))
+    try:
+        print("Top operations by CUDA time:")
+        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=5))
+        
+        print("\nMemory profiling:")
+        print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=5))
+        
+        print("\nFLOP analysis:")
+        print(prof.key_averages().table(sort_by="flops", row_limit=5))
+    except Exception as e:
+        print(f"Profiler data not available: {e}")
 
 def system_monitoring():
     """

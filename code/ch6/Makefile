@@ -3,65 +3,64 @@
 ARCH ?= sm_90
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION) -lnvtx3
+NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
 
-# Get target name from directory
-TARGET = $(basename $(notdir $(CURDIR)))
+# Get all CUDA source files
+CUDA_SOURCES = $(wildcard *.cu)
+CUDA_TARGETS = $(CUDA_SOURCES:.cu=)
 
-# Default target
-all: $(TARGET)
-	@echo "Building with $(ARCH) architecture (CUDA $(CUDA_VERSION))"
+# Default target - build all CUDA examples
+all: $(CUDA_TARGETS)
+	@echo "Building all examples with $(ARCH) architecture (CUDA $(CUDA_VERSION))"
 	@if [ "$(ARCH)" = "sm_90" ]; then \
 		echo "✓ Targeting Hopper H100/H200 (Compute Capability 9.0)"; \
 	elif [ "$(ARCH)" = "sm_100" ]; then \
 		echo "✓ Targeting Blackwell B200/B300 (Compute Capability 10.0)"; \
 	fi
+	@echo "✓ Built $(words $(CUDA_TARGETS)) CUDA examples"
 
-$(TARGET): $(TARGET).cu
+# Build individual targets
+$(CUDA_TARGETS): %: %.cu
+	@echo "Compiling $@..."
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 # Architecture-specific targets
 hopper: ARCH=sm_90
-hopper: $(TARGET)
+hopper: all
 	@echo "Built for Hopper H100/H200"
 
 blackwell: ARCH=sm_100
-blackwell: $(TARGET)
+blackwell: all
 	@echo "Built for Blackwell B200/B300"
 
+# Test all examples
+test: all
+	@echo "Testing all examples..."
+	@for exe in $(CUDA_TARGETS); do \
+		echo "Testing $$exe..."; \
+		timeout 10s ./$$exe >/dev/null 2>&1 && echo "✓ $$exe runs successfully" || echo "✗ $$exe failed to run"; \
+	done
+
 # Enhanced profiling targets
-profile-nsys: $(TARGET)
+profile-nsys: all
 	@echo "Nsight Systems timeline profiling..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas -o nsys_profile_$(ARCH) ./$(TARGET)
+	@for exe in $(CUDA_TARGETS); do \
+		echo "Profiling $$exe..."; \
+		nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o nsys_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
+	done
 
-profile-ncu: $(TARGET)
+profile-ncu: all
 	@echo "Nsight Compute kernel profiling..."
-	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o ncu_profile_$(ARCH) ./$(TARGET)
+	@for exe in $(CUDA_TARGETS); do \
+		echo "Profiling $$exe..."; \
+		ncu --metrics achieved_occupancy,warp_execution_efficiency -o ncu_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
+	done
 
-profile-hta: $(TARGET)
-	@echo "HTA (Holistic Tracing Analysis) profiling..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o hta_profile_$(ARCH) ./$(TARGET)
-
-profile-perf: $(TARGET)
-	@echo "Perf system-level profiling..."
-	perf record -g -p $$(pgrep $(TARGET)) -o perf.data_$(ARCH) ./$(TARGET)
-	perf report -i perf.data_$(ARCH)
-
-profile-all: $(TARGET)
-	@echo "Comprehensive profiling with all tools..."
-	@echo "1. Nsight Systems timeline..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline_$(ARCH) ./$(TARGET)
-	@echo "2. Nsight Compute kernel analysis..."
-	ncu --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput -o comprehensive_kernel_$(ARCH) ./$(TARGET)
-	@echo "3. Memory profiling..."
-	nsys profile --force-overwrite=true -t cuda,cudamemcpy -o comprehensive_memory_$(ARCH) ./$(TARGET)
-	@echo "4. HTA analysis..."
-	nsys profile --force-overwrite=true -t cuda,nvtx,osrt,cudnn,cublas,nccl -o comprehensive_hta_$(ARCH) ./$(TARGET)
-
+# Clean all generated files
 clean:
-	rm -f $(TARGET) *.o *.so *.a
+	rm -f $(CUDA_TARGETS) *.o *.so *.a
 	rm -f nsys_profile_* ncu_profile_* hta_profile_* perf.data_* comprehensive_*
 
-.PHONY: all hopper blackwell profile-nsys profile-ncu profile-hta profile-perf profile-all clean
+.PHONY: all hopper blackwell test profile-nsys profile-ncu clean $(CUDA_TARGETS)

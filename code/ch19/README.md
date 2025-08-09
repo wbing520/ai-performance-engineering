@@ -1,4 +1,14 @@
-# Chapter 19: Dynamic Parallelism and Token-Level Precision Switching
+# Chapter 19: Adaptive Parallelism Strategy and Token-Level Precision Switching
+
+## Summary
+These examples demonstrate adaptive parallelism and token‑level precision switching (with dynamic KV‑cache quantization) to improve throughput and tail latency.
+
+## Performance Takeaways
+- Select TP/PP/DP/Hybrid strategies at runtime based on workload signals
+- Use cooldown and hysteresis to avoid strategy‑switch thrashing
+- Adapt token precision by confidence to save compute without hurting quality
+- Quantize KV cache dynamically to relieve memory pressure and boost capacity
+- Reduce tail latency and raise throughput across mixed request patterns
 
 Code examples demonstrating adaptive parallelism strategies and dynamic precision switching for efficient inference optimization.
 
@@ -17,7 +27,7 @@ Code examples demonstrating adaptive parallelism strategies and dynamic precisio
 
 ## Requirements
 
-- CUDA 12.9+
+- CUDA 12.8+
 - PyTorch 2.8+ with distributed support
 - HQQ library (optional, for advanced quantization)
 - GPU with compute capability 7.0+ for optimal mixed precision

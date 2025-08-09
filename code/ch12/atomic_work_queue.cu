@@ -99,11 +99,11 @@ __global__ void computeKernelHierarchical(const float* input, float* output, int
         // Block leader gets work for entire block
         if (threadIdx.x == 0) {
             blockBase = atomicAdd(&globalIndex, batchSize);
-            blockWorkCount = min(batchSize, N - blockBase);
+            blockWorkCount = min(batchSize, max(0, N - (int)blockBase));
         }
         __syncthreads();
         
-        if (blockWorkCount <= 0) break;
+        if (blockWorkCount <= 0 || blockBase >= (unsigned int)N) break;
         
         // Each thread processes multiple elements
         for (int i = threadIdx.x; i < blockWorkCount; i += blockSize) {
@@ -380,7 +380,6 @@ int main() {
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your kernel code here
 }
 
@@ -388,6 +387,5 @@ __global__ void stream_ordered_memory_example() {
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your TMA code here
 }

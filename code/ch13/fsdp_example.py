@@ -37,7 +37,7 @@ def get_architecture_info():
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
-            "memory_bandwidth": "3.2 TB/s",
+            "memory_bandwidth": "8.0 TB/s",
             "tensor_cores": "4th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
@@ -284,14 +284,33 @@ if torch.cuda.is_available():
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
     if compute_capability == "9.0":  # Hopper H100/H200
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
+        # Enable Hopper-specific optimizations if available
+        try:
+            if hasattr(torch._inductor.config.triton, 'use_hopper_optimizations'):
+                torch._inductor.config.triton.use_hopper_optimizations = True
+            if hasattr(torch._inductor.config.triton, 'hbm3_optimizations'):
+                torch._inductor.config.triton.hbm3_optimizations = True
+        except AttributeError:
+            print("Hopper optimizations not available in this PyTorch version")
     elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
+        # Enable Blackwell-specific optimizations if available
+        try:
+            if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
+                torch._inductor.config.triton.use_blackwell_optimizations = True
+            if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
+                torch._inductor.config.triton.hbm3e_optimizations = True
+            if hasattr(torch._inductor.config.triton, 'tma_support'):
+                torch._inductor.config.triton.tma_support = True
+        except AttributeError:
+            print("Blackwell optimizations not available in this PyTorch version")
     
-    # Enable latest PyTorch 2.8 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+    # Enable latest PyTorch 2.8 features if available
+    try:
+        if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
+            torch._inductor.config.triton.unique_kernel_names = True
+        if hasattr(torch._inductor.config.triton, 'autotune_mode'):
+            torch._inductor.config.triton.autotune_mode = "max-autotune"
+        if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
+            torch._dynamo.config.automatic_dynamic_shapes = True
+    except AttributeError:
+        print("Some PyTorch 2.8 features not available in this version")

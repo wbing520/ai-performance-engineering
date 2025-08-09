@@ -15,6 +15,11 @@
 
 using namespace nvcuda;
 
+// Define half4 struct for vectorized operations
+struct half4 {
+    half x, y, z, w;
+};
+
 // Constants for FlashMLA optimization
 #define WARP_SIZE 32
 #define MAX_BLOCK_SIZE 1024
@@ -37,10 +42,8 @@ __global__ void flashmla_decode_kernel(
     extern __shared__ half shared_mem[];
     half* shared_query = shared_mem;
     half* shared_scores = shared_query + head_dim;
-    half* shared_values = shared_scores + max_seq_len;
     
     const int tid = threadIdx.x;
-    const int warp_id = tid / WARP_SIZE;
     const int lane_id = tid % WARP_SIZE;
     
     // Block handles one (batch, head) pair
@@ -69,9 +72,12 @@ __global__ void flashmla_decode_kernel(
         
         for (int d = 0; d < head_dim; d += 4) {
             // Vectorized load and compute (4 elements at once)
-            half4 q_vec = reinterpret_cast<const half4*>(shared_query)[d/4];
-            half4 k_vec = reinterpret_cast<const half4*>(
-                &key_cache[kv_head_offset + seq_pos * num_heads * head_dim])[d/4];
+            const half4* q_vec_ptr = reinterpret_cast<const half4*>(&shared_query[d]);
+            const half4* k_vec_ptr = reinterpret_cast<const half4*>(
+                &key_cache[kv_head_offset + seq_pos * num_heads * head_dim + d]);
+            
+            half4 q_vec = *q_vec_ptr;
+            half4 k_vec = *k_vec_ptr;
             
             // Fused multiply-add
             score = __hfma(q_vec.x, k_vec.x, score);
@@ -112,7 +118,8 @@ __global__ void flashmla_decode_kernel(
         const half* value_ptr = &value_cache[kv_head_offset + seq_pos * num_heads * head_dim];
         
         for (int d = 0; d < head_dim; d += 4) {
-            half4 v_vec = reinterpret_cast<const half4*>(value_ptr)[d/4];
+            const half4* v_vec_ptr = reinterpret_cast<const half4*>(&value_ptr[d]);
+            half4 v_vec = *v_vec_ptr;
             
             output_acc[0] = __hfma(weight, v_vec.x, output_acc[0]);
             output_acc[1] = __hfma(weight, v_vec.y, output_acc[1]);
@@ -141,7 +148,8 @@ __global__ void flashmla_decode_kernel(
             result.z = __hdiv(output_acc[2], sum_exp);
             result.w = __hdiv(output_acc[3], sum_exp);
             
-            reinterpret_cast<half4*>(&output[query_offset])[d/4] = result;
+            half4* output_ptr = reinterpret_cast<half4*>(&output[query_offset + d]);
+            *output_ptr = result;
         }
     }
 }
@@ -391,7 +399,6 @@ int main() {
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your kernel code here
 }
 
@@ -399,6 +406,5 @@ __global__ void stream_ordered_memory_example() {
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     // Your TMA code here
 }

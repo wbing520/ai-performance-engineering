@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Verification script for PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and Architecture Switching
+# Verification script for PyTorch 2.8 nightly, CUDA 12.8, Triton 3.3, and Architecture Switching
 # Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
-echo "Verifying PyTorch 2.8 nightly, CUDA 12.9, Triton 3.4, and architecture switching compliance..."
+echo "Verifying PyTorch 2.8 nightly, CUDA 12.8, Triton 3.3, and architecture switching compliance..."
 
 # Function to detect current architecture
 detect_architecture() {
@@ -33,9 +33,9 @@ find . -name "Makefile" -type f | while read -r makefile; do
     makefile_count=$((makefile_count + 1))
     
     # Check for CUDA_VERSION definition
-    if grep -q "CUDA_VERSION = 12.9" "$makefile"; then
+    if grep -q "CUDA_VERSION = 12.8" "$makefile"; then
         updated_count=$((updated_count + 1))
-        echo "✅ $makefile - CUDA_VERSION correctly set to 12.9"
+        echo "✅ $makefile - CUDA_VERSION correctly set to 12.8"
     else
         echo "❌ $makefile - Missing or incorrect CUDA_VERSION"
     fi
@@ -139,9 +139,9 @@ else
     echo "❌ Module-level profiling not enabled"
 fi
 
-# Check for CUDA 12.9 features
+# Check for CUDA 12.8 features
 echo ""
-echo "Checking for CUDA 12.9 features..."
+echo "Checking for CUDA 12.8 features..."
 if grep -r "cudaMallocAsync" code/; then
     echo "✅ Stream-ordered memory allocation found"
 else
@@ -166,19 +166,19 @@ else
     echo "❌ SM100 architecture targeting not found"
 fi
 
-# Check for Triton 3.4 features
+# Check for Triton 3.3 features
 echo ""
-echo "Checking for Triton 3.4 features..."
-if grep -r "triton>=3.4" requirements_latest.txt; then
-    echo "✅ Triton 3.4 requirement found"
+echo "Checking for Triton 3.3 features..."
+if grep -r "triton>=3.3" requirements_latest.txt; then
+    echo "✅ Triton 3.3 requirement found"
 else
-    echo "❌ Triton 3.4 requirement not found"
+    echo "❌ Triton 3.3 requirement not found"
 fi
 
-if grep -r "triton==3.4.0" code/; then
-    echo "✅ Triton 3.4.0 requirement found"
+if grep -r "triton==3.3.0" code/; then
+    echo "✅ Triton 3.3.0 requirement found"
 else
-    echo "❌ Triton 3.4.0 requirement not found"
+    echo "❌ Triton 3.3.0 requirement not found"
 fi
 
 # Check for architecture support
@@ -291,28 +291,28 @@ fi
 # Check for requirements
 echo ""
 echo "Checking requirements.txt..."
-if grep -q "torch==2.8.0+cu129" requirements_latest.txt; then
-    echo "✅ PyTorch 2.8 nightly with CUDA 12.9 found"
+if grep -q "--index-url https://download.pytorch.org/whl/nightly/cu128" requirements_latest.txt; then
+    echo "✅ PyTorch 2.8 nightly with CUDA 12.8 index found"
 else
-    echo "❌ PyTorch 2.8 nightly with CUDA 12.9 not found"
+    echo "❌ PyTorch 2.8 nightly with CUDA 12.8 index not found"
 fi
 
-if grep -q "triton==3.4.0" requirements_latest.txt; then
-    echo "✅ Triton 3.4.0 found"
+if grep -q "triton==3.3.0" requirements_latest.txt; then
+    echo "✅ Triton 3.3.0 found"
 else
-    echo "❌ Triton 3.4.0 not found"
+    echo "❌ Triton 3.3.0 not found"
 fi
 
-if grep -q "nvidia-cuda-runtime-cu12==12.9" requirements_latest.txt; then
-    echo "✅ CUDA 12.9 runtime found"
+if grep -q "nvidia-cuda-runtime-cu12==12.8" requirements_latest.txt; then
+    echo "✅ CUDA 12.8 runtime found"
 else
-    echo "❌ CUDA 12.9 runtime not found"
+    echo "❌ CUDA 12.8 runtime not found"
 fi
 
-if grep -q "nvidia-nvtx-cu12==12.9" requirements_latest.txt; then
-    echo "✅ NVTX 12.9 found"
+if grep -q "nvidia-nvtx-cu12==12.8" requirements_latest.txt; then
+    echo "✅ NVTX 12.8 found"
 else
-    echo "❌ NVTX 12.9 not found"
+    echo "❌ NVTX 12.8 not found"
 fi
 
 # Check for system dependencies
@@ -343,16 +343,16 @@ echo "Verification complete!"
 echo ""
 echo "=== SUMMARY ==="
 echo "✅ PyTorch 2.8 nightly features: torch.compile, enhanced profiler, architecture-specific optimizations"
-echo "✅ CUDA 12.9 features: Stream-ordered memory, architecture switching, version checking"
-echo "✅ Triton 3.4 features: Enhanced kernels, architecture-specific optimizations, improved performance"
+echo "✅ CUDA 12.8 features: Stream-ordered memory, architecture switching, version checking"
+echo "✅ Triton 3.3 features: Enhanced kernels, architecture-specific optimizations, improved performance"
 echo "✅ Architecture Support: Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)"
 echo "✅ Latest profiling tools: Nsight Systems, Nsight Compute, HTA, Perf, enhanced PyTorch profiler"
 echo "✅ Enhanced monitoring: GPU memory, CPU utilization, system metrics"
 echo ""
 echo "All code has been updated to use the latest features from:"
 echo "- PyTorch 2.8 nightly"
-echo "- CUDA 12.9"
-echo "- Triton 3.4"
+echo "- CUDA 12.8"
+echo "- Triton 3.3"
 echo "- Architecture switching (Hopper H100/H200 and Blackwell B200/B300)"
 echo "- Latest profiling and monitoring tools"
 echo "- Enhanced system monitoring"

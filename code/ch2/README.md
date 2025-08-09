@@ -1,5 +1,15 @@
 # Chapter 2: AI System Hardware Overview
 
+## Summary
+These examples demonstrate how to inspect, understand, and benchmark your hardware (GPU architecture, memory hierarchy, tensor cores, NVLink) and relate those capabilities to practical utilization.
+
+## Performance Takeaways
+- Report compute capability, memory bandwidth, and cache topology to estimate ceilings
+- Compare precision modes and Tensor Core utilization effects on throughput
+- Monitor utilization/temperature/power to validate sustained performance
+- Inspect NVLink status and understand inter-GPU bandwidth implications
+- Map hardware counters to expected model throughput and latency targets
+
 This directory contains code examples that demonstrate the core hardware concepts from Chapter 2 of the AI Performance Engineering book.
 
 ## Key Concepts Demonstrated

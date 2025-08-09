@@ -4,13 +4,13 @@ A comprehensive guide to optimizing AI systems for maximum performance, efficien
 
 ## 🚀 Latest Updates
 
-**Updated for PyTorch 2.8, CUDA 12.9, Triton 3.4, and Architecture Switching**
+**Updated for PyTorch 2.8, CUDA 12.8, Triton 3.3, and Architecture Switching**
 
 This repository has been completely updated to support the latest AI hardware and software stack with architecture switching:
 
 - **PyTorch 2.8**: Latest PyTorch with enhanced compiler support and architecture-specific optimizations
-- **CUDA 12.9**: Latest CUDA toolkit with Hopper H100/H200 and Blackwell B200/B300 support
-- **Triton 3.4**: OpenAI's Triton for custom GPU kernel development
+- **CUDA 12.8**: Latest CUDA toolkit with Hopper H100/H200 and Blackwell B200/B300 support
+- **Triton 3.3**: OpenAI's Triton for custom GPU kernel development
 - **Architecture Switching**: Support for both Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)
 - **Grace Blackwell Superchip**: Unified memory architecture examples
 - **NVL72 Systems**: Multi-GPU cluster optimization examples
@@ -44,7 +44,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Chapter 5: CUDA Programming Fundamentals
 - **`code/ch5/`**: CUDA kernel development and optimization
 - Memory coalescing, shared memory usage, and kernel fusion techniques
-- Updated for CUDA 12.9 and latest features
+- Updated for CUDA 12.8 and latest features
 
 ### Chapter 6: GPU Memory Hierarchy Optimization
 - **`code/ch6/`**: Memory bandwidth optimization and cache utilization
@@ -79,7 +79,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Chapter 12: Triton for Custom GPU Kernels
 - **`code/ch12/`**: OpenAI Triton for high-performance GPU kernel development
 - Custom attention mechanisms, fused operations, and kernel autotuning
-- Updated for Triton 3.4 and latest features
+- Updated for Triton 3.3 and latest features
 
 ### Chapter 13: Distributed Training Optimization
 - **`code/ch13/`**: Large-scale distributed training techniques
@@ -126,7 +126,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Prerequisites
 
 - **NVIDIA GPU**: Hopper H100/H200, Blackwell B200/B300, or compatible
-- **CUDA 12.9**: Latest CUDA toolkit
+- **CUDA 12.8**: Latest CUDA toolkit
 - **Python 3.9+**: Python environment
 - **Linux**: Ubuntu 22.04+ recommended
 
@@ -294,12 +294,12 @@ iostat
 
 ### Profiling Tools
 
-- **NVIDIA Nsight Systems 2024.1**: Timeline analysis
-- **NVIDIA Nsight Compute 2024.1**: Kernel profiling  
+- **NVIDIA Nsight Systems 2025.1**: Timeline analysis
+- **NVIDIA Nsight Compute 2025.1**: Kernel profiling  
 - **PyTorch Profiler 2.8**: Framework-level profiling
 - **HTA (Holistic Tracing Analysis)**: Multi-GPU analysis
 - **Perf**: System-level analysis
-- **Triton 3.4**: Custom kernel profiling
+- **Triton 3.3**: Custom kernel profiling
 
 ### Enhanced Profiling Commands
 
@@ -348,7 +348,7 @@ flake8 code/
 This repository is based on the comprehensive AI Performance Engineering book, covering:
 
 - **Hardware Optimization**: Grace Blackwell superchips, NVL72 systems
-- **Software Optimization**: PyTorch 2.8, CUDA 12.9, Triton 3.4
+- **Software Optimization**: PyTorch 2.8, CUDA 12.8, Triton 3.3
 - **System Optimization**: NUMA binding, memory pinning, network tuning
 - **Algorithm Optimization**: Distributed training, model parallelism, quantization
 - **Profiling Optimization**: Latest profiling tools and techniques
