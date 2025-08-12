@@ -1,12 +1,10 @@
-# AI Performance Engineering
+# 🚀 AI Performance Engineering
 
 A comprehensive guide to optimizing AI systems for maximum performance, efficiency, and scalability. This repository contains practical examples and code for performance engineering on modern AI hardware, including NVIDIA's Grace Blackwell superchips and NVL72 systems.
 
-## 🚀 Latest Updates
+## 🚀 Overview
 
-**Updated for PyTorch 2.8, CUDA 12.8, Triton 3.3, and Architecture Switching**
-
-This repository has been completely updated to support the latest AI hardware and software stack with architecture switching:
+This repository supports the latest AI hardware and software stack with architecture switching:
 
 - **PyTorch 2.8**: Latest PyTorch with enhanced compiler support and architecture-specific optimizations
 - **CUDA 12.8**: Latest CUDA toolkit with Hopper H100/H200 and Blackwell B200/B300 support
@@ -213,27 +211,6 @@ bash code/profiler_scripts/pytorch_profile.sh script.py
 # Architecture-specific profiling
 bash code/profiler_scripts/pytorch_profile.sh script.py blackwell
 ```
-
-## 📊 Performance Benchmarks
-
-### Architecture Performance Comparison
-
-| Metric | Hopper H100 | Hopper H200 | Blackwell B200 | Blackwell B300 |
-|--------|-------------|-------------|----------------|----------------|
-| Memory | 80 GB | 141 GB | 192 GB | 288 GB |
-| Memory Bandwidth | 3.35 TB/s | 4.8 TB/s | 3.2 TB/s | 4.8 TB/s |
-| Tensor Core (FP4) | 4 PFLOPS | 6 PFLOPS | 20 PFLOPS | 30 PFLOPS |
-| NVLink Bandwidth | 900 GB/s | 1.8 TB/s | 1.8 TB/s | 1.8 TB/s |
-| Power | 700W | 700W | 800W | 1200W |
-
-### NVL72 System Specifications
-
-- **72 Blackwell GPUs** per rack
-- **36 Grace CPUs** per rack  
-- **30 TB unified memory** per rack
-- **1.44 exaFLOPS** peak compute (FP4)
-- **130 TB/s** bisection bandwidth
-- **130 kW** power consumption
 
 ## 🔧 Configuration
 

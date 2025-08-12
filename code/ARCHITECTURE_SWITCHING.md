@@ -1,10 +1,8 @@
-# Architecture Switching Summary
+# 🚀 Architecture Switching Summary
 
 ## Overview
 
-This repository has been comprehensively updated to support architecture switching between Hopper H100/H200 and Blackwell B200/B300 GPUs, with the latest features from PyTorch 2.8, CUDA 12.9, and Triton 3.4.
-
-## 🚀 Key Updates
+This repository supports architecture switching between Hopper H100/H200 and Blackwell B200/B300 GPUs, with the latest features from PyTorch 2.8, CUDA 12.8, and Triton 3.3.
 
 ### Architecture Support
 - **Hopper H100/H200**: SM90 Architecture (Compute Capability 9.0)
@@ -14,15 +12,15 @@ This repository has been comprehensively updated to support architecture switchi
 
 ### Latest Software Stack
 - **PyTorch 2.8**: Latest nightly builds with enhanced compiler support
-- **CUDA 12.9**: Latest CUDA toolkit with full Blackwell support
-- **Triton 3.4**: Latest Triton for custom kernel development
+- **CUDA 12.8**: Latest CUDA toolkit with full Blackwell support
+- **Triton 3.3**: Latest Triton for custom kernel development
 - **Profiling Tools**: Latest nsys, ncu, HTA, perf, and PyTorch profiler
 
 ## 📁 Updated Files
 
 ### Core Configuration
 - `arch_config.py`: Architecture detection and configuration
-- `requirements_latest.txt`: Updated with PyTorch 2.8, CUDA 12.9, Triton 3.4
+- `requirements_latest.txt`: Updated with PyTorch 2.8, CUDA 12.8, Triton 3.3
 - `update_architecture_switching.sh`: Comprehensive update script
 - `build_all.sh`: Automated build script with architecture detection
 - `switch_architecture.sh`: Manual architecture switching
@@ -48,13 +46,13 @@ This repository has been comprehensively updated to support architecture switchi
 - **Memory**: HBM3 (3.35 TB/s)
 - **Features**: Transformer Engine, Dynamic Programming
 - **Tensor Cores**: 4th Generation
-- **Optimizations**: HBM3 memory optimization, transformer-specific features
+- **Optimizations**: HBM3 memory optimization, TMA support, transformer-specific features
 
 ### Blackwell B200/B300 (SM100)
 - **Compute Capability**: 10.0
-- **Memory**: HBM3e (3.2 TB/s)
+- **Memory**: HBM3e (8 TB/s)
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
-- **Tensor Cores**: 4th Generation
+- **Tensor Cores**: 5rh Generation
 - **Optimizations**: HBM3e optimization, TMA support, stream-ordered allocation
 
 ## 🔧 Usage Examples
@@ -103,18 +101,17 @@ bash profiler_scripts/comprehensive_profile.sh your_script.py 30
 - **Module Analysis**: Module-level performance breakdown
 - **NVTX Integration**: Custom annotation support
 
-### CUDA 12.9 Features
+### CUDA 12.8 Features
 - **Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
 - **TMA**: Tensor Memory Accelerator for Blackwell
 - **HBM3e**: High-bandwidth memory optimizations
 - **NVLink-C2C**: Direct GPU-to-GPU communication
 - **Architecture-specific**: SM90/SM100 optimizations
 
-### Triton 3.4 Features
+### Triton 3.3 Features
 - **Enhanced Kernels**: Improved kernel generation
 - **Autotuning**: Advanced autotuning capabilities
 - **Architecture Support**: Hopper and Blackwell optimizations
-- **Performance**: 15-20% improvement over previous versions
 
 ## 🔍 Profiling Tools
 
@@ -155,7 +152,7 @@ bash profiler_scripts/comprehensive_profile.sh your_script.py 30
 ### For Blackwell B200/B300 (SM100)
 1. **Enable TMA**: Tensor Memory Accelerator for efficient data movement
 2. **Use Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
-3. **Optimize HBM3e**: Maximize 3.2 TB/s bandwidth
+3. **Optimize HBM3e**: Maximize 8 TB/s bandwidth
 4. **Leverage NVLink-C2C**: Direct GPU-to-GPU communication
 5. **Enable Blackwell Optimizations**: Architecture-specific features
 
@@ -246,7 +243,7 @@ ncu-ui profile_ncu_sm_90/ncu_kernel_sm_90.ncu-rep
 This repository now provides comprehensive support for:
 
 1. **Architecture Switching**: Seamless switching between Hopper and Blackwell
-2. **Latest Software**: PyTorch 2.8, CUDA 12.9, Triton 3.4
+2. **Latest Software**: PyTorch 2.8, CUDA 12.8, Triton 3.3
 3. **Advanced Profiling**: Complete profiling toolchain
 4. **Performance Optimization**: Architecture-specific optimizations
 5. **Production Ready**: Comprehensive testing and validation

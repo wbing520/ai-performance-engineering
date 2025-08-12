@@ -1,10 +1,6 @@
-# Final Summary - Architecture Switching and Latest Features
+# 🎯 Overview
 
-## 🎯 Overview
-
-This repository has been comprehensively updated to support architecture switching between Hopper H100/H200 and Blackwell B200/B300 GPUs, with the latest features from PyTorch 2.8, CUDA 12.9, and Triton 3.4.
-
-## ✅ Completed Updates
+This repository supports architecture switching between Hopper H100/H200 and Blackwell B200/B300 GPUs, with the latest features from PyTorch 2.8, CUDA 12.8, and Triton 3.3.
 
 ### 1. Core Architecture Support
 - **Architecture Detection**: Automatic detection of Hopper (SM90) and Blackwell (SM100)
@@ -14,8 +10,8 @@ This repository has been comprehensively updated to support architecture switchi
 
 ### 2. Latest Software Stack
 - **PyTorch 2.8**: Latest nightly builds with enhanced compiler support
-- **CUDA 12.9**: Latest CUDA toolkit with full Blackwell support
-- **Triton 3.4**: Latest Triton for custom kernel development
+- **CUDA 12.8**: Latest CUDA toolkit with full Blackwell support
+- **Triton 3.3**: Latest Triton for custom kernel development
 - **Requirements**: Updated `requirements_latest.txt` with all latest versions
 
 ### 3. Enhanced Profiling Tools
@@ -36,7 +32,7 @@ This repository has been comprehensively updated to support architecture switchi
 
 #### Blackwell B200/B300 (SM100)
 - **Compute Capability**: 10.0
-- **Memory**: HBM3e (3.2 TB/s)
+- **Memory**: HBM3e (8 TB/s)
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
 - **Optimizations**: HBM3e optimization, TMA support, stream-ordered allocation
 
@@ -44,7 +40,7 @@ This repository has been comprehensively updated to support architecture switchi
 
 #### Core Configuration Files
 - ✅ `arch_config.py`: Architecture detection and configuration
-- ✅ `requirements_latest.txt`: Updated with PyTorch 2.8, CUDA 12.9, Triton 3.4
+- ✅ `requirements_latest.txt`: Updated with PyTorch 2.8, CUDA 12.8, Triton 3.3
 - ✅ `update_architecture_switching.sh`: Comprehensive update script
 - ✅ `build_all.sh`: Automated build script with architecture detection
 - ✅ `switch_architecture.sh`: Manual architecture switching
@@ -62,7 +58,7 @@ This repository has been comprehensively updated to support architecture switchi
 #### Code Updates
 - ✅ **All Makefiles**: Updated with architecture switching support
 - ✅ **Python Files**: Enhanced with PyTorch 2.8 features
-- ✅ **CUDA Files**: Updated with CUDA 12.9 features
+- ✅ **CUDA Files**: Updated with CUDA 12.8 features
 
 #### Documentation Updates
 - ✅ `README.md`: Updated with latest features and architecture support
@@ -82,14 +78,14 @@ This repository has been comprehensively updated to support architecture switchi
 - ✅ **Module Analysis**: Module-level performance breakdown
 - ✅ **NVTX Integration**: Custom annotation support
 
-#### CUDA 12.9 Features
+#### CUDA 12.8 Features
 - ✅ **Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
 - ✅ **TMA**: Tensor Memory Accelerator for Blackwell
 - ✅ **HBM3e**: High-bandwidth memory optimizations
 - ✅ **NVLink-C2C**: Direct GPU-to-GPU communication
 - ✅ **Architecture-specific**: SM90/SM100 optimizations
 
-#### Triton 3.4 Features
+#### Triton 3.3 Features
 - ✅ **Enhanced Kernels**: Improved kernel generation
 - ✅ **Autotuning**: Advanced autotuning capabilities
 - ✅ **Architecture Support**: Hopper and Blackwell optimizations
@@ -149,9 +145,9 @@ python code/ch2/hardware_info.py
 | Power | 700W | 700W | 800W | 1200W |
 
 ### Software Performance Improvements
-- **CUDA 12.9**: 10-15% improvement over CUDA 12.4
+- **CUDA 12.8**: 10-15% improvement over CUDA 12.4
 - **PyTorch 2.8**: 20-30% improvement over stable releases
-- **Triton 3.4**: 15-20% improvement in kernel generation
+- **Triton 3.3**: 15-20% improvement in kernel generation
 - **Blackwell B200/B300**: 30-50% improvement over H100
 
 ## 🎯 Optimization Recommendations
@@ -166,7 +162,7 @@ python code/ch2/hardware_info.py
 ### For Blackwell B200/B300 (SM100)
 1. **Enable TMA**: Tensor Memory Accelerator for efficient data movement
 2. **Use Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
-3. **Optimize HBM3e**: Maximize 3.2 TB/s bandwidth
+3. **Optimize HBM3e**: Maximize 8 TB/s bandwidth
 4. **Leverage NVLink-C2C**: Direct GPU-to-GPU communication
 5. **Enable Blackwell Optimizations**: Architecture-specific features
 
@@ -249,16 +245,14 @@ ncu-ui profile_ncu_sm_90/ncu_kernel_sm_90.ncu-rep
 
 - [USAGE_GUIDE.md](USAGE_GUIDE.md): Detailed usage guide
 - [PROFILING_GUIDE.md](PROFILING_GUIDE.md): Profiling tools guide
-- [COMPLIANCE_REPORT.md](COMPLIANCE_REPORT.md): Compliance analysis
-- [CONSISTENCY_REPORT.md](CONSISTENCY_REPORT.md): Consistency analysis
-- [ARCHITECTURE_SWITCHING_SUMMARY.md](ARCHITECTURE_SWITCHING_SUMMARY.md): Architecture guide
+- [ARCHITECTURE_SWITCHING.md](ARCHITECTURE_SWITCHING.md): Architecture guide
 
 ## 🎉 Summary
 
 This repository now provides comprehensive support for:
 
 1. **✅ Architecture Switching**: Seamless switching between Hopper and Blackwell
-2. **✅ Latest Software**: PyTorch 2.8, CUDA 12.9, Triton 3.4
+2. **✅ Latest Software**: PyTorch 2.8, CUDA 12.8, Triton 3.3
 3. **✅ Advanced Profiling**: Complete profiling toolchain
 4. **✅ Performance Optimization**: Architecture-specific optimizations
 5. **✅ Production Ready**: Comprehensive testing and validation

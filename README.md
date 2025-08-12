@@ -29,7 +29,7 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 This repository contains comprehensive code examples, tools, and resources for AI Systems Performance Engineering. It accompanies the O'Reilly book covering GPU optimization, distributed training, inference scaling, and performance tuning for modern AI workloads.
 
 ### 🎯 Key Focus Areas
-- **GPU Architecture & CUDA Programming**
+- **GPU Architecture, PyTorch, CUDA, and Open AI Triton Programming**
 - **Distributed Training & Inference**
 - **Memory Optimization & Profiling**
 - **PyTorch Performance Tuning**

@@ -3,14 +3,14 @@
 ## Overview
 This guide covers the latest profiling tools and best practices for:
 - **CUDA 12.8**
-- **PyTorch 2.8 nightly**
+- **PyTorch 2.8**
 - **OpenAI Triton 3.3**
 - **Architecture switching: Hopper H100/H200 and Blackwell B200/B300 GPUs**
 
 ## Profiling Tools
 
 ### 1. Nsight Systems (nsys)
-**Latest Version**: 2025.2.1
+**Latest Version**: 2025.4
 **Purpose**: System-level timeline analysis
 
 ```bash
@@ -40,7 +40,7 @@ nsys profile \
 - Blackwell B200/B300 specific metrics
 
 ### 2. Nsight Compute (ncu)
-**Latest Version**: 2024.3
+**Latest Version**: 2025.4
 **Purpose**: Kernel-level performance analysis
 
 ```bash
@@ -108,7 +108,7 @@ print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 - Architecture-specific optimizations (Hopper and Blackwell)
 
 ### 4. Triton Profiler
-**Latest Version**: Triton 3.4
+**Latest Version**: Triton 3.3
 **Purpose**: Kernel generation analysis
 
 ```bash
@@ -312,4 +312,4 @@ def run_profiling(script_path):
 
 ## Conclusion
 
-This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.8, PyTorch 2.8 nightly, and Triton 3.4 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.
+This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.8, PyTorch 2.8, and Triton 3.3 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.
