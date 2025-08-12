@@ -59,6 +59,7 @@ run_ncu() {
         --mode=launch \
         --target-processes=python3 \
         --set full \
+        --clock-control none \
         --kernel-regex ".*" \
         --sampling-interval 1 \
         --sampling-max-passes 5 \
