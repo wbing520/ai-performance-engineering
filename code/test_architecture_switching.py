@@ -10,6 +10,12 @@ from torch.profiler import profile, record_function, ProfilerActivity, schedule
 import torch.cuda.nvtx as nvtx
 import time
 import numpy as np
+try:
+    import triton as triton
+    import triton.language as tl
+except Exception:
+    triton = None
+    tl = None
 
 def test_architecture_detection():
     """Test architecture detection."""
@@ -128,8 +134,8 @@ def test_triton_34():
     print("\n=== Triton 3.x Features Test ===")
     
     try:
-        import triton
-        import triton.language as tl
+        if triton is None or tl is None:
+            raise RuntimeError("Triton not available")
         print(f"✓ Triton version: {triton.__version__}")
         
         # Define a minimal Triton kernel and JIT it
