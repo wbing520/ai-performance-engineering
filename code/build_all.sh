@@ -124,9 +124,25 @@ check_profiling_tools
 
 echo ""
 
-# Install dependencies
+# Install dependencies (skip torch packages if already installed)
 echo "Installing dependencies..."
-pip install -r requirements_latest.txt
+TMP_REQ="/tmp/ai_perf_req_$(date +%s).txt"
+if python - << 'PY'
+import sys
+try:
+    import torch
+    print("torch_present")
+except Exception:
+    pass
+PY
+then
+  echo "✓ torch already installed; filtering torch packages from requirements"
+  sed '/^torch\(vision\|audio\)\?==/d;/^--index-url/d' requirements_latest.txt > "$TMP_REQ"
+  pip install -r "$TMP_REQ"
+  rm -f "$TMP_REQ"
+else
+  pip install -r requirements_latest.txt
+fi
 
 # Test architecture configuration
 echo "Testing architecture configuration..."
@@ -141,7 +157,8 @@ print('✓ Architecture configuration successful')
 
 # Build all CUDA projects with enhanced features
 echo "Building CUDA projects with latest features..."
-find code -name "Makefile" -type f | while read -r makefile; do
+# Build only active chapter examples; skip archived directories
+find . -name "Makefile" -type f ! -path "./archive/*" | while read -r makefile; do
     dir=$(dirname "$makefile")
     echo "Building $dir with $CURRENT_ARCH..."
     cd "$dir"

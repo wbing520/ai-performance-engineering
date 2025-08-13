@@ -64,7 +64,7 @@ profile-perf: $(TARGETS)
 	@echo "Perf system-level profiling..."
 	@for target in $(TARGETS); do \
 		echo "Profiling $$target..."; \
-		perf record -g -p $$(pgrep $$target) -o perf.data_$$target_$(ARCH) ./$$target; \
+		perf record -g -o perf.data_$$target_$(ARCH) ./$$target; \
 		perf report -i perf.data_$$target_$(ARCH); \
 	done
 

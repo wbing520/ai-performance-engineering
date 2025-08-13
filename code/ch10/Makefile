@@ -3,7 +3,7 @@
 ARCH ?= sm_90
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
 
@@ -65,7 +65,7 @@ profile-perf: $(TARGETS)
 	@echo "Perf system-level profiling..."
 	@for target in $(TARGETS); do \
 		echo "Profiling $$target..."; \
-		perf record -g -p $$(pgrep $$target) -o perf.data_$(ARCH)_$$target ./$$target; \
+		perf record -g -o perf.data_$(ARCH)_$$target ./$$target; \
 		perf report -i perf.data_$(ARCH)_$$target; \
 	done
 

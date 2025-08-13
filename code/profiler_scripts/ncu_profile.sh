@@ -33,6 +33,5 @@ ncu \
     --sampling-interval 1 \
     --sampling-max-passes 5 \
     --sampling-period 1000000 \
-    --export csv \
     -o "ncu_profile_${ARCH}_$(date +%Y%m%d_%H%M%S)" \
     python "$SCRIPT_NAME"

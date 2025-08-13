@@ -30,6 +30,7 @@ nsys profile \
   --gpu-metrics-device=all \
   --stats=true \
   python your_script.py
+nsys stats --report summary,cuda_api,osrt --format sqlite,csv profile_report -o profile_report
 ```
 
 **Key Features for CUDA 12.8**:
@@ -56,7 +57,6 @@ ncu \
   --sampling-interval 1 \
   --sampling-max-passes 5 \
   --sampling-period 1000000 \
-  --export csv \
   -o ncu_report \
   python your_script.py
 ```

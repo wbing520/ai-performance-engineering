@@ -14,6 +14,5 @@ ncu \
   --sampling-interval 1 \
   --sampling-max-passes 5 \
   --sampling-period 1000000 \
-  --export csv \
   -o $(basename $SCRIPT)_ncu \
   python3 $SCRIPT

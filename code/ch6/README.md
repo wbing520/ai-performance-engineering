@@ -70,7 +70,8 @@ nvcc -o occupancy_api occupancy_api.cu
 python add_parallel.py
 
 # Profile with Nsight Systems
-nsys profile --stats=true ./add_parallel
+nsys profile -o add_parallel ./add_parallel
+nsys stats --report summary,cuda_api,osrt --format sqlite,csv add_parallel -o add_parallel
 
 # Profile with Nsight Compute
 ncu --metrics achieved_occupancy,warp_execution_efficiency ./occupancy_api
@@ -81,7 +82,9 @@ ncu --metrics achieved_occupancy,warp_execution_efficiency ./occupancy_api
 ```bash
 # Compare sequential vs parallel
 nsys profile -o sequential ./add_sequential
+nsys stats --report summary,cuda_api,osrt --format sqlite,csv sequential -o sequential
 nsys profile -o parallel ./add_parallel
+nsys stats --report summary,cuda_api,osrt --format sqlite,csv parallel -o parallel
 
 # Analyze occupancy
 ncu --metrics achieved_occupancy,sm__cycles_active.avg.pct_of_peak_sustained_elapsed ./occupancy_api

@@ -309,8 +309,9 @@ export TORCHINDUCTOR_BENCHMARK_KERNEL=1
 ### Debugging Commands
 
 ```bash
-# Profile with Nsight Systems
-nsys profile --output=profile python train_deepseek_v3.py
+# Profile with Nsight Systems and export stats
+nsys profile -o profile python train_deepseek_v3.py
+nsys stats --report summary,cuda_api --format sqlite,csv profile -o profile
 
 # Profile with Nsight Compute
 ncu --kernel-name-regex "matmul" python train_deepseek_v3.py

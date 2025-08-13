@@ -123,7 +123,7 @@ class KernelEfficiencyProfiler:
         ncu_cmd = [
             "ncu", 
             "--set", "full",
-            "--export", output_file,
+            "-o", output_file,
             "python", "-c", command
         ]
         

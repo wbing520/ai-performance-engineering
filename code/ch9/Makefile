@@ -54,7 +54,7 @@ profile-hta: $(TARGETS)
 
 profile-perf: $(TARGETS)
 	@echo "Perf system-level profiling..."
-	perf record -g -p $$(pgrep $(firstword $(TARGETS))) -o perf.data_$(ARCH) ./$(firstword $(TARGETS))
+	perf record -g -o perf.data_$(ARCH) ./$(firstword $(TARGETS))
 	perf report -i perf.data_$(ARCH)
 
 profile-all: $(TARGETS)

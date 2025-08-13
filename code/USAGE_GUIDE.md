@@ -368,8 +368,9 @@ python fsdp_example.py
 
 **Profiling Commands**:
 ```bash
-# Profile with NVTX markers and GPU timeline
-nsys profile --output=deepseek_v3_profile --stats=nvtx_gpu_proj_sum -t cuda,nvtx python train_deepseek_v3.py
+# Profile with NVTX markers and GPU timeline (generate stats after capture)
+nsys profile -t cuda,nvtx -o deepseek_v3_profile python train_deepseek_v3.py
+nsys stats --report summary,nvtx_gpu_proj_sum,cuda_api --format csv,sqlite deepseek_v3_profile -o deepseek_v3_profile
 
 # Profile specific kernels
 ncu --target-processes all --kernel-name regex:gemm* -o deepseek_gemm_profile python train_deepseek_v3.py

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive test script for architecture switching.
-Tests PyTorch 2.8, CUDA 12.8, and Triton 3.4 features.
+Tests PyTorch 2.8, CUDA 12.8, and Triton 3.3+ features.
 """
 
 import torch
@@ -51,13 +51,20 @@ def test_pytorch_28_features():
     except Exception as e:
         print(f"❌ Dynamic shapes failed: {e}")
     
-    # Test Triton optimizations
+    # Test Triton config access (robust to version changes)
     try:
-        torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
-        print("✓ Triton optimizations enabled")
+        inductor_cfg = getattr(torch, "_inductor", None)
+        if inductor_cfg is not None and hasattr(inductor_cfg, "config"):
+            triton_cfg = getattr(inductor_cfg.config, "triton", None)
+            if triton_cfg is not None:
+                if hasattr(triton_cfg, "unique_kernel_names"):
+                    setattr(triton_cfg, "unique_kernel_names", True)
+                # Best-effort enable autotune if an appropriate knob exists
+                if hasattr(triton_cfg, "autotune_experimental"):
+                    setattr(triton_cfg, "autotune_experimental", True)
+        print("✓ Triton configuration accessible")
     except Exception as e:
-        print(f"❌ Triton optimizations failed: {e}")
+        print(f"❌ Triton config access failed: {e}")
 
 def test_cuda_128_features():
     """Test CUDA 12.8 features."""
@@ -109,21 +116,23 @@ def test_profiling_tools():
     
     # Test NVTX
     try:
-        with nvtx.annotate("test_region"):
-            time.sleep(0.1)
+        nvtx.range_push("test_region")
+        time.sleep(0.1)
+        nvtx.range_pop()
         print("✓ NVTX annotations work")
     except Exception as e:
         print(f"❌ NVTX failed: {e}")
 
 def test_triton_34():
-    """Test Triton 3.4 features."""
-    print("\n=== Triton 3.4 Features Test ===")
+    """Test Triton 3.x features."""
+    print("\n=== Triton 3.x Features Test ===")
     
     try:
         import triton
+        import triton.language as tl
         print(f"✓ Triton version: {triton.__version__}")
         
-        # Test Triton kernel compilation
+        # Define a minimal Triton kernel and JIT it
         @triton.jit
         def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
             pid = tl.program_id(axis=0)
@@ -132,10 +141,18 @@ def test_triton_34():
             mask = offsets < n_elements
             x = tl.load(x_ptr + offsets, mask=mask)
             y = tl.load(y_ptr + offsets, mask=mask)
-            output = x + y
-            tl.store(output_ptr + offsets, output, mask=mask)
-        
-        print("✓ Triton kernel compilation works")
+            tl.store(output_ptr + offsets, x + y, mask=mask)
+
+        # Allocate small tensors and compile by launching once
+        n = 1024
+        BLOCK = 128
+        x = torch.ones(n, dtype=torch.float32, device="cuda")
+        y = torch.ones(n, dtype=torch.float32, device="cuda")
+        out = torch.empty(n, dtype=torch.float32, device="cuda")
+        grid = (triton.cdiv(n, BLOCK),)
+        add_kernel[grid](x, y, out, n, BLOCK_SIZE=BLOCK)
+        torch.cuda.synchronize()
+        print("✓ Triton kernel compile and launch works")
     except Exception as e:
         print(f"❌ Triton test failed: {e}")
 

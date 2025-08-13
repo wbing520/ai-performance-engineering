@@ -1,3 +1,4 @@
+build_report_*.md
 __pycache__/
 UPDATE_SUMMARY.md
 UPDATES_SUMMARY.md

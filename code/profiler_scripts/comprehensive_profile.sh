@@ -87,7 +87,6 @@ ncu \
     --sampling-max-passes 5 \
     --sampling-period 1000000 \
     --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed \
-    --export csv \
     -o "ncu_kernel_${ARCH}" \
     python "../$SCRIPT_NAME" &
 NCU_PID=$!

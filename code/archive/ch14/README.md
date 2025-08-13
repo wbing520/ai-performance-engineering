@@ -343,8 +343,9 @@ def custom_op(x: torch.Tensor) -> torch.Tensor:
 ### Debugging Commands
 
 ```bash
-# Profile with Nsight Systems
-nsys profile --output=profile python torch_compiler_examples.py
+# Profile with Nsight Systems and export stats
+nsys profile -o profile python torch_compiler_examples.py
+nsys stats --report summary,cuda_api --format sqlite,csv profile -o profile
 
 # Profile with Nsight Compute
 ncu --kernel-name-regex "triton" python triton_examples.py
