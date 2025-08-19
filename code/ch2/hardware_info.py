@@ -169,7 +169,7 @@ def demonstrate_blackwell_features():
     if gpu_info.get("architecture") == "Blackwell B200/B300":
         print("✓ This is a Blackwell B200/B300 GPU")
         print(f"✓ Compute Capability: {gpu_info['compute_capability']} (SM100)")
-        print(f"✓ Memory: {gpu_info['total_memory_gb']:.1f} GB HBM3e")
+        print(f"✓ Memory: {gpu_info['total_memory_gb']:.1f} GB")
         print(f"✓ Memory Bandwidth: {gpu_info['memory_bandwidth_tbps']} TB/s")
         print("✓ 4th Generation Tensor Cores")
         print("✓ TMA (Tensor Memory Accelerator)")
