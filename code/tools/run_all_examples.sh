@@ -21,18 +21,10 @@ if nvidia-smi -L 2>/dev/null | grep -q "B200\|B300"; then
   IS_BLACKWELL=1
 fi
 
-echo "## Build" >> "$REPORT_FILE"
+echo "## Build (via Makefiles if present)" >> "$REPORT_FILE"
 
-build_dirs=(
-  "$ROOT_DIR/ch6"
-  "$ROOT_DIR/ch7"
-  "$ROOT_DIR/ch8"
-  "$ROOT_DIR/ch9"
-  "$ROOT_DIR/ch10"
-  "$ROOT_DIR/ch11"
-  "$ROOT_DIR/ch12"
-  "$ROOT_DIR/ch2"
-)
+# Discover chapter directories automatically
+mapfile -t build_dirs < <(find "$ROOT_DIR" -maxdepth 1 -type d -name 'ch*' | sort)
 
 for d in "${build_dirs[@]}"; do
   if [ -f "$d/Makefile" ]; then
@@ -46,6 +38,38 @@ for d in "${build_dirs[@]}"; do
       (cd "$d" && make ARCH=sm_90 | sed 's/^/  /') >> "$REPORT_FILE" 2>&1 || true
     fi
   fi
+done
+
+echo "" >> "$REPORT_FILE"
+echo "## Direct CUDA compile for standalone .cu/.cpp (no Makefile targets)" >> "$REPORT_FILE"
+
+# Compiler flags
+if [ "$IS_BLACKWELL" = "1" ]; then
+  NV_ARCH="-arch=sm_100"
+else
+  NV_ARCH="-arch=sm_90"
+fi
+
+for d in "${build_dirs[@]}"; do
+  # Find .cu and .cpp files at chapter root
+  while IFS= read -r -d '' src; do
+    base="$(basename "$src")"
+    out="${src%.*}"
+    # Skip Blackwell-only files on non-Blackwell
+    if [ "$IS_BLACKWELL" = "0" ] && echo "$base" | grep -q "_blackwell"; then
+      continue
+    fi
+    # Skip if an executable already exists and is newer
+    if [ -x "$out" ] && [ "$out" -nt "$src" ]; then
+      continue
+    fi
+    echo "- Compiling $src -> $out" | tee -a "$REPORT_FILE"
+    if ! nvcc -O3 -std=c++17 $NV_ARCH --expt-relaxed-constexpr -o "$out" "$src" >> "$REPORT_FILE" 2>&1; then
+      echo "  - compile: FAIL (nvcc)" >> "$REPORT_FILE"
+    else
+      echo "  - compile: OK" >> "$REPORT_FILE"
+    fi
+  done < <(find "$d" -maxdepth 1 \( -name '*.cu' -o -name '*.cpp' \) -print0)
 done
 
 echo "" >> "$REPORT_FILE"
