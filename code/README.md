@@ -200,6 +200,12 @@ bash code/switch_architecture.sh sm_100
 bash code/build_all.sh
 ```
 
+### Consolidated example runner
+```bash
+# Build and run examples (auto-detects Blackwell and only runs *_blackwell binaries on B200/B300)
+bash code/tools/run_all_examples.sh
+```
+
 ### Enhanced Profiling
 ```bash
 # Comprehensive profiling

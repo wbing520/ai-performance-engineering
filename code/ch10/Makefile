@@ -11,6 +11,12 @@ NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSIO
 SOURCES = double_buffered_pipeline.cu warp_specialized_pipeline.cu cooperative_persistent_kernel.cu
 TARGETS = $(SOURCES:.cu=)
 
+# Blackwell-only examples are built only when ARCH=sm_100
+ifeq ($(ARCH),sm_100)
+SOURCES += tma_2d_pipeline_blackwell.cu cluster_group_blackwell.cu
+TARGETS += tma_2d_pipeline_blackwell cluster_group_blackwell
+endif
+
 # Default target
 all: $(TARGETS)
 	@echo "Building with $(ARCH) architecture (CUDA $(CUDA_VERSION))"
@@ -28,6 +34,13 @@ warp_specialized_pipeline: warp_specialized_pipeline.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 cooperative_persistent_kernel: cooperative_persistent_kernel.cu
+	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+
+# Blackwell-only builds
+tma_2d_pipeline_blackwell: tma_2d_pipeline_blackwell.cu
+	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+
+cluster_group_blackwell: cluster_group_blackwell.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 # Architecture-specific targets

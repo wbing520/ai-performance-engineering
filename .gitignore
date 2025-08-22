@@ -1,3 +1,6 @@
+*.out
+*.err
+run_report_*.md
 build_report_*.md
 __pycache__/
 UPDATE_SUMMARY.md
