@@ -7,9 +7,15 @@
 
 ---
 
-### Monthly Meetups (100,000+ Global Members, 20+ Cities)
-- **Meetup Group**: [AI Performance Engineering](https://www.meetup.com/ai-performance-engineering)
-- **YouTube Channel**: [AI Performance Engineering](https://www.youtube.com/@AIPerformanceEngineering)
+## 🔗 Links
+
+- **Book**: [AI Systems Performance Engineering on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
+- **Meetup**: [AI Performance Engineering Meetup Group](https://www.meetup.com/ai-performance-engineering)
+- **YouTube**: [AI Performance Engineering Channel](https://www.youtube.com/@AIPerformanceEngineering)
+
+---
+
+*Built with ❤️ in San Francisco for the AI performance engineering community*
 
 ---
 
@@ -319,13 +325,3 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-## 🔗 Links
-
-- **Book**: [AI Systems Performance Engineering on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
-- **Meetup**: [AI Performance Engineering Meetup Group](https://www.meetup.com/ai-performance-engineering)
-- **YouTube**: [AI Performance Engineering Channel](https://www.youtube.com/@AIPerformanceEngineering)
-
----
-
-*Built with ❤️ in San Francisco for the AI performance engineering community*
