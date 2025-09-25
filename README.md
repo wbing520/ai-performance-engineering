@@ -1,25 +1,15 @@
 # AI Performance Engineering
 
+## 📚 About This Repository
+
+This repository contains comprehensive code examples, tools, and resources for AI Systems Performance Engineering. It accompanies the O'Reilly book covering GPU optimization, distributed training, inference scaling, and performance tuning for modern AI workloads.
+
 [![O'Reilly Book](img/ai_sys_perf_engg_cover_cheetah_sm.png)](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 
 > **O'Reilly Book - Fall 2025**  
 > [Available on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 
----
-
-## 🔗 Links
-
-- **Book**: [AI Systems Performance Engineering on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
-- **Meetup**: [AI Performance Engineering Meetup Group](https://www.meetup.com/ai-performance-engineering)
-- **YouTube**: [AI Performance Engineering Channel](https://www.youtube.com/@AIPerformanceEngineering)
-
----
-
-*Built with ❤️ in San Francisco for the AI performance engineering community*
-
----
-
-## 📋 Performance Checklist
+## 📋 AI Systems Performance Engineering Book Checklist
 
 The book includes a comprehensive **175+ item performance checklist** covering:
 
@@ -36,9 +26,17 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 
 ---
 
-## 📚 About This Repository
+## 🔗 Links
 
-This repository contains comprehensive code examples, tools, and resources for AI Systems Performance Engineering. It accompanies the O'Reilly book covering GPU optimization, distributed training, inference scaling, and performance tuning for modern AI workloads.
+- **Book**: [AI Systems Performance Engineering on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
+- **Meetup**: [AI Performance Engineering Meetup Group](https://www.meetup.com/ai-performance-engineering)
+- **YouTube**: [AI Performance Engineering Channel](https://www.youtube.com/@AIPerformanceEngineering)
+
+---
+
+*Built with ❤️ in San Francisco for the AI performance engineering community*
+
+---
 
 ### 🎯 Key Focus Areas
 - **GPU Architecture, PyTorch, CUDA, and Open AI Triton Programming**
@@ -289,6 +287,12 @@ perf report -i perf.data
 
 ### Recent Meetups
 
+#### Sept 15, 2025
+- [YouTube Video](https://www.youtube.com/watch?v=eLnHXL1xXfM)
+- 
+#### Aug 18, 2025
+- [YouTube Video](https://www.youtube.com/watch?v=SBPlOUww57I)
+
 #### July 21, 2025
 - [YouTube Video](https://youtu.be/jaiMotxv8ck)
 - [Dynamic Adaptive RL Inference CUDA Kernel Tuning](resources/Dynamic_Adaptive_RL_Inference_CUDA_Kernel_Tuning.pdf)
@@ -305,8 +309,6 @@ perf report -i perf.data
 - [YouTube Video](https://youtu.be/XoZcY_fDUKA)
 - [AI Performance Engineering Meetup](resources/AI_Performance_Engineering_Meetup_Apr_21_2025.pdf)
 - [PyTorch Model Optimization](resources/PyTorch_Model_Optimization.pdf)
-
-
 
 ---
 
