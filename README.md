@@ -7,6 +7,12 @@
 
 ---
 
+### Monthly Meetups (100,000+ Global Members, 20+ Cities)
+- **Meetup Group**: [AI Performance Engineering](https://www.meetup.com/ai-performance-engineering)
+- **YouTube Channel**: [AI Performance Engineering](https://www.youtube.com/@AIPerformanceEngineering)
+
+---
+
 ## 📋 Performance Checklist
 
 The book includes a comprehensive **175+ item performance checklist** covering:
