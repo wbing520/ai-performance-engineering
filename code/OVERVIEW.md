@@ -6,7 +6,6 @@ This repository now targets a single architecture: **NVIDIA Blackwell B200/B300 
 - **Architecture configuration** lives in `arch_config.py` and always resolves to Blackwell.
 - **Build orchestration** is handled by `build_all.sh`, which compiles kernels with `sm_100` and validates Python syntax.
 - **Requirements** across chapters are normalised to `requirements_latest.txt` (mirrored into the per-chapter files).
-- **Verification** is provided by `verify_updates.sh`, ensuring Makefiles and code stay Blackwell-centric.
 
 ## 🛠️ Toolchain Expectations
 | Component | Version / Channel | Notes |
@@ -28,13 +27,12 @@ If PyTorch is already provided by the base image, the build script automatically
 cd code
 ./build_all.sh           # installs deps, builds CUDA samples, runs syntax checks
 ```
-`build_all.sh` iterates over every non-archive Makefile, issues `make ARCH=sm_100`, and reports any failures without aborting the whole pass.
+`build_all.sh` iterates over every Makefile, issues `make ARCH=sm_100`, and reports any failures without aborting the whole pass.
 
 ## 🧪 Validation & Profiling
 | Command | Description |
 |---------|-------------|
-| `python code/test_architecture_switching.py` | Sanity suite covering torch.compile, Triton JIT, NVTX, and bandwidth sanity checks. |
-| `bash code/verify_updates.sh` | Lints Makefiles/requirements for lingering legacy compute-capability 9.x references and mismatched pins. |
+| `python code/test_blackwell_stack.py` | Sanity suite covering torch.compile, Triton JIT, NVTX, and bandwidth sanity checks. |
 | `bash code/profiler_scripts/nsys_profile.sh script.py` | Nsight Systems trace for a workload. |
 | `bash code/profiler_scripts/ncu_profile.sh binary` | Nsight Compute metrics for a CUDA sample. |
 

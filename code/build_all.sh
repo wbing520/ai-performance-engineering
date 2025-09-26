@@ -63,7 +63,7 @@ PY
 
 section "Building CUDA examples"
 pushd "$SCRIPT_DIR" >/dev/null
-find "$SCRIPT_DIR" -path "*/archive/*" -prune -o -name Makefile -print | while read -r makefile; do
+find "$SCRIPT_DIR" -name Makefile -print | while read -r makefile; do
   make_dir="$(dirname "$makefile")"
   target_name="$(basename "$make_dir")"
   echo "-- Building $make_dir"
@@ -82,7 +82,7 @@ done
 popd >/dev/null
 
 section "Python syntax checks"
-find "$SCRIPT_DIR" -path "*/archive/*" -prune -o   \( -path "*/ch*/*" -a -name "*.py" \) -print | while read -r pyfile; do
+find "$SCRIPT_DIR" -path "*/ch*/*" -name "*.py" -print | while read -r pyfile; do
   case "$(basename "$pyfile")" in
     test_*|*_test.py) continue ;;
     arch_config.py) continue ;;

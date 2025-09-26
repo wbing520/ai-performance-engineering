@@ -192,9 +192,6 @@ python code/ch4/after_ddp.py --test nccl
 # Build CUDA samples and run sanity checks
 bash code/build_all.sh
 
-# Lint Makefiles/requirements for Blackwell-only settings
-bash code/verify_updates.sh
-
 # Refresh dependencies to the canonical PyTorch/CUDA stack
 bash code/update_cuda_versions.sh
 ```

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Enhanced Profiling Script for Architecture Switching
+# Enhanced Profiling Script for Blackwell
 # Targets Blackwell B200/B300 (SM100)
 
 set -e

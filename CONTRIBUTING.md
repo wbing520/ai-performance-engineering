@@ -87,9 +87,6 @@ python -m pytest tests/
 # Check code style
 black code/
 flake8 code/
-
-# Verify Blackwell toolchain consistency
-bash code/verify_updates.sh
 ```
 
 ### 3. Testing Your Changes

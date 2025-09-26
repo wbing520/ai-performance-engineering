@@ -77,9 +77,6 @@ This repository now targets a single architecture profile: **NVIDIA Blackwell B2
 # Build CUDA samples and run sanity checks
 ./code/build_all.sh
 
-# Re-run Makefile and requirements linting
-./code/verify_updates.sh
-
 # Capture a full profiling suite for a script
 ./code/profiler_scripts/comprehensive_profile.sh your_script.py
 ```
