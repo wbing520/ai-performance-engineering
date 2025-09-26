@@ -3,8 +3,11 @@
 // Focus: Demonstrate asynchronous global->shared staging and overlapped compute
 
 #include <cuda/pipeline>
+#include <cooperative_groups.h>
 #include <cuda_runtime.h>
 #include <cstdio>
+
+namespace cg = cooperative_groups;
 
 // Tile dimensions (tune for your GPU's shared memory and occupancy goals)
 constexpr int TILE_M = 128;
@@ -27,8 +30,9 @@ __global__ void tma_2d_pipeline_kernel(const float *__restrict__ A,
     extern __shared__ __align__(16) unsigned char smem_raw[];
     float *buf0 = reinterpret_cast<float *>(smem_raw);
 
-    // Create pipeline scoped to the CTA
-    auto pipe = cuda::make_pipeline();
+    cg::thread_block cta = cg::this_thread_block();
+    __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 1> pipeline_state;
+    auto pipe = cuda::make_pipeline(cta, &pipeline_state);
 
     // Determine tile coordinates for this block
     int tile_m = blockIdx.y;
@@ -58,11 +62,11 @@ __global__ void tma_2d_pipeline_kernel(const float *__restrict__ A,
 
     // Stage 1: consume and compute
     pipe.consumer_wait();
-    __syncthreads();
+    cta.sync();
 
     compute_on_tile(buf0, TILE_N);
 
-    __syncthreads();
+    cta.sync();
     pipe.consumer_release();
 
     // Write back to C
@@ -95,6 +99,8 @@ int main() {
     dim3 grid((N + TILE_N - 1) / TILE_N, (M + TILE_M - 1) / TILE_M, 1);
 
     size_t smem_bytes = size_t(TILE_M) * TILE_N * sizeof(float); // single buffer
+
+    cudaFuncSetAttribute(tma_2d_pipeline_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, static_cast<int>(smem_bytes));
 
     tma_2d_pipeline_kernel<<<grid, block, smem_bytes>>>(dA, dC, M, N, N, N);
     cudaDeviceSynchronize();
