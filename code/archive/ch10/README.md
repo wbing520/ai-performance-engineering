@@ -271,7 +271,7 @@ Page fault handling: optimized
 - **Stream-ordered Memory**: Optimized for Blackwell architecture
 - **Advanced Synchronization**: Hardware-accelerated events and barriers
 
-### CUDA 12.9 Optimizations
+### CUDA 12.8 Optimizations
 
 - **Graph Replay**: Optimized for Blackwell SM100
 - **Memory Management**: Enhanced unified memory with HBM3e

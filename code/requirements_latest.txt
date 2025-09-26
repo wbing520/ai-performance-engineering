@@ -1,115 +1,83 @@
-# AI Performance Engineering - Latest Requirements
-# PyTorch 2.8 nightly, CUDA 12.8, Triton 3.4, Architecture Switching Support
+# AI Performance Engineering - Blackwell Requirements
+# Target: Blackwell B200/B300 (SM100) with PyTorch 2.8, CUDA 12.8, Triton 3.3
 
-# Core PyTorch ecosystem (nightly builds)
---index-url https://download.pytorch.org/whl/nightly/cu128
-torch==2.8.0.dev
-torch==2.8.0.dev
-torch==2.8.0.dev
+# Core PyTorch ecosystem (install from cu128 release channel)
+--index-url https://download.pytorch.org/whl/cu128
+torch==2.8.0+cu128
+torchvision==0.23.0+cu128
+torchaudio==2.8.0+cu128
 
-# CUDA and GPU acceleration (CUDA 12.8)
+# CUDA 12.8 runtime libraries
 nvidia-cuda-runtime-cu12==12.8.*
 nvidia-cuda-nvrtc-cu12==12.8.*
-# Use a recent cuDNN 9.x; 9.12 is widely available in pip
-nvidia-cudnn-cu12==9.12.0.46
+nvidia-cudnn-cu12==9.10.2.21
 nvidia-cublas-cu12==12.8.*
 nvidia-cufft-cu12==11.3.3.83
-nvidia-curand-cu12==10.3.10.19
-# Skip cuSOLVER/cuSPARSE pins (provided by system CUDA 12.8 toolkit)
-# nvidia-cusolver-cu12==12.6.0.22
-# nvidia-cusparse-cu12==12.6.0.22
-nvidia-nccl-cu12==2.20.5
+nvidia-curand-cu12==10.3.9.90
+# cuSOLVER / cuSPARSE ship with the system toolkit; enable when needed
+# nvidia-cusolver-cu12==12.8.*
+# nvidia-cusparse-cu12==12.8.*
+nvidia-nccl-cu12==2.27.3
 nvidia-nvtx-cu12==12.8.*
 
-# Triton for GPU kernel development (Python-level). Use 3.3.* to match availability
-triton==3.3.1
+# Triton for custom GPU kernels
+triton==3.4.0
 
-# Performance monitoring and profiling (latest)
-# NVIDIA Management Library Python bindings (compatible version)
+# Monitoring and system insight
 nvidia-ml-py3==7.352.0
 psutil==6.1.0
 GPUtil==1.4.0
+py-cpuinfo==9.0.0
 
-# Distributed training (latest)
-# deepspeed and fairscale optional; pin when needed
-# deepspeed==0.14.0
-# fairscale==0.4.13
-
-# Data loading and preprocessing
+# Data processing stack
 numpy==1.26.4
-pandas==2.2.1
-scikit-learn==1.3.2
+pandas==2.2.2
+scikit-learn==1.4.2
 pillow==10.2.0
 
-# Visualization and monitoring
+# Visualization & reporting
 matplotlib==3.8.4
 seaborn==0.13.2
 tensorboard==2.16.2
 wandb==0.17.0
+plotly==5.18.0
+bokeh==3.4.1
+dash==2.16.1
 
-# System utilities
-psutil==6.1.0
-py-cpuinfo==9.0.0
-GPUtil==1.4.0
-
-# Development tools
+# Development workflow
 jupyter==1.0.0
 ipykernel==6.29.5
 black==24.2.0
 flake8==7.0.0
 mypy==1.9.0
 
-# Optional: Advanced features
-transformers==4.41.2
+# Model development helpers
+transformers==4.40.2
 datasets==2.18.0
 accelerate==0.29.0
 sentencepiece==0.2.0
 tokenizers==0.19.1
 
-# Optional: Model serving
-# torchserve==0.8.2
-
-# Optional: Quantization and optimization
+# Optional model serving & optimization
 onnx==1.16.1
-# onnxruntime-gpu is optional; comment to avoid architecture pinning issues
-# onnxruntime-gpu==1.18.0
+onnxruntime-gpu==1.18.0
 
-# Optional: Monitoring and debugging
-py-spy==0.3.14
-memory-profiler==0.61.0
-line-profiler==4.1.2
-
-# Optional: Advanced profiling and analysis
+# Profiling & diagnostics
 py-spy==0.3.14
 memory-profiler==0.61.0
 line-profiler==4.1.2
 pyinstrument==5.0.0
 snakeviz==2.1.1
 
-# Optional: Machine learning and optimization
+# Experiment management & search
 optuna==4.0.0
 hyperopt==0.2.7
 ray[tune]==2.10.0
 
-# Optional: Data processing and analysis
+# Scalable data utilities
 dask==2024.1.1
-# vaex requires system PCRE dev libs on aarch64; keep optional to avoid build failures
-# vaex==4.17.0
 xarray==2024.1.0
 
-# Optional: Visualization and reporting
-plotly==5.18.0
-bokeh==3.4.0
-dash==2.16.1
-
-# System dependencies (install via package manager)
-# - numactl (for NUMA binding)
-# - nvidia-container-toolkit (for Docker GPU support)
-# - nvidia-docker2 (for Docker GPU support)
-# - infiniband-diags (for InfiniBand diagnostics)
-# - perftest (for network performance testing)
-# - nvidia-nsight-systems (latest profiling tools)
-# - nvidia-nsight-compute (latest profiling tools)
-# - nvidia-nsight-graphics (latest graphics profiling)
-# - nvidia-nsight-systems-cli (command line profiling)
-# - nvidia-nsight-compute-cli (command line profiling)
+# Notes
+# - Install Deepspeed/Fairscale or other distributed frameworks separately as needed.
+# - Ensure CUDA 12.8 toolkit / driver is present on the system ahead of time.

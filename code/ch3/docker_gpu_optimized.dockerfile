@@ -27,8 +27,9 @@ WORKDIR /app
 # Install Python dependencies with latest versions
 RUN pip install --upgrade pip && \
     pip install --index-url https://download.pytorch.org/whl/nightly/cu128 torch>=2.8.0.dev torchvision>=0.19.0.dev torchaudio>=2.8.0.dev && \
-    pip install triton==3.4.0 && \
-    pip install nvidia-ml-py3 psutil
+    pip install triton==3.3.1 && \
+    pip install nvidia-ml-py3==7.352.0 psutil==6.1.0 GPUtil==1.4.0
+
 
 # Runtime stage for smaller final image
 FROM base AS runtime

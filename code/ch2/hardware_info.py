@@ -5,60 +5,38 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
             "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "4th Gen",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-#!/usr/bin/env python3
-"""
-Chapter 2: AI System Hardware Overview
-Hardware Information and Benchmarking
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
-This example demonstrates hardware analysis and benchmarking:
-- GPU architecture detection and capabilities
-- Memory hierarchy analysis
-- Blackwell B200/B300 specific features
-- Performance benchmarking
-- Latest profiling tools integration
-"""
+"""hardware_info.py
+Chapter 2: Hardware Topology Inspection
+
+Analyze CPU/GPU topology, memory bandwidth, and interconnect characteristics
+for NVIDIA Blackwell-based systems."""
 
 import torch
 import psutil
@@ -68,35 +46,22 @@ import numpy as np
 from typing import Dict, Any, List
 import torch.cuda.nvtx as nvtx
 
-
 def get_gpu_info() -> Dict[str, Any]:
     """Get comprehensive GPU information."""
     if not torch.cuda.is_available():
         return {"error": "CUDA not available"}
-    
+
     device_props = torch.cuda.get_device_properties(0)
-    
-    # Calculate memory bandwidth (use default values for missing attributes)
-    # Note: memoryClockRate and memoryBusWidth are not available in current PyTorch version
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Estimate memory bandwidth based on compute capability
-    if device_props.major >= 10:  # Blackwell B200/B300
-        memory_bandwidth = 8.0  # TB/s for HBM3e
-    elif device_props.major == 9:  # Hopper H100/H200
-        memory_bandwidth = 3.35  # TB/s for HBM3
-    else:
-        memory_bandwidth = 1.0  # Default GB/s for other architectures
-    
-    # Check for Blackwell B200/B300 features
-    is_blackwell = device_props.major >= 10  # SM100 for Blackwell
-    is_hopper = device_props.major == 9  # SM90 for Hopper
-    
+
+    is_blackwell = device_props.major == 10
+    memory_bandwidth_tbps = 8.0 if is_blackwell else None
+
     return {
         "name": device_props.name,
         "compute_capability": compute_capability,
         "total_memory_gb": device_props.total_memory / 1e9,
-        "memory_bandwidth_gbps": memory_bandwidth * 1000 if memory_bandwidth < 10 else memory_bandwidth * 1000,  # Convert to GB/s
+        "memory_bandwidth_gbps": memory_bandwidth_tbps * 1000 if memory_bandwidth_tbps else None,
         "max_threads_per_block": device_props.max_threads_per_multi_processor,
         "max_threads_per_sm": device_props.max_threads_per_multi_processor,
         "num_sms": device_props.multi_processor_count,
@@ -104,17 +69,15 @@ def get_gpu_info() -> Dict[str, Any]:
         "max_shared_memory_per_block": device_props.shared_memory_per_block,
         "max_shared_memory_per_sm": device_props.shared_memory_per_multiprocessor,
         "l2_cache_size": device_props.L2_cache_size,
-        "architecture": "Blackwell B200/B300" if is_blackwell else "Hopper H100/H200" if is_hopper else "Other",
-        "hbm3e_memory": is_blackwell,  # Blackwell has HBM3e
-        "hbm3_memory": is_hopper,  # Hopper has HBM3
-        "memory_bandwidth_tbps": memory_bandwidth if is_blackwell or is_hopper else None,
-        "tma_support": is_blackwell or is_hopper,  # Tensor Memory Accelerator (Hopper & Blackwell)
-        "nvlink_c2c": is_blackwell,  # NVLink-C2C for direct GPU communication
-        "tensor_cores": "5th Generation" if is_blackwell else "4th Generation" if is_hopper else "2nd Generation",
-        "unified_memory": True,  # Grace-Blackwell unified memory
-        "max_unified_memory_gb": 30 if is_blackwell else None,  # 30TB unified memory
+        "architecture": "Blackwell B200/B300" if is_blackwell else "Unsupported",
+        "hbm3e_memory": is_blackwell,
+        "memory_bandwidth_tbps": memory_bandwidth_tbps,
+        "tma_support": is_blackwell,
+        "nvlink_c2c": is_blackwell,
+        "tensor_cores": "5th Generation" if is_blackwell else "Unknown",
+        "unified_memory": True,
+        "max_unified_memory_gb": 30 if is_blackwell else None,
     }
-
 
 def get_system_info() -> Dict[str, Any]:
     """Get comprehensive system information."""
@@ -155,7 +118,6 @@ def get_system_info() -> Dict[str, Any]:
         "gpus": gpu_info,
     }
 
-
 def demonstrate_blackwell_features():
     """Demonstrate Blackwell B200/B300 specific features."""
     print("\n=== Blackwell B200/B300 Features Demonstration ===\n")
@@ -182,7 +144,6 @@ def demonstrate_blackwell_features():
         print(f"Compute Capability: {gpu_info['compute_capability']}")
         print(f"Memory: {gpu_info['total_memory_gb']:.1f} GB")
         print(f"Memory Bandwidth: {gpu_info['memory_bandwidth_gbps']:.1f} GB/s")
-
 
 def benchmark_memory_bandwidth():
     """Benchmark memory bandwidth to demonstrate HBM3e performance."""
@@ -227,7 +188,6 @@ def benchmark_memory_bandwidth():
                 print(f"Size {size}x{size}: OOM")
             else:
                 print(f"Size {size}x{size}: Error")
-
 
 def benchmark_tensor_operations():
     """Benchmark various tensor operations to demonstrate Blackwell optimizations."""
@@ -283,7 +243,6 @@ def benchmark_tensor_operations():
         except Exception as e:
             print(f"{op_name:25}: Error - {e}")
 
-
 def demonstrate_memory_hierarchy():
     """Demonstrate memory hierarchy analysis."""
     print("\n=== Memory Hierarchy Analysis ===")
@@ -311,7 +270,6 @@ def demonstrate_memory_hierarchy():
     if gpu_info.get('hbm3e_memory'):
         print(f"• HBM3e Bandwidth: {gpu_info['memory_bandwidth_tbps']} TB/s")
         print("• Unified Memory: 30 TB total")
-
 
 def demonstrate_profiling_capabilities():
     """Demonstrate the latest profiling capabilities."""
@@ -342,7 +300,6 @@ def demonstrate_profiling_capabilities():
         print("\n✓ PyTorch Profiler is available")
     except ImportError:
         print("\n✗ PyTorch Profiler not available")
-
 
 def demonstrate_system_monitoring():
     """Demonstrate comprehensive system monitoring."""
@@ -376,7 +333,6 @@ def demonstrate_system_monitoring():
         print(f"\nPyTorch GPU Memory:")
         print(f"• Allocated: {allocated:.2f} GB")
         print(f"• Cached: {cached:.2f} GB")
-
 
 def demonstrate_blackwell_optimizations():
     """Demonstrate Blackwell B200/B300 specific optimizations."""
@@ -416,7 +372,6 @@ def demonstrate_blackwell_optimizations():
         print("   • Optimized memory management")
     else:
         print("This GPU does not support Blackwell B200/B300 optimizations")
-
 
 def main():
     """Main function to demonstrate hardware analysis."""
@@ -489,7 +444,6 @@ def main():
     print("8. Tensor operation benchmarking")
     print("9. Comprehensive system analysis")
     print("10. Blackwell-specific optimizations")
-
 
 if __name__ == "__main__":
     main()

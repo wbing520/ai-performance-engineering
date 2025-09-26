@@ -5,7 +5,7 @@ if [ $# -ne 1 ]; then
 fi
 SCRIPT=$1
 
-# Memory profiling for PyTorch 2.8 and CUDA 12.9
+# Memory profiling for PyTorch 2.8 and CUDA 12.8
 echo "Running memory profiler..."
 
 # Set PyTorch memory profiling environment variables

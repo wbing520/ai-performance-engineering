@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Fix script for Makefiles with proper formatting and CUDA 12.9
-echo "Fixing Makefiles with proper formatting and CUDA 12.9..."
+# Fix script for Makefiles with proper formatting and CUDA 12.8
+echo "Fixing Makefiles with proper formatting and CUDA 12.8..."
 
 # Find all Makefiles and fix them
 find . -name "Makefile" -type f | while read -r makefile; do
@@ -16,7 +16,7 @@ TARGET = $(basename $(notdir $(CURDIR)))
 NVCC   = nvcc
 ARCH   = -arch=sm_100
 OPT    = -O3
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 
 all: $(TARGET)
 	@echo "Building with Blackwell B200/B300 optimizations (SM100)"
@@ -37,7 +37,7 @@ TARGETS = $targets
 NVCC   = nvcc
 ARCH   = -arch=sm_100
 OPT    = -O3
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 
 all: \$(TARGETS)
 	@echo "Building with Blackwell B200/B300 optimizations (SM100)"

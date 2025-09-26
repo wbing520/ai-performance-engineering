@@ -245,7 +245,7 @@ print(f":::MLL {log_entry}")
 
 ### Prerequisites
 - PyTorch 2.8+
-- CUDA 12.9+
+- CUDA 12.8+
 - Transformers library
 - NVIDIA GPU with sufficient memory
 

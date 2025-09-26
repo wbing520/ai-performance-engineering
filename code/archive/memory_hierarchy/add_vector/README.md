@@ -35,7 +35,7 @@ make
 conda create -n add-py311 python=3.11 -y
 conda activate add-py311
 pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu130
-pip install triton==3.3.0
+pip install triton==3.3.1
 python add.py
 ```
 

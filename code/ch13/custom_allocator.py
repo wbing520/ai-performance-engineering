@@ -8,53 +8,32 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
             "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "4th Gen",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-# custom_allocator.py
-import torch
-import torch.distributed as dist
-from torch.cuda.memory import CUDAPluggableAllocator
-import os
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
 def demonstrate_custom_allocator():
     """Demonstrate custom CUDA memory allocator setup."""
@@ -262,35 +241,24 @@ if __name__ == "__main__":
 if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    if compute_capability == "9.0":  # Hopper H100/H200
-        # Enable Hopper-specific optimizations if available
+
+    inductor = getattr(torch, "_inductor", None)
+    triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
+
+    if compute_capability == "10.0" and triton_cfg is not None:  # Blackwell B200/B300
         try:
-            if hasattr(torch._inductor.config.triton, 'use_hopper_optimizations'):
-                torch._inductor.config.triton.use_hopper_optimizations = True
-            if hasattr(torch._inductor.config.triton, 'hbm3_optimizations'):
-                torch._inductor.config.triton.hbm3_optimizations = True
+            if hasattr(triton_cfg, "use_blackwell_optimizations"):
+                triton_cfg.use_blackwell_optimizations = True
+            if hasattr(triton_cfg, "hbm3e_optimizations"):
+                triton_cfg.hbm3e_optimizations = True
+            if hasattr(triton_cfg, "tma_support"):
+                triton_cfg.tma_support = True
+            if hasattr(triton_cfg, "stream_ordered_memory"):
+                triton_cfg.stream_ordered_memory = True
         except AttributeError:
-            print("Hopper optimizations not available in this PyTorch version")
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        # Enable Blackwell-specific optimizations if available
-        try:
-            if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
-                torch._inductor.config.triton.use_blackwell_optimizations = True
-            if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
-                torch._inductor.config.triton.hbm3e_optimizations = True
-            if hasattr(torch._inductor.config.triton, 'tma_support'):
-                torch._inductor.config.triton.tma_support = True
-        except AttributeError:
-            print("Blackwell optimizations not available in this PyTorch version")
-    
-    # Enable latest PyTorch 2.8 features if available
-    try:
-        if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
-            torch._inductor.config.triton.unique_kernel_names = True
-        if hasattr(torch._inductor.config.triton, 'autotune_mode'):
-            torch._inductor.config.triton.autotune_mode = "max-autotune"
-        if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
-            torch._dynamo.config.automatic_dynamic_shapes = True
-    except AttributeError:
-        print("Some PyTorch 2.8 features not available in this version")
+            print("Blackwell optimizations not available in this PyTorch build")
+
+    if triton_cfg is not None and hasattr(triton_cfg, "unique_kernel_names"):
+        triton_cfg.unique_kernel_names = True
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "config"):
+        torch._dynamo.config.automatic_dynamic_shapes = True

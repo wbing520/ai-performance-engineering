@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive test script for architecture switching.
-Tests PyTorch 2.8, CUDA 12.8, and Triton 3.3+ features.
+Blackwell validation suite covering PyTorch 2.8, CUDA 12.8, and Triton 3.3 features.
 """
 
 import torch
@@ -20,23 +19,18 @@ except Exception:
 def test_architecture_detection():
     """Test architecture detection."""
     print("=== Architecture Detection Test ===")
-    
-    if torch.cuda.is_available():
-        device_props = torch.cuda.get_device_properties(0)
-        compute_capability = f"{device_props.major}.{device_props.minor}"
-        gpu_name = device_props.name
-        
-        print(f"GPU: {gpu_name}")
-        print(f"Compute Capability: {compute_capability}")
-        
-        if compute_capability == "9.0":
-            print("✓ Detected Hopper H100/H200")
-        elif compute_capability == "10.0":
-            print("✓ Detected Blackwell B200/B300")
-        else:
-            print(f"⚠ Unknown architecture: {compute_capability}")
-    else:
+    if not torch.cuda.is_available():
         print("❌ CUDA not available")
+        return
+    device_props = torch.cuda.get_device_properties(0)
+    compute_capability = f"{device_props.major}.{device_props.minor}"
+    gpu_name = device_props.name
+    print(f"GPU: {gpu_name}")
+    print(f"Compute Capability: {compute_capability}")
+    if compute_capability == "10.0":
+        print("✓ Detected Blackwell B200/B300")
+    else:
+        print(f"⚠ Non-Blackwell GPU detected (compute capability {compute_capability})")
 
 def test_pytorch_28_features():
     """Test PyTorch 2.8 features."""
@@ -196,7 +190,7 @@ def test_performance():
 
 def main():
     """Run all tests."""
-    print("AI Performance Engineering - Architecture Switching Test")
+    print("AI Performance Engineering - Blackwell Validation Test")
     print("=" * 60)
     
     test_architecture_detection()

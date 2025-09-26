@@ -23,16 +23,7 @@ def get_architecture():
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -68,7 +59,6 @@ from dataclasses import dataclass
 from collections import OrderedDict
 import numpy as np
 
-
 @dataclass
 class KVCache:
     """Represents a KV cache tensor pair for a specific prefix."""
@@ -92,7 +82,6 @@ class KVCache:
         self.ref_count -= 1
         return self.ref_count <= 0
 
-
 class RadixTreeNode:
     """Node in the radix tree for prefix caching."""
     
@@ -105,7 +94,6 @@ class RadixTreeNode:
     
     def __repr__(self):
         return f"RadixNode(tokens={self.token_sequence}, children={len(self.children)})"
-
 
 class RadixTree:
     """
@@ -311,7 +299,6 @@ class RadixTree:
                 if id(child) not in visited:
                     stack.append(child)
 
-
 class ModelState:
     """Simplified model state for generation."""
     
@@ -329,7 +316,6 @@ class ModelState:
     
     def is_finished(self) -> bool:
         return self.finished
-
 
 class SimpleTransformerModel:
     """Simplified transformer model for demonstration."""
@@ -426,7 +412,6 @@ class SimpleTransformerModel:
         
         return next_token, state
 
-
 def generate_with_radix(prompt_tokens: List[int], model: SimpleTransformerModel, 
                        radix: RadixTree) -> List[int]:
     """
@@ -469,7 +454,6 @@ def generate_with_radix(prompt_tokens: List[int], model: SimpleTransformerModel,
     
     print(f"Generated {len(output_tokens)} tokens")
     return output_tokens
-
 
 def simulate_multi_turn_conversation():
     """
@@ -522,7 +506,6 @@ def simulate_multi_turn_conversation():
     response6 = generate_with_radix(prompt6, model, radix)
     
     print(f"Final radix tree has {radix.current_cache_count} cached prefixes")
-
 
 def benchmark_prefix_caching():
     """
@@ -617,7 +600,6 @@ def benchmark_prefix_caching():
     # Verify responses are similar (they won't be identical due to randomness)
     print(f"Radix tree cached {radix.current_cache_count} prefixes")
 
-
 def main():
     """Main demonstration of RadixAttention concepts."""
     print("Chapter 16: RadixAttention Prefix Caching Example")
@@ -650,7 +632,6 @@ def main():
     print("- LRU eviction for memory management")
     print("- Significant speedup for repeated prefixes")
 
-
 if __name__ == "__main__":
     main()
 
@@ -659,9 +640,7 @@ if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        print(f"Enabled Hopper H100/H200 optimizations (compute capability {compute_capability})")
-    elif compute_capability == "10.0":  # Blackwell B200/B300
+    if compute_capability == "10.0":  # Blackwell B200/B300
         print(f"Enabled Blackwell B200/B300 optimizations (compute capability {compute_capability})")
     else:
-        print(f"Enabled general optimizations (compute capability {compute_capability})")
+        print(f"⚠ Unsupported compute capability {compute_capability}; running in fallback mode")

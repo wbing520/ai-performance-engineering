@@ -358,7 +358,7 @@ export TRITON_DEBUG=1
 
 ### Prerequisites
 - PyTorch 2.8+
-- CUDA 12.9+
+- CUDA 12.8+
 - Triton library
 - NVIDIA GPU with sufficient memory
 

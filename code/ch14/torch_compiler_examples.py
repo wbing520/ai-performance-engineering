@@ -5,52 +5,38 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
             "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "4th Gen",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-# torch_compiler_examples.py
-# Updated for PyTorch 2.8 nightly and Blackwell B200/B300 optimizations
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
-import torch
+"""torch_compiler_examples.py
+Chapter 14: Torch Compile Examples
+
+Torch compile usage patterns optimized for Blackwell GPUs."""
+
 import torch._dynamo as dynamo
 import time
 from torch.nn import functional as F
@@ -433,14 +419,7 @@ def demonstrate_blackwell_features():
         print(f"Shared Memory per Block: {device_props.shared_memory_per_block / 1024:.0f} KB")
         print(f"Warp Size: {device_props.warp_size}")
         
-        if compute_capability == "9.0":  # Hopper H100/H200
-            print("✓ Hopper H100/H200 Architecture Detected")
-            print("• HBM3 Memory (3.35 TB/s bandwidth)")
-            print("• 4th Gen Tensor Cores")
-            print("• Transformer Engine")
-            print("• Dynamic Programming")
-            print("• TMA (Tensor Memory Accelerator)")
-        elif compute_capability == "10.0":  # Blackwell B200/B300
+        if compute_capability == "10.0":  # Blackwell B200/B300
             print("✓ Blackwell B200/B300 Architecture Detected")
             print("• HBM3e Memory (8.0 TB/s bandwidth)")
             print("• 5th Gen Tensor Cores")

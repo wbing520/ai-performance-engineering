@@ -8,31 +8,16 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -41,26 +26,19 @@ def get_architecture_info():
             "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-#!/usr/bin/env python3
-"""
-Chapter 15: Multi-Node Inference, Parallelism, Decoding, and Routing Optimizations
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
-This example demonstrates:
-- Disaggregated prefill-decode architecture
-- Parallelism strategies (TP, PP, EP, DP, CP)
-- MoE routing and load balancing
-- Speculative decoding techniques
-- Multi-node communication patterns
-"""
+"""disaggregated_inference.py
+Chapter 15: Disaggregated Inference Architectures
+
+Simulated disaggregated prefill-decode benchmarking on Blackwell clusters."""
 
 import torch
 import torch.nn as nn
@@ -76,14 +54,12 @@ import queue
 from dataclasses import dataclass
 from enum import Enum
 
-
 class ParallelismStrategy(Enum):
     TENSOR = "tensor"
     PIPELINE = "pipeline" 
     EXPERT = "expert"
     DATA = "data"
     CONTEXT = "context"
-
 
 @dataclass
 class InferenceConfig:
@@ -109,7 +85,6 @@ class InferenceConfig:
         if torch.cuda.is_available():
             available_gpus = torch.cuda.device_count()
             self.num_gpus = min(self.num_gpus, available_gpus)
-
 
 class DisaggregatedInferenceSystem:
     """Demonstrates disaggregated prefill-decode architecture."""
@@ -211,7 +186,6 @@ class DisaggregatedInferenceSystem:
         
         return " ".join(response_tokens)
 
-
 class PrefillWorker:
     """Dedicated worker for prompt processing."""
     
@@ -293,7 +267,6 @@ class PrefillWorker:
         """Simple tokenization for demonstration."""
         return [ord(c) % 1000 for c in text[:self.config.sequence_length]]
 
-
 class DecodeWorker:
     """Dedicated worker for token generation."""
     
@@ -365,7 +338,6 @@ class DecodeWorker:
         
         return token
 
-
 class MoERouter:
     """Demonstrates MoE routing and load balancing."""
     
@@ -426,7 +398,6 @@ class MoERouter:
             "min_load": min(loads),
             "load_imbalance": max(loads) - min(loads)
         }
-
 
 class SpeculativeDecoder:
     """Demonstrates speculative decoding techniques."""
@@ -492,7 +463,6 @@ class SpeculativeDecoder:
         """Generate single token using target model."""
         vocab = ["the", "a", "is", "was", "in", "on", "at", "to", "for", "with"]
         return np.random.choice(vocab)
-
 
 class ParallelismManager:
     """Manages different parallelism strategies."""
@@ -560,7 +530,6 @@ class ParallelismManager:
             end_token = start_token + tokens_per_gpu
             
             print(f"GPU {gpu_id}: Tokens {start_token}-{end_token}")
-
 
 def benchmark_inference_system():
     """Benchmark the disaggregated inference system."""
@@ -635,37 +604,31 @@ def benchmark_inference_system():
     
     print("\n=== Benchmark Complete ===")
 
-
 if __name__ == "__main__":
     benchmark_inference_system()
 
 # Architecture-specific optimizations
 if torch.cuda.is_available():
-    try:
-        device_props = torch.cuda.get_device_properties(0)
-        compute_capability = f"{device_props.major}.{device_props.minor}"
-        
-        # Only apply optimizations if torch._inductor is available
-        if hasattr(torch, '_inductor'):
-            if compute_capability == "9.0":  # Hopper H100/H200
-                if hasattr(torch._inductor.config.triton, 'use_hopper_optimizations'):
-                    torch._inductor.config.triton.use_hopper_optimizations = True
-                if hasattr(torch._inductor.config.triton, 'hbm3_optimizations'):
-                    torch._inductor.config.triton.hbm3_optimizations = True
-            elif compute_capability == "10.0":  # Blackwell B200/B300
-                if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
-                    torch._inductor.config.triton.use_blackwell_optimizations = True
-                if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
-                    torch._inductor.config.triton.hbm3e_optimizations = True
-                if hasattr(torch._inductor.config.triton, 'tma_support'):
-                    torch._inductor.config.triton.tma_support = True
-            
-            # Enable latest PyTorch 2.8 features if available
-            if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
-                torch._inductor.config.triton.unique_kernel_names = True
-            if hasattr(torch._inductor.config.triton, 'autotune_mode'):
-                torch._inductor.config.triton.autotune_mode = "max-autotune"
-            if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
-                torch._dynamo.config.automatic_dynamic_shapes = True
-    except Exception as e:
-        print(f"Warning: Could not apply architecture-specific optimizations: {e}")
+    device_props = torch.cuda.get_device_properties(0)
+    compute_capability = f"{device_props.major}.{device_props.minor}"
+
+    inductor = getattr(torch, "_inductor", None)
+    triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
+
+    if compute_capability == "10.0" and triton_cfg is not None:  # Blackwell B200/B300
+        try:
+            if hasattr(triton_cfg, "use_blackwell_optimizations"):
+                triton_cfg.use_blackwell_optimizations = True
+            if hasattr(triton_cfg, "hbm3e_optimizations"):
+                triton_cfg.hbm3e_optimizations = True
+            if hasattr(triton_cfg, "tma_support"):
+                triton_cfg.tma_support = True
+            if hasattr(triton_cfg, "stream_ordered_memory"):
+                triton_cfg.stream_ordered_memory = True
+        except AttributeError:
+            print("Blackwell optimizations not available in this PyTorch build")
+
+    if triton_cfg is not None and hasattr(triton_cfg, "unique_kernel_names"):
+        triton_cfg.unique_kernel_names = True
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "config"):
+        torch._dynamo.config.automatic_dynamic_shapes = True

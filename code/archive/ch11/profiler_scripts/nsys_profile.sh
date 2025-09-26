@@ -5,7 +5,7 @@ if [ $# -ne 1 ]; then
 fi
 SCRIPT=$1
 
-# Latest Nsight Systems profiling for CUDA 12.9, PyTorch 2.8, and Blackwell B200/B300
+# Latest Nsight Systems profiling for CUDA 12.8, PyTorch 2.8, and Blackwell B200/B300
 nsys profile \
   --force-overwrite=true \
   -o $(basename $SCRIPT)_nsys \

@@ -42,7 +42,7 @@ make run
 
 ## Dependencies
 
-- CUDA 12.9+
+- CUDA 12.8+
 - NVIDIA GPU with compute capability 9.0+
 - C++17 support for advanced features
 

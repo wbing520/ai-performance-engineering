@@ -168,7 +168,7 @@ sm__sass_thread_inst_op_fp32_pred_on.sum: 2.1e9 (high arithmetic intensity)
 - **Memory Bandwidth**: HBM3e provides ~3.2TB/s
 - **Tensor Cores**: Support for FP16 and INT8 operations
 
-### CUDA 12.9 Optimizations
+### CUDA 12.8 Optimizations
 
 - **Stream-ordered Memory**: Use `cudaMallocAsync` for better performance
 - **Unified Memory**: HBM3e provides faster CPU-GPU memory access

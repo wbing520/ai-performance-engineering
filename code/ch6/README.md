@@ -54,7 +54,7 @@ This chapter introduces GPU architecture fundamentals and CUDA programming patte
 
 - CUDA 12.8+
 - NVIDIA GPU with compute capability 5.0+
-- For optimal performance: Blackwell, Hopper, or Ada Lovelace architecture
+- For optimal performance: Blackwell B200/B300 (SM100)
 
 ## Building and Running
 

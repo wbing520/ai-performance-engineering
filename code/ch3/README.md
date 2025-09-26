@@ -29,7 +29,7 @@ This directory contains code examples and configuration files for optimizing ope
 
 ### Dependencies
 
-- **`requirements.txt`** - Python dependencies including PyTorch 2.8, Triton 3.4, and performance monitoring tools
+- **`requirements.txt`** - Python dependencies including PyTorch 2.8, Triton 3.3, and performance monitoring tools
 
 ## Key Optimizations Covered
 
@@ -102,7 +102,7 @@ sudo nvidia-smi -pm ENABLED
 
 ## Hardware Requirements
 
-- NVIDIA GPUs with compute capability 7.0+ (Volta, Turing, Ampere, Hopper, Blackwell)
+- NVIDIA GPU with compute capability 10.0 (Blackwell B200/B300)
 - CUDA 12.8+ compatible drivers
 - Linux kernel with NUMA support
 - InfiniBand/Ethernet networking for multi-node setups
@@ -110,7 +110,7 @@ sudo nvidia-smi -pm ENABLED
 ## Software Stack
 
 - **PyTorch 2.8** with CUDA 12.8 support
-- **Triton 3.4** for custom kernel development
+- **Triton 3.3** for custom kernel development
 - **NVIDIA Container Toolkit** for containerized GPU access
 - **Kubernetes 1.28+** with GPU device plugin
 - **NVIDIA GPU Operator** for automated management

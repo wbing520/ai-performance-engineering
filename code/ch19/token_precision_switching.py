@@ -8,31 +8,16 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -41,25 +26,19 @@ def get_architecture_info():
             "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-#!/usr/bin/env python3
-"""
-token_precision_switch.py
-Chapter 19: Token-level Precision Switching During Generation
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
-Implementation of dynamic precision switching that adapts numerical precision
-per token based on model confidence and output quality metrics.
+"""token_precision_switching.py
+Chapter 19: Token Precision Switching
 
-Based on Chapter 19's token-level precision adaptation concepts.
-"""
+Token precision adaptation strategies for Blackwell inference workloads."""
 
 import torch
 import torch.nn.functional as F
@@ -85,7 +64,6 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class PrecisionLevel(Enum):
     FP32 = "fp32"
     FP16 = "fp16"
@@ -93,7 +71,6 @@ class PrecisionLevel(Enum):
     FP8 = "fp8"
     INT8 = "int8"
     INT4 = "int4"
-
 
 @dataclass
 class ConfidenceMetrics:
@@ -114,7 +91,6 @@ class ConfidenceMetrics:
         
         # Weighted combination
         return 0.5 * prob_score + 0.3 * entropy_score + 0.2 * logit_score
-
 
 class TokenPrecisionController:
     """
@@ -317,7 +293,6 @@ class TokenPrecisionController:
         
         return generated_ids, generation_stats
 
-
 class DynamicQuantizedCache:
     """
     Dynamic quantization for KV cache from Chapter 19.
@@ -425,7 +400,6 @@ class DynamicQuantizedCache:
         
         self.policy_switch_counter += 1
 
-
 def demonstrate_token_precision_switching():
     """
     Demonstrate token-level precision switching with a simple model.
@@ -485,7 +459,6 @@ def demonstrate_token_precision_switching():
         print(f"Step {stat['step']:2d}: confidence={stat['confidence']:.3f}, "
               f"entropy={stat['entropy']:.2f}, precision={stat['precision_after']}")
 
-
 def benchmark_precision_switching_overhead():
     """Benchmark the computational overhead of precision switching."""
     print("\n=== Precision Switching Overhead Benchmark ===")
@@ -527,7 +500,6 @@ def benchmark_precision_switching_overhead():
     avg_confidence_time = (end_time - start_time) / 1000 * 1000  # Convert to ms
     print(f"Confidence computation: {avg_confidence_time:.3f} ms per call")
 
-
 def main():
     """Main demonstration of token-level precision switching."""
     print("Chapter 19: Token-level Precision Switching During Generation")
@@ -564,7 +536,6 @@ def main():
     print("- Works with any existing model architecture")
     print("- Can be combined with other optimization techniques")
 
-
 if __name__ == "__main__":
     main()
 
@@ -572,12 +543,24 @@ if __name__ == "__main__":
 if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Enable latest PyTorch 2.8 features
-    try:
-        torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
+
+    inductor = getattr(torch, "_inductor", None)
+    triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
+
+    if compute_capability == "10.0" and triton_cfg is not None:  # Blackwell B200/B300
+        try:
+            if hasattr(triton_cfg, "use_blackwell_optimizations"):
+                triton_cfg.use_blackwell_optimizations = True
+            if hasattr(triton_cfg, "hbm3e_optimizations"):
+                triton_cfg.hbm3e_optimizations = True
+            if hasattr(triton_cfg, "tma_support"):
+                triton_cfg.tma_support = True
+            if hasattr(triton_cfg, "stream_ordered_memory"):
+                triton_cfg.stream_ordered_memory = True
+        except AttributeError:
+            print("Blackwell optimizations not available in this PyTorch build")
+
+    if triton_cfg is not None and hasattr(triton_cfg, "unique_kernel_names"):
+        triton_cfg.unique_kernel_names = True
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "config"):
         torch._dynamo.config.automatic_dynamic_shapes = True
-    except AttributeError:
-        # Some config options might not be available in all PyTorch versions
-        pass

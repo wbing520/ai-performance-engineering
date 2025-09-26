@@ -2,28 +2,25 @@
 
 # PyTorch Profiling Script
 # Uses latest PyTorch 2.8 profiler features
-# Supports Hopper H100/H200 and Blackwell B200/B300
+# Targets Blackwell B200/B300 (SM100)
 # Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
 
 SCRIPT_NAME="$1"
 ARCH="${2:-auto}"
-PROFILE_MODE="${3:-full}"  # full, memory, flops, modules, blackwell, hopper
+PROFILE_MODE="${3:-full}"  # full, memory, flops, modules, blackwell
 
 # Auto-detect architecture if not specified
 if [ "$ARCH" = "auto" ]; then
+    ARCH="sm_100"
     if command -v nvidia-smi &> /dev/null; then
         gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
-        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
-            ARCH="sm_90"
-        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
-            ARCH="sm_100"
-        else
-            ARCH="sm_90"
+        if [[ ! "$gpu_name" =~ B200|B300 ]]; then
+            echo "⚠ Non-Blackwell GPU detected; running with sm_100 profile." >&2
         fi
     else
-        ARCH="sm_90"
+        echo "⚠ Unable to query GPU via nvidia-smi; assuming Blackwell profile." >&2
     fi
 fi
 
@@ -59,7 +56,7 @@ cat > "pytorch_profiler_wrapper.py" << 'EOF'
 """
 PyTorch Profiler Wrapper
 Uses latest PyTorch 2.8 profiler features
-Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.4
+Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 """
 
 import torch
@@ -75,38 +72,38 @@ def setup_architecture_optimizations():
     if torch.cuda.is_available():
         device_props = torch.cuda.get_device_properties(0)
         compute_capability = f"{device_props.major}.{device_props.minor}"
-        
+
         print(f"GPU: {device_props.name}")
         print(f"Compute Capability: {compute_capability}")
-        
-        if compute_capability == "9.0":  # Hopper H100/H200
-            print("✓ Enabling Hopper H100/H200 optimizations")
-            torch._inductor.config.triton.use_hopper_optimizations = True
-            torch._inductor.config.triton.hbm3_optimizations = True
-            torch._inductor.config.triton.tma_support = True
-            torch._inductor.config.triton.transformer_engine = True
-        elif compute_capability == "10.0":  # Blackwell B200/B300
+
+        if compute_capability == "10.0":  # Blackwell B200/B300
             print("✓ Enabling Blackwell B200/B300 optimizations")
-            torch._inductor.config.triton.use_blackwell_optimizations = True
-            torch._inductor.config.triton.hbm3e_optimizations = True
-            torch._inductor.config.triton.tma_support = True
-            torch._inductor.config.triton.stream_ordered_memory = True
-            torch._inductor.config.triton.nvlink_c2c = True
-        
+            if hasattr(torch._inductor.config.triton, "use_blackwell_optimizations"):
+                torch._inductor.config.triton.use_blackwell_optimizations = True
+            if hasattr(torch._inductor.config.triton, "hbm3e_optimizations"):
+                torch._inductor.config.triton.hbm3e_optimizations = True
+            if hasattr(torch._inductor.config.triton, "tma_support"):
+                torch._inductor.config.triton.tma_support = True
+            if hasattr(torch._inductor.config.triton, "stream_ordered_memory"):
+                torch._inductor.config.triton.stream_ordered_memory = True
+            if hasattr(torch._inductor.config.triton, "nvlink_c2c"):
+                torch._inductor.config.triton.nvlink_c2c = True
+
         # Enable latest PyTorch 2.8 features
         torch._inductor.config.triton.unique_kernel_names = True
         torch._inductor.config.triton.autotune_mode = "max-autotune"
         torch._dynamo.config.automatic_dynamic_shapes = True
         torch._inductor.config.triton.enable_advanced_memory_optimizations = True
 
+
 def run_with_profiler(script_path, profile_mode="full"):
     """Run script with PyTorch profiler with latest features."""
     setup_architecture_optimizations()
-    
+
     # Import the target script
     sys.path.insert(0, os.path.dirname(script_path))
     script_name = os.path.basename(script_path).replace('.py', '')
-    
+
     # Configure profiler based on mode
     if profile_mode == "full":
         activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA]
@@ -143,25 +140,17 @@ def run_with_profiler(script_path, profile_mode="full"):
         with_stack = True
         with_flops = True
         with_modules = True
-        # Enable Blackwell-specific optimizations
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-    elif profile_mode == "hopper":
-        activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA]
-        profile_memory = True
-        record_shapes = True
-        with_stack = True
-        with_flops = True
-        with_modules = True
-        # Enable Hopper-specific optimizations
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
+        if hasattr(torch._inductor.config.triton, "use_blackwell_optimizations"):
+            torch._inductor.config.triton.use_blackwell_optimizations = True
+        if hasattr(torch._inductor.config.triton, "hbm3e_optimizations"):
+            torch._inductor.config.triton.hbm3e_optimizations = True
     else:
         print(f"Unknown profile mode: {profile_mode}")
         return
-    
+
     print(f"Running {script_name} with {profile_mode} profiling...")
-    
+
+
     # Run with enhanced profiler
     with profile(
         activities=activities,
@@ -198,19 +187,19 @@ def run_with_profiler(script_path, profile_mode="full"):
     print("PyTorch Profiler Results (PyTorch 2.8)")
     print("="*60)
     
-    if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell", "hopper"]:
+    if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell"]:
         print("\nTop CUDA operations by time:")
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         
-        if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell", "hopper"]:
+        if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell"]:
             print("\nTop operations by FLOPs:")
             print(prof.key_averages().table(sort_by="flops", row_limit=10))
     
-    if profile_mode == "full" or profile_mode == "memory" or profile_mode in ["blackwell", "hopper"]:
+    if profile_mode == "full" or profile_mode == "memory" or profile_mode in ["blackwell"]:
         print("\nMemory usage summary:")
         print(prof.key_averages().table(sort_by="cpu_memory_usage", row_limit=10))
     
-    if profile_mode == "full" or profile_mode == "modules" or profile_mode in ["blackwell", "hopper"]:
+    if profile_mode == "full" or profile_mode == "modules" or profile_mode in ["blackwell"]:
         print("\nModule-level analysis:")
         print(prof.key_averages().table(sort_by="self_cpu_time_total", row_limit=10))
     
@@ -228,17 +217,17 @@ def run_with_profiler(script_path, profile_mode="full"):
             f.write(f"Compute Capability: {torch.cuda.get_device_capability()}\n")
         f.write("\n")
         
-        if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell", "hopper"]:
+        if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell"]:
             f.write("Top CUDA operations by time:\n")
             f.write(prof.key_averages().table(sort_by="cuda_time_total", row_limit=20))
             f.write("\n")
         
-        if profile_mode == "full" or profile_mode == "memory" or profile_mode in ["blackwell", "hopper"]:
+        if profile_mode == "full" or profile_mode == "memory" or profile_mode in ["blackwell"]:
             f.write("Memory usage summary:\n")
             f.write(prof.key_averages().table(sort_by="cpu_memory_usage", row_limit=20))
             f.write("\n")
         
-        if profile_mode == "full" or profile_mode == "modules" or profile_mode in ["blackwell", "hopper"]:
+        if profile_mode == "full" or profile_mode == "modules" or profile_mode in ["blackwell"]:
             f.write("Module-level analysis:\n")
             f.write(prof.key_averages().table(sort_by="self_cpu_time_total", row_limit=20))
             f.write("\n")
@@ -278,23 +267,13 @@ cat > "pytorch_report_${ARCH}.md" << EOF
 ## Architecture Details
 EOF
 
-if [ "$ARCH" = "sm_90" ]; then
-    cat >> "pytorch_report_${ARCH}.md" << EOF
-- **GPU**: Hopper H100/H200
-- **Compute Capability**: 9.0
-- **Memory**: HBM3
-- **Features**: Transformer Engine, Dynamic Programming, TMA
-- **Optimizations**: HBM3 optimizations, Hopper-specific kernels
-EOF
-elif [ "$ARCH" = "sm_100" ]; then
-    cat >> "pytorch_report_${ARCH}.md" << EOF
+cat >> "pytorch_report_${ARCH}.md" << EOF
 - **GPU**: Blackwell B200/B300
 - **Compute Capability**: 10.0
 - **Memory**: HBM3e
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
 - **Optimizations**: HBM3e optimizations, Blackwell-specific kernels
 EOF
-fi
 
 cat >> "pytorch_report_${ARCH}.md" << EOF
 
@@ -306,7 +285,7 @@ cat >> "pytorch_report_${ARCH}.md" << EOF
 - **Module Analysis**: Module-level performance breakdown
 - **NVTX Integration**: Custom annotation support
 - **Enhanced Profiler**: Improved profiling capabilities
-- **Architecture Optimizations**: Hopper/Blackwell-specific features
+- **Architecture Optimizations**: Blackwell-specific features
 
 ## Profiling Results
 - **Chrome Trace**: chrome_trace_${PROFILE_MODE}.json
@@ -319,13 +298,11 @@ cat >> "pytorch_report_${ARCH}.md" << EOF
 
 ## Performance Recommendations
 
-### For Hopper H100/H200 (SM90):
 - Enable torch.compile with mode="max-autotune"
 - Use Transformer Engine optimizations
 - Optimize for HBM3 memory bandwidth
 - Leverage dynamic programming features
 - Use TMA for efficient memory transfers
-- Enable Hopper-specific Triton optimizations
 
 ### For Blackwell B200/B300 (SM100):
 - Enable Blackwell-specific optimizations
@@ -340,7 +317,7 @@ cat >> "pytorch_report_${ARCH}.md" << EOF
 - **CUDA 12.8**: Latest CUDA features, improved kernel performance
 - **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
 - **Enhanced Profiler**: Improved profiling capabilities
-- **Architecture Optimizations**: Hopper/Blackwell-specific features
+- **Architecture Optimizations**: Blackwell-specific features
 
 ## Next Steps
 1. Open Chrome trace: chrome://tracing/ → Load chrome_trace_${PROFILE_MODE}.json

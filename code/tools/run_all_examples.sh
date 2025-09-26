@@ -21,6 +21,11 @@ if nvidia-smi -L 2>/dev/null | grep -q "B200\|B300"; then
   IS_BLACKWELL=1
 fi
 
+if [ "$IS_BLACKWELL" = "0" ]; then
+  echo "⚠ Non-Blackwell GPU detected; proceeding with sm_100 builds." >> "$REPORT_FILE"
+  echo "" >> "$REPORT_FILE"
+fi
+
 echo "## Build (via Makefiles if present)" >> "$REPORT_FILE"
 
 # Discover chapter directories automatically
@@ -28,15 +33,9 @@ mapfile -t build_dirs < <(find "$ROOT_DIR" -maxdepth 1 -type d -name 'ch*' | sor
 
 for d in "${build_dirs[@]}"; do
   if [ -f "$d/Makefile" ]; then
-    if [ "$IS_BLACKWELL" = "1" ]; then
-      echo "- Building $d (ARCH=sm_100)" | tee -a "$REPORT_FILE"
-      (cd "$d" && make clean >/dev/null 2>&1 || true)
-      (cd "$d" && make ARCH=sm_100 | sed 's/^/  /') >> "$REPORT_FILE" 2>&1 || true
-    else
-      echo "- Building $d (ARCH=sm_90)" | tee -a "$REPORT_FILE"
-      (cd "$d" && make clean >/dev/null 2>&1 || true)
-      (cd "$d" && make ARCH=sm_90 | sed 's/^/  /') >> "$REPORT_FILE" 2>&1 || true
-    fi
+    echo "- Building $d (ARCH=sm_100)" | tee -a "$REPORT_FILE"
+    (cd "$d" && make clean >/dev/null 2>&1 || true)
+    (cd "$d" && make ARCH=sm_100 | sed 's/^/  /') >> "$REPORT_FILE" 2>&1 || true
   fi
 done
 
@@ -44,21 +43,13 @@ echo "" >> "$REPORT_FILE"
 echo "## Direct CUDA compile for standalone .cu/.cpp (no Makefile targets)" >> "$REPORT_FILE"
 
 # Compiler flags
-if [ "$IS_BLACKWELL" = "1" ]; then
-  NV_ARCH="-arch=sm_100"
-else
-  NV_ARCH="-arch=sm_90"
-fi
+NV_ARCH="-arch=sm_100"
 
 for d in "${build_dirs[@]}"; do
   # Find .cu and .cpp files at chapter root
   while IFS= read -r -d '' src; do
     base="$(basename "$src")"
     out="${src%.*}"
-    # Skip Blackwell-only files on non-Blackwell
-    if [ "$IS_BLACKWELL" = "0" ] && echo "$base" | grep -q "_blackwell"; then
-      continue
-    fi
     # Skip if an executable already exists and is newer
     if [ -x "$out" ] && [ "$out" -nt "$src" ]; then
       continue
@@ -80,10 +71,6 @@ run_bin_dir() {
   if [ ! -d "$dir" ]; then return; fi
   while IFS= read -r -d '' exe; do
     base="$(basename "$exe")"
-    # Skip Blackwell-only binaries on non-Blackwell
-    if [ "$IS_BLACKWELL" = "0" ] && echo "$base" | grep -q "_blackwell"; then
-      continue
-    fi
     echo "- Running $exe" | tee -a "$REPORT_FILE"
     if timeout 60s "$exe" >"$exe.out" 2>"$exe.err"; then
       echo "  - status: OK" >> "$REPORT_FILE"
@@ -106,9 +93,6 @@ echo "## Run Python examples (selected)" >> "$REPORT_FILE"
 
 run_py() {
   local script="$1"
-  if [ "$IS_BLACKWELL" = "0" ] && echo "$script" | grep -q "blackwell"; then
-    return
-  fi
   echo "- $script" >> "$REPORT_FILE"
   if timeout 600s python "$script" >"$script.out" 2>"$script.err"; then
     echo "  - status: OK" >> "$REPORT_FILE"

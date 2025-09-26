@@ -12,7 +12,7 @@ This script demonstrates:
 - Memory profiling
 - FLOP counting
 - Module-level analysis
-- Triton 3.4 profiling
+- Triton 3.3 profiling
 - Architecture-specific optimizations
 """
 
@@ -34,7 +34,6 @@ import numpy as np
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arch_config import arch_config, configure_optimizations
-
 
 class ProfilingDemoModel(nn.Module):
     """A model for demonstrating comprehensive profiling."""
@@ -63,7 +62,6 @@ class ProfilingDemoModel(nn.Module):
         
         return x
 
-
 def configure_architecture_optimizations():
     """Configure PyTorch 2.8 optimizations for current architecture."""
     configure_optimizations()
@@ -75,9 +73,7 @@ def configure_architecture_optimizations():
         print(f"GPU: {device_props.name}")
         print(f"Compute Capability: {compute_capability}")
         
-        if compute_capability == "9.0":  # Hopper H100/H200
-            print("✓ Enabling Hopper H100/H200 optimizations")
-            # Additional Hopper-specific optimizations
+            print("✓ Enabling optimizations")
             torch._inductor.config.triton.use_hopper_optimizations = True
             torch._inductor.config.triton.hbm3_optimizations = True
             torch._inductor.config.triton.tma_support = True
@@ -96,7 +92,6 @@ def configure_architecture_optimizations():
         torch._inductor.config.triton.autotune_mode = "max-autotune"
         torch._dynamo.config.automatic_dynamic_shapes = True
         torch._inductor.config.triton.enable_advanced_memory_optimizations = True
-
 
 def demonstrate_pytorch_profiler():
     """
@@ -151,7 +146,6 @@ def demonstrate_pytorch_profiler():
     prof.export_chrome_trace("pytorch_trace.json")
     print("\nChrome trace exported: pytorch_trace.json")
 
-
 def demonstrate_nsight_systems():
     """
     Demonstrate Nsight Systems timeline analysis.
@@ -173,7 +167,6 @@ def demonstrate_nsight_systems():
     
     print("Nsight Systems analysis completed")
     print("View results with: nsys-ui nsys_timeline.nsys-rep")
-
 
 def demonstrate_nsight_compute():
     """
@@ -197,7 +190,6 @@ def demonstrate_nsight_compute():
     print("Nsight Compute analysis completed")
     print("View results with: ncu-ui ncu_kernel.ncu-rep")
 
-
 def demonstrate_hta_profiling():
     """
     Demonstrate HTA (Holistic Tracing Analysis) for multi-GPU.
@@ -220,7 +212,6 @@ def demonstrate_hta_profiling():
     print("HTA analysis completed")
     print("View results with: nsys-ui hta_analysis.nsys-rep")
 
-
 def demonstrate_perf_profiling():
     """
     Demonstrate Perf system-level analysis.
@@ -242,7 +233,6 @@ def demonstrate_perf_profiling():
     
     print("Perf analysis completed")
     print("View results with: perf report -i perf.data")
-
 
 def demonstrate_memory_profiling():
     """
@@ -283,7 +273,6 @@ def demonstrate_memory_profiling():
         print(f"  Cached: {cached:.2f} GB")
         print(f"  Peak Allocated: {peak_allocated:.2f} GB")
         print(f"  Peak Cached: {peak_cached:.2f} GB")
-
 
 def demonstrate_comprehensive_profiling():
     """
@@ -360,7 +349,6 @@ def demonstrate_comprehensive_profiling():
     prof.export_chrome_trace("comprehensive_trace.json")
     print("\nComprehensive trace exported: comprehensive_trace.json")
 
-
 def demonstrate_architecture_specific_profiling():
     """
     Demonstrate architecture-specific profiling features.
@@ -380,10 +368,8 @@ def demonstrate_architecture_specific_profiling():
         
         print(f"\nArchitecture-specific profiling for {device_props.name}:")
         
-        if compute_capability == "9.0":  # Hopper H100/H200
             print("• HBM3 memory bandwidth profiling")
             print("• TMA (Tensor Memory Accelerator) analysis")
-            print("• Hopper-specific kernel optimizations")
             print("• Transformer Engine profiling")
         elif compute_capability == "10.0":  # Blackwell B200/B300
             print("• HBM3e memory bandwidth profiling")
@@ -413,7 +399,6 @@ def demonstrate_architecture_specific_profiling():
         
         print("\nMemory profiling:")
         print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=5))
-
 
 def demonstrate_profiling_automation():
     """
@@ -525,14 +510,13 @@ def demonstrate_profiling_automation():
     prof.export_chrome_trace("automated_trace.json")
     print("Chrome trace exported: automated_trace.json")
 
-
 def main():
     """
     Main function to demonstrate comprehensive profiling tools.
     """
     print("=== Comprehensive Profiling Tools Demo ===")
-    print("PyTorch 2.8, CUDA 12.8, Triton 3.4 Support")
-    print("Enhanced for Hopper H100/H200 and Blackwell B200/B300")
+    print("PyTorch 2.8, CUDA 12.8, Triton 3.3 Support")
+    print("Enhanced for Blackwell B200/B300")
     print()
     
     # Print architecture information
@@ -563,8 +547,7 @@ def main():
     print("9. Architecture-specific features")
     print("10. Automated profiling pipeline")
     print("11. Latest CUDA 12.8 support")
-    print("12. Triton 3.4 integration")
-
+    print("12. Triton 3.3 integration")
 
 if __name__ == "__main__":
     main()

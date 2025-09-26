@@ -28,45 +28,20 @@ import hashlib
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    elif compute_capability == "8.0":
-        return "ampere"  # A100/A10G
-    elif compute_capability == "8.6":
-        return "ampere"  # RTX 30 series
-    elif compute_capability == "7.5":
-        return "turing"  # RTX 20 series, T4
-    elif compute_capability == "7.0":
-        return "volta"  # V100
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
 
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -75,50 +50,20 @@ def get_architecture_info():
             "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    elif arch == "ampere":
-        return {
-            "name": "Ampere A100/RTX 30",
-            "compute_capability": "8.0/8.6",
-            "sm_version": "sm_80",
-            "memory_bandwidth": "2.0 TB/s",
-            "tensor_cores": "3rd Gen",
-            "features": ["HBM2e", "Tensor Cores", "Multi-Instance GPU"]
-        }
-    elif arch == "turing":
-        return {
-            "name": "Turing RTX 20/T4",
-            "compute_capability": "7.5",
-            "sm_version": "sm_75",
-            "memory_bandwidth": "1.0 TB/s",
-            "tensor_cores": "2nd Gen",
-            "features": ["RT Cores", "Tensor Cores", "GDDR6"]
-        }
-    elif arch == "volta":
-        return {
-            "name": "Volta V100",
-            "compute_capability": "7.0",
-            "sm_version": "sm_70",
-            "memory_bandwidth": "900 GB/s",
-            "tensor_cores": "1st Gen",
-            "features": ["HBM2", "Tensor Cores", "NVLink"]
-        }
-    else:
-        return {
-            "name": "Other/CPU",
-            "compute_capability": "Unknown",
-            "sm_version": "sm_80",  # Default fallback
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
 
 class OptimizationTarget(Enum):
     LATENCY = "latency"
     THROUGHPUT = "throughput"  
     MEMORY = "memory"
     POWER = "power"
-
 
 @dataclass
 class KernelCandidate:
@@ -149,7 +94,6 @@ class KernelCandidate:
         
         # More lenient scoring that doesn't require 0.95 correctness
         return correctness_weight * (0.7 * runtime_score + 0.3 * memory_score)
-
 
 class MockLLMKernelGenerator:
     """
@@ -315,7 +259,6 @@ __global__ void matmul_kernel(
         
         return kernel
 
-
 class KernelVerifier:
     """
     Verifies CUDA kernel correctness and measures performance.
@@ -473,7 +416,6 @@ int main() {
         
         return runtime_ms, memory_mb
 
-
 class AIKernelOptimizer:
     """
     Main AI-assisted kernel optimization workflow.
@@ -578,7 +520,6 @@ class AIKernelOptimizer:
         
         return " ".join(feedback_parts)
 
-
 class PerformanceBenchmark:
     """Benchmark different optimization approaches."""
     
@@ -648,7 +589,6 @@ qk_scale = sm_scale * 1.44269504.
         
         return results
 
-
 def simulate_future_scaling():
     """
     Simulate scaling concepts from Chapter 20.
@@ -686,7 +626,6 @@ def simulate_future_scaling():
         total_flops = gen["gpus"] * gen["flops_per_gpu"]
         flops_exp = f"{total_flops:.0e}"
         print(f"  {gen['name']:12}: {gen['gpus']:8,} GPUs, {total_memory:8.0f} TB memory, {flops_exp} total FLOPs")
-
 
 def main():
     """Main demonstration of AI-assisted kernel optimization."""
@@ -755,7 +694,6 @@ Generate an optimized CUDA kernel for matrix multiplication that:
     print("- Matches human engineer reliability (96%+ correctness)")
     print("- Explores optimization spaces humans couldn't cover")
     print("- Enables scaling to 100-trillion parameter models")
-
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 # AI Systems Performance Engineering – Usage Guide
 
-This guide documents all the profiling scripts and command examples for the latest CUDA 12.8, PyTorch 2.8 nightly, Triton 3.3, and architecture switching support for Hopper H100/H200 and Blackwell B200/B300 GPUs.
+This guide documents all the profiling scripts and command examples for the latest CUDA 12.8, PyTorch 2.8 nightly, Triton 3.3, and architecture switching support for Blackwell B200/B300 GPUs.
 
 ## Chapter Overview
 

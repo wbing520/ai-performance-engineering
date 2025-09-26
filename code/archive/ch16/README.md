@@ -97,7 +97,7 @@ def generate_with_radix(prompt_tokens: List[int]):
 
 ### Hardware Requirements
 - **NVIDIA Blackwell B200/B300**: SM100 compute capability
-- **CUDA 12.9**: Latest CUDA toolkit with advanced features
+- **CUDA 12.8**: Latest CUDA toolkit with advanced features
 - **PyTorch 2.8**: Latest PyTorch with optimized inference
 - **High-bandwidth Interconnects**: NVLink, NVSwitch, InfiniBand
 - **Multi-node Clusters**: Distributed inference across multiple nodes

@@ -8,31 +8,16 @@ def get_architecture():
     """Detect and return the current GPU architecture."""
     if not torch.cuda.is_available():
         return "cpu"
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "blackwell" if compute_capability == "10.0" else "other"
+
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -41,26 +26,21 @@ def get_architecture_info():
             "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-#!/usr/bin/env python3
-"""
-dynamic_routing.py
+    return {
+        "name": "Other",
+        "compute_capability": "Unknown",
+        "sm_version": "Unknown",
+        "memory_bandwidth": "Unknown",
+        "tensor_cores": "Unknown",
+        "features": []
+    }
+
+"""dynamic_routing.py
 Chapter 17: Dynamic Routing for Disaggregated Prefill-Decode
 
 Implementation of dynamic routing algorithms that decide whether to offload
-prefill computation to dedicated prefill workers or handle it locally on 
-decode workers.
-
-Based on Chapter 17 content about disaggregated inference systems.
-"""
+prefill computation to dedicated prefill workers or handle it locally on
+decode workers."""
 
 import time
 import random
@@ -71,12 +51,10 @@ from enum import Enum
 import json
 import yaml
 
-
 class Priority(Enum):
     LOW = "low"
     STANDARD = "standard" 
     HIGH = "high"
-
 
 @dataclass
 class Request:
@@ -86,7 +64,6 @@ class Request:
     timestamp: float
     prefix_cached_length: int = 0
     expected_output_length: int = 50
-
 
 @dataclass
 class WorkerMetrics:
@@ -98,11 +75,10 @@ class WorkerMetrics:
     active_requests: int
     last_updated: float
 
-
 class DisaggregatedRouter:
     """
     Router that implements dynamic routing policies for disaggregated inference.
-    Based on Chapter 17's routing algorithms.
+    Inspired by the Chapter 17 routing algorithms.
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -301,7 +277,6 @@ class DisaggregatedRouter:
                 last_updated=time.time()
             )
 
-
 def create_dynamo_config():
     """Create a sample Dynamo configuration from Chapter 17."""
     config = {
@@ -345,7 +320,6 @@ def create_dynamo_config():
     print("Created dynamo_config.yaml with sample configuration")
     return config
 
-
 def simulate_request_stream():
     """Simulate a stream of requests with different characteristics."""
     requests = []
@@ -379,7 +353,6 @@ def simulate_request_stream():
         requests.append(request)
     
     return requests
-
 
 def main():
     """Demonstrate dynamic routing for disaggregated inference."""
@@ -490,7 +463,6 @@ def main():
     print(f"TTFT SLO: {router.TTFT_SLO_MAX}ms")
     print(f"Latency cost weights: memory={router.occupancy_weight}, active={router.active_req_weight}")
 
-
 if __name__ == "__main__":
     main()
 
@@ -498,17 +470,24 @@ if __name__ == "__main__":
 if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    print(f"Detected GPU architecture: {compute_capability}")
-    
-    # Note: Architecture-specific optimizations are handled automatically by PyTorch
-    # based on the detected compute capability. The following configurations
-    # are not available in this PyTorch version and have been removed:
-    # - torch._inductor.config.triton.use_hopper_optimizations
-    # - torch._inductor.config.triton.hbm3_optimizations
-    # - torch._inductor.config.triton.use_blackwell_optimizations
-    # - torch._inductor.config.triton.hbm3e_optimizations
-    # - torch._inductor.config.triton.tma_support
-    # - torch._inductor.config.triton.unique_kernel_names
-    # - torch._inductor.config.triton.autotune_mode
-    # - torch._dynamo.config.automatic_dynamic_shapes
+
+    inductor = getattr(torch, "_inductor", None)
+    triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
+
+    if compute_capability == "10.0" and triton_cfg is not None:  # Blackwell B200/B300
+        try:
+            if hasattr(triton_cfg, "use_blackwell_optimizations"):
+                triton_cfg.use_blackwell_optimizations = True
+            if hasattr(triton_cfg, "hbm3e_optimizations"):
+                triton_cfg.hbm3e_optimizations = True
+            if hasattr(triton_cfg, "tma_support"):
+                triton_cfg.tma_support = True
+            if hasattr(triton_cfg, "stream_ordered_memory"):
+                triton_cfg.stream_ordered_memory = True
+        except AttributeError:
+            print("Blackwell optimizations not available in this PyTorch build")
+
+    if triton_cfg is not None and hasattr(triton_cfg, "unique_kernel_names"):
+        triton_cfg.unique_kernel_names = True
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "config"):
+        torch._dynamo.config.automatic_dynamic_shapes = True

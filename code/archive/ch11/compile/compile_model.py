@@ -54,7 +54,7 @@ import torch._dynamo.config
 import torch._inductor.config
 import nvtx
 
-# Configure for PyTorch 2.8 nightly and Triton 3.4
+# Configure for PyTorch 2.8 nightly and Triton 3.3
 torch._dynamo.config.automatic_dynamic_shapes = True
 torch._inductor.config.triton.unique_kernel_names = True
 torch._inductor.config.coordinate_descent_tuning = True

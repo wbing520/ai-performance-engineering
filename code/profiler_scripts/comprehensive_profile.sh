@@ -2,7 +2,7 @@
 
 # Comprehensive Profiling Script
 # Combines all profiling tools for maximum performance analysis
-# Supports Hopper H100/H200 and Blackwell B200/B300
+# Targets Blackwell B200/B300 (SM100)
 # Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
 
 set -e
@@ -13,17 +13,14 @@ PROFILE_DURATION="${3:-30}"  # Duration in seconds
 
 # Auto-detect architecture if not specified
 if [ "$ARCH" = "auto" ]; then
+    ARCH="sm_100"
     if command -v nvidia-smi &> /dev/null; then
         gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
-        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
-            ARCH="sm_90"
-        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
-            ARCH="sm_100"
-        else
-            ARCH="sm_90"
+        if [[ ! "$gpu_name" =~ B200|B300 ]]; then
+            echo "⚠ Non-Blackwell GPU detected; running with sm_100 profile." >&2
         fi
     else
-        ARCH="sm_90"
+        echo "⚠ Unable to query GPU via nvidia-smi; assuming Blackwell profile." >&2
     fi
 fi
 
@@ -155,13 +152,11 @@ import time
 if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f'{device_props.major}.{device_props.minor}'
-    
-    if compute_capability == '9.0':  # Hopper
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == '10.0':  # Blackwell
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
+    if compute_capability == '10.0':  # Blackwell
+        if hasattr(torch._inductor.config.triton, 'use_blackwell_optimizations'):
+            torch._inductor.config.triton.use_blackwell_optimizations = True
+        if hasattr(torch._inductor.config.triton, 'hbm3e_optimizations'):
+            torch._inductor.config.triton.hbm3e_optimizations = True
 
 # Run with enhanced profiler
 with profile(
@@ -228,23 +223,13 @@ cat > "comprehensive_report_${ARCH}.md" << EOF
 ## Architecture Details
 EOF
 
-if [ "$ARCH" = "sm_90" ]; then
-    cat >> "comprehensive_report_${ARCH}.md" << EOF
-- **GPU**: Hopper H100/H200
-- **Compute Capability**: 9.0
-- **Memory**: HBM3
-- **Features**: Transformer Engine, Dynamic Programming
-- **Optimizations**: HBM3 optimizations, Hopper-specific kernels
-EOF
-elif [ "$ARCH" = "sm_100" ]; then
-    cat >> "comprehensive_report_${ARCH}.md" << EOF
+cat >> "comprehensive_report_${ARCH}.md" << EOF
 - **GPU**: Blackwell B200/B300
 - **Compute Capability**: 10.0
 - **Memory**: HBM3e
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
 - **Optimizations**: HBM3e optimizations, Blackwell-specific kernels
 EOF
-fi
 
 cat >> "comprehensive_report_${ARCH}.md" << EOF
 
@@ -289,13 +274,11 @@ cat >> "comprehensive_report_${ARCH}.md" << EOF
 
 ## Performance Recommendations
 
-### For Hopper H100/H200 (SM90):
 - Enable Transformer Engine optimizations
 - Use dynamic programming features
 - Optimize for HBM3 memory bandwidth
 - Leverage 4th generation Tensor Cores
 - Use TMA for efficient memory transfers
-- Enable Hopper-specific Triton optimizations
 
 ### For Blackwell B200/B300 (SM100):
 - Enable TMA (Tensor Memory Accelerator)

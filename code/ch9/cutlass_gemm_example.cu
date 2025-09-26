@@ -1,5 +1,5 @@
 // Architecture-specific optimizations for CUDA 12.8
-// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+// Targets Blackwell B200/B300 (sm_100)
 // cutlass_gemm_example.cu
 // Example demonstrating GEMM optimization for optimal arithmetic intensity
 

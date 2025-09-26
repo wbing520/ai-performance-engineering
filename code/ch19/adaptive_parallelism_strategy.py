@@ -23,16 +23,7 @@ def get_architecture():
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -77,13 +68,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class ParallelismStrategy(Enum):
     TENSOR_PARALLEL = "tensor_parallel"
     PIPELINE_PARALLEL = "pipeline_parallel"
     HYBRID = "hybrid"
     DATA_PARALLEL = "data_parallel"
-
 
 @dataclass
 class WorkloadMetrics:
@@ -97,7 +86,6 @@ class WorkloadMetrics:
     memory_bandwidth_util: float
     compute_utilization: float
 
-
 @dataclass
 class ParallelismConfig:
     """Configuration for a specific parallelism strategy."""
@@ -108,7 +96,6 @@ class ParallelismConfig:
     estimated_latency_ms: float
     estimated_throughput: float
     memory_efficiency: float
-
 
 class DynamicParallelismRouter:
     """
@@ -299,7 +286,6 @@ class DynamicParallelismRouter:
         
         return config
 
-
 class SystemMetricsCollector:
     """Collects runtime metrics for parallelism decisions."""
     
@@ -360,7 +346,6 @@ class SystemMetricsCollector:
     def get_recent_metrics(self, window_size: int = 10) -> List[WorkloadMetrics]:
         """Get recent metrics for analysis."""
         return self.metrics_history[-window_size:]
-
 
 class DynamicInferenceServer:
     """
@@ -458,7 +443,6 @@ class DynamicInferenceServer:
         processing_time = base_time * seq_factor * memory_factor
         time.sleep(processing_time)
 
-
 def simulate_workload_patterns():
     """
     Simulate different workload patterns to test adaptive parallelism.
@@ -522,7 +506,6 @@ def simulate_workload_patterns():
         status = "✓ CORRECT" if chosen_strategy == expected else f"✗ Expected {expected.value}"
         print(f"Result: {status}")
 
-
 def benchmark_strategy_switching():
     """Benchmark the overhead of strategy switching decisions."""
     print("\n=== Strategy Switching Benchmark ===")
@@ -557,7 +540,6 @@ def benchmark_strategy_switching():
     
     eval_time = time.time() - start_time
     print(f"Strategy evaluation time: {eval_time/4000*1000:.3f} ms per evaluation")
-
 
 def main():
     """Main demonstration of dynamic parallelism concepts."""
@@ -618,7 +600,6 @@ def main():
     print("- Maximizes GPU utilization across different scenarios")
     print("- Prevents resource waste from fixed parallelism strategies")
     print("- Includes cooldown mechanisms to prevent strategy thrashing")
-
 
 if __name__ == "__main__":
     main()

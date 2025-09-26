@@ -69,26 +69,22 @@ pip install -r requirements.txt
 python performance_basics.py
 ```
 
-### 🏗️ Architecture Switching
+### 🏗️ Blackwell Workflow
 
-This repository supports multiple NVIDIA GPU architectures. Switch between Hopper (H100/H200) and Blackwell (B200/B300) architectures:
+This repository now targets a single architecture profile: **NVIDIA Blackwell B200/B300 (SM100)**. All tooling, CUDA builds, and PyTorch examples assume CUDA 12.8, PyTorch 2.8 nightlies, and Triton 3.3. Use the helper scripts to stay aligned with that stack:
 
 ```bash
-# Switch to Hopper H100/H200 (sm_90)
-./code/switch_architecture.sh sm_90
-
-# Switch to Blackwell B200/B300 (sm_100)  
-./code/switch_architecture.sh sm_100
-
-# Auto-detect and build for current architecture
+# Build CUDA samples and run sanity checks
 ./code/build_all.sh
+
+# Re-run Makefile and requirements linting
+./code/verify_updates.sh
+
+# Capture a full profiling suite for a script
+./code/profiler_scripts/comprehensive_profile.sh your_script.py
 ```
 
-**Supported Architectures:**
-- **Hopper H100/H200** (`sm_90`): 80-141GB memory, 4-6 PFLOPS
-- **Blackwell B200/B300** (`sm_100`): 192-288GB memory, 20-30 PFLOPS
-
-For detailed architecture specifications and performance benchmarks, see [`code/README.md`](code/README.md).
+For hardware details and optimisation notes, see [`code/README.md`](code/README.md).
 
 ### 🔧 Latest Features
 
@@ -100,7 +96,7 @@ For detailed architecture specifications and performance benchmarks, see [`code/
 - **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **Perf**: Enhanced system-level analysis
-- **Architecture Optimizations**: Hopper/Blackwell-specific features
+- **Architecture Optimizations**: Blackwell-specific features
 
 ---
 

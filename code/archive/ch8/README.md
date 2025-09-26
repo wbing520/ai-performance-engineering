@@ -3,7 +3,7 @@
 This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 8 (Synchronizing, Pipelining, and Overlapping Compute and Memory Transfers), updated for:
 
 - **CUDA 13**
-- **PyTorch 2.7**
+- **PyTorch 2.8**
 - **Blackwell B200** GPU
 
 Examples include:

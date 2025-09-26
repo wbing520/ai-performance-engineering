@@ -10,7 +10,7 @@ We welcome contributions from the community in many forms:
 - **Documentation**: Improvements to README files, code comments, tutorials
 - **Performance Optimizations**: Better algorithms, memory optimizations, profiling tools
 - **Bug Fixes**: Issues with existing code, compatibility problems
-- **Architecture Support**: Support for new GPU architectures, frameworks
+- **Architecture Support**: Extend Blackwell workflows or add tooling for new GPU families
 - **Testing**: Unit tests, performance benchmarks, validation scripts
 
 ## 🚀 Getting Started
@@ -54,13 +54,7 @@ pip install -r code/ch1/requirements.txt
 
 ### Architecture Support
 
-When adding new examples, ensure they support multiple architectures:
-
-```bash
-# Test on different architectures
-./code/switch_architecture.sh sm_90  # Hopper H100/H200
-./code/switch_architecture.sh sm_100 # Blackwell B200/B300
-```
+The main branch targets **Blackwell B200/B300 (SM100)** exclusively. New examples should default to `ARCH ?= sm_100` and inherit the CUDA 12.8 toolchain. If you prototype support for other GPUs, keep it behind clearly documented flags or submit it as a separate branch.
 
 ## 🔧 Development Workflow
 
@@ -94,9 +88,8 @@ python -m pytest tests/
 black code/
 flake8 code/
 
-# Test architecture switching
-./code/switch_architecture.sh sm_90
-./code/switch_architecture.sh sm_100
+# Verify Blackwell toolchain consistency
+bash code/verify_updates.sh
 ```
 
 ### 3. Testing Your Changes
@@ -114,9 +107,9 @@ python tools/comprehensive_profiling.py
 ```
 
 #### **Compatibility Testing**
-- Test on different GPU architectures
-- Verify PyTorch version compatibility
-- Check CUDA version compatibility
+- Confirm runs on Blackwell B200/B300 hardware
+- Verify PyTorch 2.8 nightly/cu128 environment
+- Ensure CUDA 12.8 toolkit compatibility
 
 ### 4. Submitting Your Contribution
 
@@ -128,7 +121,7 @@ git add .
 git commit -m "Add new CUDA kernel for memory optimization
 
 - Implements coalesced memory access pattern
-- Supports both Hopper and Blackwell architectures
+- Targets NVIDIA Blackwell B200/B300
 - Includes performance benchmarks
 - Adds comprehensive documentation"
 
@@ -140,7 +133,7 @@ git push origin feature/your-feature-name
 
 ### Before Submitting
 
-- [ ] **Test thoroughly** on multiple architectures
+- [ ] **Test thoroughly** on Blackwell hardware (or simulator)
 - [ ] **Update documentation** if needed
 - [ ] **Add comments** for complex code
 - [ ] **Include performance benchmarks** for optimizations
@@ -158,10 +151,9 @@ Brief description of your changes
 - [ ] Bug fix
 - [ ] Documentation update
 - [ ] Performance improvement
-- [ ] Architecture support
+- [ ] Blackwell workflow improvement
 
 ## Testing
-- [ ] Tested on Hopper H100/H200 (sm_90)
 - [ ] Tested on Blackwell B200/B300 (sm_100)
 - [ ] Performance benchmarks included
 - [ ] Documentation updated
@@ -186,18 +178,9 @@ When adding support for new GPU architectures:
 3. **Test on target hardware**
 4. **Update documentation**
 
-### Example Architecture Addition
+### Extending Beyond Blackwell
 
-```bash
-# Add new architecture support
-echo "sm_110" >> code/arch_config.py
-
-# Update switch_architecture.sh
-# Add new architecture to detection logic
-
-# Test compatibility
-./code/switch_architecture.sh sm_110
-```
+If you experiment with additional architectures, document the changes clearly and avoid regressing the default Blackwell workflow. Consider maintaining separate branches for architecture-specific divergences to keep `main` lean.
 
 ## 📊 Performance Contribution Guidelines
 

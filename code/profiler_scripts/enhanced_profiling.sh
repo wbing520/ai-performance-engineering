@@ -1,28 +1,25 @@
 #!/bin/bash
 
 # Enhanced Profiling Script for Architecture Switching
-# Supports Hopper H100/H200 and Blackwell B200/B300
+# Targets Blackwell B200/B300 (SM100)
 
 set -e
 
 # Configuration
 SCRIPT_NAME="$1"
-ARCH="${2:-auto}"  # auto, sm_90, or sm_100
+ARCH="${2:-auto}"  # auto or sm_100
 PROFILE_TYPE="${3:-all}"  # nsys, ncu, hta, perf, all
 
 # Auto-detect architecture if not specified
 if [ "$ARCH" = "auto" ]; then
+    ARCH="sm_100"
     if command -v nvidia-smi &> /dev/null; then
         gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
-        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
-            ARCH="sm_90"
-        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
-            ARCH="sm_100"
-        else
-            ARCH="sm_90"  # Default to Hopper
+        if [[ ! "$gpu_name" =~ B200|B300 ]]; then
+            echo "⚠ Non-Blackwell GPU detected; running with sm_100 profile." >&2
         fi
     else
-        ARCH="sm_90"
+        echo "⚠ Unable to query GPU via nvidia-smi; assuming Blackwell profile." >&2
     fi
 fi
 

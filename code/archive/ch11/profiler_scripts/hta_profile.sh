@@ -8,7 +8,7 @@ SCRIPT=$1
 # Holistic Tracing Analysis (HTA) for multi-GPU profiling
 echo "Running HTA profiler for multi-GPU analysis..."
 
-# HTA configuration for CUDA 12.9 and Blackwell B200/B300
+# HTA configuration for CUDA 12.8 and Blackwell B200/B300
 nsys profile \
   --force-overwrite=true \
   -o $(basename $SCRIPT)_hta \

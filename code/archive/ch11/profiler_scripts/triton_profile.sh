@@ -5,8 +5,8 @@ if [ $# -ne 1 ]; then
 fi
 SCRIPT=$1
 
-# Triton 3.4 profiler for kernel-level analysis
-echo "Running Triton 3.4 profiler..."
+# Triton 3.3 profiler for kernel-level analysis
+echo "Running Triton 3.3 profiler..."
 
 # Set Triton environment variables for profiling
 export TRITON_DEBUG=1

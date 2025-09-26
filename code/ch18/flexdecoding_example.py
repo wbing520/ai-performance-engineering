@@ -29,7 +29,6 @@ except (ImportError, AttributeError) as e:
     print("  - Falling back to scaled_dot_product_attention with torch.compile")
     flex_attention = None
 
-
 class FlexDecodingAttention(torch.nn.Module):
     """
     FlexDecoding implementation using PyTorch's flex_attention when available.
@@ -307,7 +306,6 @@ class FlexDecodingAttention(torch.nn.Module):
         self.k_cache.zero_()
         self.v_cache.zero_()
 
-
 class NestedJaggedTensorDemo:
     """
     Demonstrate nested jagged tensor support mentioned in Chapter 18.
@@ -375,7 +373,6 @@ class NestedJaggedTensorDemo:
         
         return outputs
 
-
 def benchmark_flexdecoding():
     """
     Benchmark FlexDecoding vs standard attention.
@@ -439,7 +436,6 @@ def benchmark_flexdecoding():
         # Clear cache for next pattern
         flex_model.clear_cache()
 
-
 def demonstrate_paged_attention_integration():
     """
     Demonstrate PagedAttention integration mentioned in Chapter 18.
@@ -489,7 +485,6 @@ def demonstrate_paged_attention_integration():
     print(f"Physical shape: {physical_k.shape}")
     print(f"Block table shape: {block_table.shape}")
     print("PagedAttention allows efficient sharing of KV blocks between sequences")
-
 
 def main():
     """Main demonstration of FlexDecoding capabilities."""
@@ -554,7 +549,6 @@ def main():
     print("- Integration with PagedAttention for memory efficiency")
     print("- No custom CUDA required - pure PyTorch solution")
     print("- Near-optimal performance for complex sparsity patterns")
-
 
 if __name__ == "__main__":
     main()

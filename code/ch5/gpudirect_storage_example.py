@@ -15,7 +15,7 @@ def get_architecture():
     # Architecture detection
     if compute_capability == "9.0":
         return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
+    if compute_capability == "10.0":
         return "blackwell"  # B200/B300
     else:
         return "other"
@@ -24,14 +24,7 @@ def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
     if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
+        return
     elif arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
@@ -75,7 +68,6 @@ from typing import Dict, List, Tuple, Optional
 import threading
 import queue
 
-
 class OptimizedDataset(Dataset):
     """Dataset optimized for sequential reads and GPU processing."""
     
@@ -110,7 +102,6 @@ class OptimizedDataset(Dataset):
             # Simulate random access overhead
             time.sleep(0.001)  # Simulate disk seek time
             return self.data[idx], self.labels[idx]
-
 
 class StorageIOMonitor:
     """Monitor storage I/O performance and bottlenecks."""
@@ -175,7 +166,6 @@ class StorageIOMonitor:
             'min_gpu_utilization': min(self.gpu_utilization),
         }
 
-
 class OptimizedDataLoader:
     """Optimized DataLoader with advanced I/O features."""
     
@@ -238,7 +228,6 @@ class OptimizedDataLoader:
         
         return metrics
 
-
 def demonstrate_sequential_vs_random_access():
     """Demonstrate the performance difference between sequential and random access."""
     print("=== Sequential vs Random Access Performance ===\n")
@@ -287,7 +276,6 @@ def demonstrate_sequential_vs_random_access():
     speedup = random_time / sequential_time
     print(f"\nSequential access is {speedup:.2f}x faster than random access")
 
-
 def demonstrate_worker_scaling():
     """Demonstrate the impact of different numbers of workers."""
     print("\n=== Worker Scaling Analysis ===\n")
@@ -318,7 +306,6 @@ def demonstrate_worker_scaling():
     print(f"\nOptimal number of workers: {best_workers}")
     print(f"Best throughput: {results[best_workers]['samples_per_second']:.2f} samples/second")
 
-
 def demonstrate_memory_optimization():
     """Demonstrate memory optimization techniques."""
     print("\n=== Memory Optimization Techniques ===\n")
@@ -347,7 +334,6 @@ def demonstrate_memory_optimization():
         
         print(f"  Samples/second: {metrics['samples_per_second']:.2f}")
         print(f"  Memory Usage: {metrics['avg_memory_usage']:.1f}%")
-
 
 def demonstrate_gpudirect_storage_concepts():
     """Demonstrate GPUDirect Storage concepts and benefits."""
@@ -378,7 +364,6 @@ def demonstrate_gpudirect_storage_concepts():
     print(f"Throughput improvement: {((gds_throughput/cpu_throughput)-1)*100:.1f}%")
     print(f"Latency improvement: {((cpu_latency/gds_latency)-1)*100:.1f}%")
 
-
 def demonstrate_storage_monitoring():
     """Demonstrate storage I/O monitoring techniques."""
     print("\n=== Storage I/O Monitoring ===\n")
@@ -397,7 +382,6 @@ def demonstrate_storage_monitoring():
     print("- Small read sizes causing overhead")
     print("- Random access patterns")
     print("- Network storage latency")
-
 
 def main():
     """Main demonstration function."""
@@ -425,7 +409,6 @@ def main():
     print("5. Monitor I/O bottlenecks to optimize data pipeline")
     print("6. Scale data loading with compute resources")
 
-
 if __name__ == "__main__":
     main()
 
@@ -436,10 +419,9 @@ if torch.cuda.is_available():
     
     # Note: These configuration options may not be available in all PyTorch versions
     # Commenting out for compatibility
-    # if compute_capability == "9.0":  # Hopper H100/H200
     #     torch._inductor.config.triton.use_hopper_optimizations = True
     #     torch._inductor.config.triton.hbm3_optimizations = True
-    # elif compute_capability == "10.0":  # Blackwell B200/B300
+    # if compute_capability == "10.0":  # Blackwell B200/B300
     #     torch._inductor.config.triton.use_blackwell_optimizations = True
     #     torch._inductor.config.triton.hbm3e_optimizations = True
     #     torch._inductor.config.triton.tma_support = True

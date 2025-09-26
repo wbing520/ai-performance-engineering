@@ -5,7 +5,7 @@ This guide covers the latest profiling tools and best practices for:
 - **CUDA 12.8**
 - **PyTorch 2.8**
 - **OpenAI Triton 3.3**
-- **Architecture switching: Hopper H100/H200 and Blackwell B200/B300 GPUs**
+- **Architecture switching: Blackwell B200/B300 GPUs**
 
 ## Profiling Tools
 
@@ -62,12 +62,12 @@ ncu \
 ```
 
 **Key Features for Architecture Support**:
-- SM90 (Hopper H100/H200) and SM100 (Blackwell B200/B300) architecture support
+- SM90 (Blackwell B200/B300 (legacy reference removed)) and SM100 (Blackwell B200/B300) architecture support
 - Tensor Core metrics
 - HBM3/HBM3e memory analysis
 - Advanced occupancy analysis
 - TMA (Tensor Memory Accelerator) metrics for Blackwell
-- Transformer Engine metrics for Hopper
+- Transformer Engine metrics for Blackwell
 
 ### 3. PyTorch Profiler
 **Latest Version**: PyTorch 2.8 nightly
@@ -105,7 +105,7 @@ print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 - FLOP counting
 - Module-level analysis
 - TensorBoard integration
-- Architecture-specific optimizations (Hopper and Blackwell)
+- Architecture-specific optimizations (Blackwell and Blackwell)
 
 ### 4. Triton Profiler
 **Latest Version**: Triton 3.3
@@ -121,12 +121,12 @@ export TRITON_PROFILER=1
 export TRITON_PROFILER_OUTPUT=triton_profile.json
 ```
 
-**Key Features for Triton 3.4**:
+**Key Features for Triton 3.3**:
 - Kernel generation analysis
 - Autotuning insights
 - Memory access patterns
 - Performance optimization suggestions
-- Architecture-specific optimizations (Hopper and Blackwell)
+- Architecture-specific optimizations (Blackwell and Blackwell)
 
 ### 5. Holistic Tracing Analysis (HTA)
 **Purpose**: Multi-GPU and distributed profiling
@@ -203,7 +203,7 @@ perf report -i perf.data
 7. **Use Perf**: System-level analysis
 
 ### 2. Architecture-Specific Considerations
-- **Hopper H100/H200 (SM90)**: 
+- **Blackwell B200/B300 (legacy reference removed) (SM90)**: 
   - **HBM3 Memory**: Monitor high-bandwidth memory usage
   - **Transformer Engine**: Analyze transformer-specific optimizations
   - **Dynamic Programming**: Monitor dynamic programming features
@@ -240,10 +240,10 @@ perf report -i perf.data
 
 ### Expected Performance
 - **CUDA 12.8**: 10-15% improvement over CUDA 12.4
-- **Hopper H200**: 20-30% improvement over H100
+- **Blackwell H200**: 20-30% improvement over H100
 - **Blackwell B200/B300**: 30-50% improvement over H100
 - **PyTorch 2.8 nightly**: 20-30% improvement over stable releases
-- **Triton 3.4**: 15-20% improvement in kernel generation
+- **Triton 3.3**: 15-20% improvement in kernel generation
 
 ## Troubleshooting
 

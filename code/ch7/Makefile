@@ -1,6 +1,6 @@
 # Architecture switching support
-# Set ARCH=sm_90 for Hopper H100/H200 or ARCH=sm_100 for Blackwell B200/B300
-ARCH ?= sm_90
+# Target architecture: Blackwell B200/B300 (SM100)
+ARCH ?= sm_100
 
 # CUDA configuration
 CUDA_VERSION = 12.8
@@ -14,11 +14,7 @@ CUDA_TARGETS = $(CUDA_SOURCES:.cu=)
 # Default target - build all CUDA examples
 all: $(CUDA_TARGETS)
 	@echo "Building with $(ARCH) architecture (CUDA $(CUDA_VERSION))"
-	@if [ "$(ARCH)" = "sm_90" ]; then \
-		echo "✓ Targeting Hopper H100/H200 (Compute Capability 9.0)"; \
-	elif [ "$(ARCH)" = "sm_100" ]; then \
-		echo "✓ Targeting Blackwell B200/B300 (Compute Capability 10.0)"; \
-	fi
+	@echo "✓ Targeting Blackwell B200/B300 (Compute Capability 10.0)"
 	@echo "✓ Built $(words $(CUDA_TARGETS)) CUDA examples"
 
 # Build individual targets
@@ -27,10 +23,6 @@ $(CUDA_TARGETS): %: %.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 # Architecture-specific targets
-hopper: ARCH=sm_90
-hopper: all
-	@echo "Built for Hopper H100/H200"
-
 blackwell: ARCH=sm_100
 blackwell: all
 	@echo "Built for Blackwell B200/B300"
@@ -81,4 +73,4 @@ clean:
 	rm -f $(CUDA_TARGETS) *.o *.so *.a
 	rm -f nsys_profile_* ncu_profile_* hta_profile_* perf.data_* comprehensive_*
 
-.PHONY: all hopper blackwell profile-nsys profile-ncu profile-hta profile-perf profile-all clean $(CUDA_TARGETS)
+.PHONY: all blackwell profile-nsys profile-ncu profile-hta profile-perf profile-all clean $(CUDA_TARGETS)

@@ -4,15 +4,14 @@ A comprehensive guide to optimizing AI systems for maximum performance, efficien
 
 ## 🚀 Overview
 
-This repository supports the latest AI hardware and software stack with architecture switching:
+This repository targets a single hardware profile: **Blackwell B200/B300 (SM100)**, built on PyTorch 2.8, CUDA 12.8, and Triton 3.3.
 
-- **PyTorch 2.8**: Latest PyTorch with enhanced compiler support and architecture-specific optimizations
-- **CUDA 12.8**: Latest CUDA toolkit with Hopper H100/H200 and Blackwell B200/B300 support
-- **Triton 3.3**: OpenAI's Triton for custom GPU kernel development
-- **Architecture Switching**: Support for both Hopper H100/H200 (SM90) and Blackwell B200/B300 (SM100)
+- **PyTorch 2.8**: Enhanced compiler stack with Blackwell-specific optimisations
+- **CUDA 12.8**: Latest toolkit tuned for SM100
+- **Triton 3.3**: Custom kernel development on Blackwell
 - **Grace Blackwell Superchip**: Unified memory architecture examples
-- **NVL72 Systems**: Multi-GPU cluster optimization examples
-- **Enhanced Profiling**: Latest Nsight Systems, Nsight Compute, HTA, and Perf integration
+- **NVL72 Systems**: Multi-GPU cluster optimisation examples
+- **Enhanced Profiling**: Nsight Systems/Compute, HTA, and Perf integration
 
 ## 📚 Book Chapters
 
@@ -123,7 +122,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 
 ### Prerequisites
 
-- **NVIDIA GPU**: Hopper H100/H200, Blackwell B200/B300, or compatible
+- **NVIDIA GPU**: Blackwell B200/B300 (SM100)
 - **CUDA 12.8**: Latest CUDA toolkit
 - **Python 3.9+**: Python environment
 - **Linux**: Ubuntu 22.04+ recommended
@@ -188,16 +187,16 @@ python code/ch4/after_ddp.py --test ddp
 python code/ch4/after_ddp.py --test nccl
 ```
 
-### Architecture Switching
+### Blackwell Tooling
 ```bash
-# Switch to Hopper H100/H200 (sm_90)
-bash code/switch_architecture.sh sm_90
-
-# Switch to Blackwell B200/B300 (sm_100)
-bash code/switch_architecture.sh sm_100
-
-# Auto-detect and build for current architecture
+# Build CUDA samples and run sanity checks
 bash code/build_all.sh
+
+# Lint Makefiles/requirements for Blackwell-only settings
+bash code/verify_updates.sh
+
+# Refresh dependencies to the canonical PyTorch/CUDA stack
+bash code/update_cuda_versions.sh
 ```
 
 ### Consolidated example runner

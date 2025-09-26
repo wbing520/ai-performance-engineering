@@ -2,7 +2,7 @@
 
 # Master Profiling Script
 # Runs all profiling tools for comprehensive performance analysis
-# Supports Hopper H100/H200 and Blackwell B200/B300
+# Targets Blackwell B200/B300 (SM100)
 
 set -e
 
@@ -13,17 +13,14 @@ PROFILE_DURATION="${4:-30}"  # Duration in seconds
 
 # Auto-detect architecture if not specified
 if [ "$ARCH" = "auto" ]; then
+    ARCH="sm_100"
     if command -v nvidia-smi &> /dev/null; then
         gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
-        if [[ "$gpu_name" == *"H100"* ]] || [[ "$gpu_name" == *"H200"* ]]; then
-            ARCH="sm_90"
-        elif [[ "$gpu_name" == *"B200"* ]] || [[ "$gpu_name" == *"B300"* ]]; then
-            ARCH="sm_100"
-        else
-            ARCH="sm_90"
+        if [[ ! "$gpu_name" =~ B200|B300 ]]; then
+            echo "⚠ Non-Blackwell GPU detected; running with sm_100 profile." >&2
         fi
     else
-        ARCH="sm_90"
+        echo "⚠ Unable to query GPU via nvidia-smi; assuming Blackwell profile." >&2
     fi
 fi
 
@@ -129,23 +126,13 @@ cat > "master_report_${ARCH}.md" << EOF
 ## Architecture Details
 EOF
 
-if [ "$ARCH" = "sm_90" ]; then
-    cat >> "master_report_${ARCH}.md" << EOF
-- **GPU**: Hopper H100/H200
-- **Compute Capability**: 9.0
-- **Memory**: HBM3 (3.35 TB/s)
-- **Features**: Transformer Engine, Dynamic Programming
-- **Tensor Cores**: 4th Generation
-EOF
-elif [ "$ARCH" = "sm_100" ]; then
-    cat >> "master_report_${ARCH}.md" << EOF
+cat >> "master_report_${ARCH}.md" << EOF
 - **GPU**: Blackwell B200/B300
 - **Compute Capability**: 10.0
 - **Memory**: HBM3e (3.2 TB/s)
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
-- **Tensor Cores**: 4th Generation
+- **Tensor Cores**: 5th Generation
 EOF
-fi
 
 cat >> "master_report_${ARCH}.md" << EOF
 
@@ -189,7 +176,6 @@ cat >> "master_report_${ARCH}.md" << EOF
 
 ## Performance Recommendations
 
-### For Hopper H100/H200 (SM90):
 - **Transformer Engine**: Enable for transformer models
 - **Dynamic Programming**: Use for variable workloads
 - **HBM3 Optimization**: Maximize 3.35 TB/s bandwidth
@@ -249,7 +235,6 @@ nsys-ui profile_comprehensive_${ARCH}/memory_profile_${ARCH}.nsys-rep
 - **Memory Latency**: Minimize access delays
 
 ### Architecture-Specific Metrics
-- **Hopper**: Transformer Engine efficiency, dynamic programming usage
 - **Blackwell**: TMA efficiency, stream-ordered memory usage, NVLink-C2C bandwidth
 
 ## Optimization Checklist
@@ -262,7 +247,6 @@ nsys-ui profile_comprehensive_${ARCH}/memory_profile_${ARCH}.nsys-rep
 - [ ] Balanced workload distribution
 
 ### Architecture-Specific Optimizations
-- [ ] **Hopper**: Transformer Engine enabled, HBM3 optimized
 - [ ] **Blackwell**: TMA enabled, HBM3e optimized, stream-ordered memory
 
 ### Framework Optimizations

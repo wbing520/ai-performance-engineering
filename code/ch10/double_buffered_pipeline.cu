@@ -1,5 +1,5 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+// Architecture-specific optimizations for CUDA 12.8
+// Targets Blackwell B200/B300 (sm_100)
 // double_buffered_pipeline.cu
 // Two-stage double-buffering example using the CUDA C++ Pipeline API
 

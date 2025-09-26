@@ -272,7 +272,7 @@ print(prof.key_averages().table(sort_by='cuda_time_total'))
 - **NVLink**: 18 ports per GPU, 1.8 TB/s per GPU
 - **NVSwitch**: Non-blocking all-to-all connectivity
 
-### CUDA 12.9 Optimizations
+### CUDA 12.8 Optimizations
 - **Stream-ordered Memory**: Use `cudaMallocAsync` for better performance
 - **Dynamic Parallelism**: Support for runtime parallelism switching
 - **Precision Scaling**: Native FP8/FP4 support with minimal overhead

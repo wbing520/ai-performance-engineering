@@ -15,7 +15,7 @@ def get_architecture():
     # Architecture detection
     if compute_capability == "9.0":
         return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
+    if compute_capability == "10.0":
         return "blackwell"  # B200/B300
     else:
         return "other"
@@ -24,14 +24,7 @@ def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
     if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
+        return
     elif arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
@@ -81,9 +74,7 @@ if torch.cuda.is_available():
     print(f"GPU: {device_props.name}")
     print(f"Compute Capability: {compute_capability}")
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        print("Architecture: Hopper H100/H200")
-    elif compute_capability == "10.0":  # Blackwell B200/B300
+    if compute_capability == "10.0":  # Blackwell B200/B300
         print("Architecture: Blackwell B200/B300")
     else:
         print(f"Architecture: Other (Compute Capability {compute_capability})")

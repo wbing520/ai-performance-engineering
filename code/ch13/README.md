@@ -362,7 +362,6 @@ The following fixes have been applied to ensure compatibility with PyTorch 2.8 a
    - Added `use_reentrant=False` parameter to `torch.utils.checkpoint.checkpoint()`
 
 3. **Architecture-Specific Optimizations**: Made all architecture-specific optimizations optional with proper error handling:
-   - Hopper optimizations (H100/H200) are applied only if available
    - Blackwell optimizations (B200/B300) are applied only if available
    - Graceful fallback when features are not available
 
@@ -381,7 +380,7 @@ The following fixes have been applied to ensure compatibility with PyTorch 2.8 a
 
 ### Running the Examples
 
-All scripts should now run successfully on Hopper (H100/H200) and Blackwell (B200/B300) architectures:
+All scripts are validated on Blackwell (B200/B300) systems:
 
 ```bash
 # Run all examples

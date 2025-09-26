@@ -7,9 +7,9 @@ This example demonstrates the core concepts from Chapter 1:
 - Measuring goodput (useful throughput)
 - Hardware-software co-design principles
 - Performance profiling and benchmarking
-- PyTorch 2.8 optimizations for Hopper H100/H200 and Blackwell B200/B300
+- PyTorch 2.8 optimizations for Blackwell B200/B300
 - Latest profiling tools integration
-- CUDA 12.9 and Triton 3.4 support
+- CUDA 12.8 and Triton 3.3 support
 """
 
 import time
@@ -28,7 +28,6 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arch_config import arch_config, configure_optimizations
-
 
 class SimpleTransformer(nn.Module):
     """A simplified transformer model for demonstration purposes with PyTorch 2.8 optimizations."""
@@ -53,7 +52,6 @@ class SimpleTransformer(nn.Module):
         x = self.embedding(x)
         x = self.transformer(x)
         return self.output_projection(x)
-
 
 class PerformanceMonitor:
     """Monitor system performance and calculate goodput metrics with enhanced monitoring."""
@@ -142,54 +140,34 @@ class PerformanceMonitor:
             **gpu_metrics
         }
 
-
 def configure_architecture_optimizations():
     """Configure PyTorch optimizations for the current architecture."""
     if not torch.cuda.is_available():
         return
-    
+
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     print(f"GPU: {device_props.name}")
     print(f"Compute Capability: {compute_capability}")
-    
-    if compute_capability == "9.0":  # Hopper H100/H200
-        print("✓ Enabling Hopper H100/H200 optimizations")
-        # Note: These options are not available in the current PyTorch version
-        # They are commented out to avoid AttributeError
-        # torch._inductor.config.triton.use_hopper_optimizations = True
-        # torch._inductor.config.triton.hbm3_optimizations = True
-        # torch._inductor.config.triton.tma_support = True
-        # torch._inductor.config.triton.transformer_engine = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        print("✓ Enabling Blackwell B200/B300 optimizations")
-        # Note: These options are not available in the current PyTorch version
-        # They are commented out to avoid AttributeError
-        # torch._inductor.config.triton.use_blackwell_optimizations = True
-        # torch._inductor.config.triton.hbm3e_optimizations = True
-        # torch._inductor.config.triton.tma_support = True
-        # torch._inductor.config.triton.stream_ordered_memory = True
-        # torch._inductor.config.triton.nvlink_c2c = True
-    
-    # Common optimizations for both architectures
-    # Only configure options that actually exist in the current PyTorch version
-    if hasattr(torch._inductor.config.triton, 'unique_kernel_names'):
-        torch._inductor.config.triton.unique_kernel_names = True
-    
-    # Note: These options are not available in the current PyTorch version
-    # if hasattr(torch._inductor.config.triton, 'autotune_mode'):
-    #     torch._inductor.config.triton.autotune_mode = "max-autotune"
-    # if hasattr(torch._dynamo.config, 'automatic_dynamic_shapes'):
-    #     torch._dynamo.config.automatic_dynamic_shapes = True
-    # if hasattr(torch._inductor.config.triton, 'enable_advanced_memory_optimizations'):
-    #     torch._inductor.config.triton.enable_advanced_memory_optimizations = True
-    
-    # Set environment variables for optimization instead
-    import os
-    os.environ['TORCH_CUDNN_V8_API_ENABLED'] = '1'
-    os.environ['TORCH_CUDNN_V8_API_DISABLED'] = '0'
-    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128,expandable_segments:True'
 
+    inductor = getattr(torch, "_inductor", None)
+    triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
+
+    if compute_capability == "10.0" and triton_cfg is not None:
+        print("✓ Enabling Blackwell B200/B300 optimizations")
+        if hasattr(triton_cfg, "use_blackwell_optimizations"):
+            triton_cfg.use_blackwell_optimizations = True
+        if hasattr(triton_cfg, "hbm3e_optimizations"):
+            triton_cfg.hbm3e_optimizations = True
+        if hasattr(triton_cfg, "tma_support"):
+            triton_cfg.tma_support = True
+        if hasattr(triton_cfg, "stream_ordered_memory"):
+            triton_cfg.stream_ordered_memory = True
+
+    if triton_cfg is not None and hasattr(triton_cfg, "unique_kernel_names"):
+        triton_cfg.unique_kernel_names = True
+    if hasattr(torch, "_dynamo") and hasattr(torch._dynamo, "config"):
+        torch._dynamo.config.automatic_dynamic_shapes = True
 
 def benchmark_model_performance(model: nn.Module, 
                               batch_size: int = 32, 
@@ -311,7 +289,6 @@ def benchmark_model_performance(model: nn.Module,
         'compiled': use_compile
     }
 
-
 def demonstrate_hardware_software_co_design():
     """
     Demonstrate hardware-software co-design principles with PyTorch 2.8 optimizations.
@@ -385,10 +362,9 @@ def demonstrate_hardware_software_co_design():
     print("• Hardware-software co-design is crucial")
     print("• Use NVTX markers for detailed timeline analysis")
     print("• Latest profiling tools provide comprehensive analysis")
-    print("• CUDA 12.9 and Triton 3.4 support latest features")
+    print("• CUDA 12.8 and Triton 3.3 support latest features")
     
     return compiled_results
-
 
 def demonstrate_mechanical_sympathy():
     """
@@ -426,7 +402,6 @@ def demonstrate_mechanical_sympathy():
                 print(f"{batch_size:10d} | {'OOM':>20} | {'OOM':>20} | {'N/A':>7}")
             else:
                 print(f"{batch_size:10d} | {'Error':>20} | {'Error':>20} | {'N/A':>7}")
-
 
 def demonstrate_architecture_features():
     """
@@ -479,7 +454,6 @@ def demonstrate_architecture_features():
             else:
                 print(f"Size {size}x{size}: Error")
 
-
 def demonstrate_enhanced_profiling():
     """
     Demonstrate enhanced profiling with latest tools.
@@ -528,7 +502,6 @@ def demonstrate_enhanced_profiling():
     print("\nMemory profiling: Not available in this demo")
     print("\nFLOP analysis: Not available in this demo")
 
-
 def demonstrate_system_monitoring():
     """
     Demonstrate system-level monitoring with latest tools.
@@ -560,7 +533,6 @@ def demonstrate_system_monitoring():
         cached = torch.cuda.memory_reserved() / 1e9
         print(f"PyTorch GPU Memory: {allocated:.2f} GB allocated, {cached:.2f} GB cached")
 
-
 def demonstrate_latest_profiling_tools():
     """
     Demonstrate the latest profiling tools and their capabilities.
@@ -574,7 +546,7 @@ def demonstrate_latest_profiling_tools():
     print("4. HTA (Holistic Tracing Analysis) - Multi-GPU analysis")
     print("5. Perf - System-level analysis")
     print("6. Enhanced PyTorch profiler - Memory, FLOPs, modules")
-    print("7. Triton 3.4 profiler - Custom kernel analysis")
+    print("7. Triton 3.3 profiler - Custom kernel analysis")
     
     print("\nProfiling commands:")
     print("# Nsight Systems timeline")
@@ -593,7 +565,6 @@ def demonstrate_latest_profiling_tools():
     print("\n# PyTorch profiler")
     print("python -c \"import torch; from torch.profiler import profile; ...\"")
 
-
 if __name__ == "__main__":
     # Run the demonstrations
     results = demonstrate_hardware_software_co_design()
@@ -609,10 +580,10 @@ if __name__ == "__main__":
     print("2. Hardware-software co-design (mechanical sympathy)")
     print("3. Enhanced profiling and bottleneck identification")
     print("4. PyTorch 2.8 torch.compile optimizations")
-    print("5. Architecture-specific features (Hopper/Blackwell)")
+    print("5. Architecture-specific features (Blackwell)")
     print("6. System-level optimization considerations")
     print("7. Latest profiling tools integration")
     print("8. Advanced monitoring and analysis capabilities")
-    print("9. CUDA 12.9 and Triton 3.4 support")
+    print("9. CUDA 12.8 and Triton 3.3 support")
     print("10. Enhanced memory and performance optimizations")
     print("\nThese concepts will be explored in detail throughout the book.")

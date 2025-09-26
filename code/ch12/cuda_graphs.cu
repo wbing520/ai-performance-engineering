@@ -1,5 +1,5 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+// Architecture-specific optimizations for CUDA 12.8
+// Targets Blackwell B200/B300 (sm_100)
 // cuda_graphs.cu
 // CUDA Graphs examples for reducing kernel launch overhead
 

@@ -1,9 +1,9 @@
 # Architecture switching support
 # Set ARCH=sm_90 for Hopper H100/H200 or ARCH=sm_100 for Blackwell B200/B300
-ARCH ?= sm_90
+ARCH ?= sm_100
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 12.8
 NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION) -lnvtx3
 

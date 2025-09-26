@@ -1,5 +1,5 @@
 // Architecture-specific optimizations for CUDA 12.8
-// Simplified version for Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+// Simplified version for Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
 #include <iostream>
 
@@ -82,7 +82,7 @@ int main() {
         printf("CUDA error: %s\n", cudaGetErrorString(error));
     } else {
         printf("Simplified async copy kernel completed successfully\n");
-        printf("Note: TMA features are available on Hopper and Blackwell\n");
+        printf("Note: TMA features are available on Blackwell GPUs\n");
     }
     
     // Cleanup

@@ -1,5 +1,5 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Supports Hopper H100/H200 (sm_90) and Blackwell B200/B300 (sm_100)
+// Architecture-specific optimizations for CUDA 12.8
+// Targets Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
 #include <cooperative_groups.h>
 #include <torch/extension.h>
@@ -26,7 +26,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("run_persistent", &run_persistent, "Persistent Kernel");
 }
 
-// CUDA 12.9 Stream-ordered Memory Allocation Example
+// CUDA 12.8 Stream-ordered Memory Allocation Example
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
@@ -34,7 +34,7 @@ __global__ void stream_ordered_memory_example() {
     // Your kernel code here
 }
 
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
+// CUDA 12.8 TMA (Tensor Memory Accelerator) Example
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation

@@ -3,7 +3,7 @@
 This folder contains all of the CUDA C++ and PyTorch code snippets from Chapter 9 (Dynamic Multi-Kernel Orchestration and Graph Scheduling), updated for:
 
 - **CUDA 13**
-- **PyTorch 2.7**
+- **PyTorch 2.8**
 - **Blackwell B200** GPU
 
 Each example has its own directory. From the repo root you can:

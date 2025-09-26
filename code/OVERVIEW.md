@@ -1,269 +1,58 @@
-# 🎯 Overview
+# 🚀 Overview – Blackwell-Only Stack
 
-This repository supports architecture switching between Hopper H100/H200 and Blackwell B200/B300 GPUs, with the latest features from PyTorch 2.8, CUDA 12.8, and Triton 3.3.
+This repository now targets a single architecture: **NVIDIA Blackwell B200/B300 (SM100)**. Every script, kernel, and document assumes CUDA 12.8, PyTorch 2.8, and Triton 3.3. Legacy compute capability 9.x support has been removed to keep the code base lean and focused.
 
-### 1. Core Architecture Support
-- **Architecture Detection**: Automatic detection of Hopper (SM90) and Blackwell (SM100)
-- **Manual Switching**: Support for manual architecture selection
-- **Configuration System**: Centralized architecture configuration in `arch_config.py`
-- **Build System**: All Makefiles updated with architecture switching support
+## 🧱 Core Components
+- **Architecture configuration** lives in `arch_config.py` and always resolves to Blackwell.
+- **Build orchestration** is handled by `build_all.sh`, which compiles kernels with `sm_100` and validates Python syntax.
+- **Requirements** across chapters are normalised to `requirements_latest.txt` (mirrored into the per-chapter files).
+- **Verification** is provided by `verify_updates.sh`, ensuring Makefiles and code stay Blackwell-centric.
 
-### 2. Latest Software Stack
-- **PyTorch 2.8**: Latest nightly builds with enhanced compiler support
-- **CUDA 12.8**: Latest CUDA toolkit with full Blackwell support
-- **Triton 3.3**: Latest Triton for custom kernel development
-- **Requirements**: Updated `requirements_latest.txt` with all latest versions
+## 🛠️ Toolchain Expectations
+| Component | Version / Channel | Notes |
+|-----------|------------------|-------|
+| CUDA Toolkit | 12.8 (nvcc 12.8.93) | `nvcc -arch=sm_100` is the default everywhere. |
+| PyTorch | 2.8.0 (cu128 nightly) | Install from `https://download.pytorch.org/whl/nightly/cu128`. |
+| Triton | 3.3.1 | Required for Triton kernels in Chapters 14 & 16. |
+| Nsight Systems | 2024.6+ | Used in profiling scripts. |
+| Nsight Compute | 2024.3+ | Kernel-level analysis. |
 
-### 3. Enhanced Profiling Tools
-- **Nsight Systems**: Timeline analysis with architecture-specific optimizations
-- **Nsight Compute**: Kernel-level analysis with Hopper/Blackwell metrics
-- **HTA**: Holistic Tracing Analysis for multi-GPU systems
-- **Perf**: System-level CPU analysis
-- **PyTorch Profiler**: Framework-level analysis with latest features
-- **Master Profiler**: Comprehensive profiling with all tools
-
-### 4. Architecture-Specific Features
-
-#### Hopper H100/H200 (SM90)
-- **Compute Capability**: 9.0
-- **Memory**: HBM3 (3.35 TB/s)
-- **Features**: Transformer Engine, Dynamic Programming
-- **Optimizations**: HBM3 memory optimization, transformer-specific features
-
-#### Blackwell B200/B300 (SM100)
-- **Compute Capability**: 10.0
-- **Memory**: HBM3e (8 TB/s)
-- **Features**: TMA, NVLink-C2C, Stream-ordered Memory
-- **Optimizations**: HBM3e optimization, TMA support, stream-ordered allocation
-
-### 5. Updated Files and Scripts
-
-#### Core Configuration Files
-- ✅ `arch_config.py`: Architecture detection and configuration
-- ✅ `requirements_latest.txt`: Updated with PyTorch 2.8, CUDA 12.8, Triton 3.3
-- ✅ `update_architecture_switching.sh`: Comprehensive update script
-- ✅ `build_all.sh`: Automated build script with architecture detection
-- ✅ `switch_architecture.sh`: Manual architecture switching
-- ✅ `test_architecture_switching.py`: Comprehensive test script
-
-#### Profiling Scripts
-- ✅ `profiler_scripts/nsys_profile.sh`: Nsight Systems timeline analysis
-- ✅ `profiler_scripts/ncu_profile.sh`: Nsight Compute kernel analysis
-- ✅ `profiler_scripts/hta_profile.sh`: Holistic Tracing Analysis
-- ✅ `profiler_scripts/perf_profile.sh`: System-level profiling
-- ✅ `profiler_scripts/pytorch_profile.sh`: PyTorch-specific profiling
-- ✅ `profiler_scripts/comprehensive_profile.sh`: All tools combined
-- ✅ `profiler_scripts/master_profile.sh`: Master profiling script
-
-#### Code Updates
-- ✅ **All Makefiles**: Updated with architecture switching support
-- ✅ **Python Files**: Enhanced with PyTorch 2.8 features
-- ✅ **CUDA Files**: Updated with CUDA 12.8 features
-
-#### Documentation Updates
-- ✅ `README.md`: Updated with latest features and architecture support
-- ✅ `ARCHITECTURE_SWITCHING_SUMMARY.md`: Comprehensive architecture guide
-- ✅ `USAGE_GUIDE.md`: Updated with latest usage examples
-- ✅ `PROFILING_GUIDE.md`: Updated with latest profiling tools
-- ✅ `COMPLIANCE_REPORT.md`: Updated with latest compliance information
-- ✅ `CONSISTENCY_REPORT.md`: Updated with latest consistency information
-
-### 6. Performance Features
-
-#### PyTorch 2.8 Features
-- ✅ **torch.compile**: With max-autotune mode
-- ✅ **Dynamic Shapes**: Automatic dynamic shape support
-- ✅ **Memory Profiling**: Detailed memory allocation tracking
-- ✅ **FLOP Counting**: Operation-level floating point counting
-- ✅ **Module Analysis**: Module-level performance breakdown
-- ✅ **NVTX Integration**: Custom annotation support
-
-#### CUDA 12.8 Features
-- ✅ **Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
-- ✅ **TMA**: Tensor Memory Accelerator for Blackwell
-- ✅ **HBM3e**: High-bandwidth memory optimizations
-- ✅ **NVLink-C2C**: Direct GPU-to-GPU communication
-- ✅ **Architecture-specific**: SM90/SM100 optimizations
-
-#### Triton 3.3 Features
-- ✅ **Enhanced Kernels**: Improved kernel generation
-- ✅ **Autotuning**: Advanced autotuning capabilities
-- ✅ **Architecture Support**: Hopper and Blackwell optimizations
-- ✅ **Performance**: 15-20% improvement over previous versions
-
-## 🔧 Usage Examples
-
-### Architecture Detection and Switching
+## 📦 Installing Python Dependencies
 ```bash
-# Auto-detect current architecture
-python arch_config.py
-
-# Manual architecture switching
-./switch_architecture.sh sm_90  # Hopper
-./switch_architecture.sh sm_100 # Blackwell
-
-# Build with architecture support
-./build_all.sh
-make ARCH=sm_90  # Hopper
-make ARCH=sm_100 # Blackwell
-```
-
-### Comprehensive Profiling
-```bash
-# Master profiling (all tools)
-bash profiler_scripts/master_profile.sh your_script.py
-
-# Individual profiling tools
-bash profiler_scripts/nsys_profile.sh your_script.py
-bash profiler_scripts/ncu_profile.sh your_script.py
-bash profiler_scripts/pytorch_profile.sh your_script.py
-
-# Comprehensive profiling
-bash profiler_scripts/comprehensive_profile.sh your_script.py 30
-```
-
-### Testing and Validation
-```bash
-# Test architecture switching
-python test_architecture_switching.py
-
-# Run specific examples
-python code/ch1/performance_basics.py
-python code/ch2/hardware_info.py
-```
-
-## 📊 Performance Expectations
-
-### Architecture Performance Comparison
-
-| Metric | Hopper H100 | Hopper H200 | Blackwell B200 | Blackwell B300 |
-|--------|-------------|-------------|----------------|----------------|
-| Memory | 80 GB | 141 GB | 192 GB | 288 GB |
-| Memory Bandwidth | 3.35 TB/s | 4.8 TB/s | 3.2 TB/s | 4.8 TB/s |
-| Tensor Core (FP4) | 4 PFLOPS | 6 PFLOPS | 20 PFLOPS | 30 PFLOPS |
-| NVLink Bandwidth | 900 GB/s | 1.8 TB/s | 1.8 TB/s | 1.8 TB/s |
-| Power | 700W | 700W | 800W | 1200W |
-
-### Software Performance Improvements
-- **CUDA 12.8**: 10-15% improvement over CUDA 12.4
-- **PyTorch 2.8**: 20-30% improvement over stable releases
-- **Triton 3.3**: 15-20% improvement in kernel generation
-- **Blackwell B200/B300**: 30-50% improvement over H100
-
-## 🎯 Optimization Recommendations
-
-### For Hopper H100/H200 (SM90)
-1. **Enable Transformer Engine**: For transformer models
-2. **Use Dynamic Programming**: For variable workloads
-3. **Optimize HBM3**: Maximize 3.35 TB/s bandwidth
-4. **Leverage Tensor Cores**: 4th generation for matrix ops
-5. **Use torch.compile**: With max-autotune mode
-
-### For Blackwell B200/B300 (SM100)
-1. **Enable TMA**: Tensor Memory Accelerator for efficient data movement
-2. **Use Stream-ordered Memory**: cudaMallocAsync/cudaFreeAsync
-3. **Optimize HBM3e**: Maximize 8 TB/s bandwidth
-4. **Leverage NVLink-C2C**: Direct GPU-to-GPU communication
-5. **Enable Blackwell Optimizations**: Architecture-specific features
-
-## 📈 Key Metrics to Monitor
-
-### Performance Metrics
-- **GPU Utilization**: Target >90%
-- **Memory Bandwidth**: HBM3/HBM3e utilization
-- **Tensor Core Usage**: For matrix operations
-- **Kernel Occupancy**: Maximize thread block efficiency
-- **Memory Latency**: Minimize access delays
-
-### Architecture-Specific Metrics
-- **Hopper**: Transformer Engine efficiency, dynamic programming usage
-- **Blackwell**: TMA efficiency, stream-ordered memory usage, NVLink-C2C bandwidth
-
-## 🛠️ Development Workflow
-
-### 1. Setup Environment
-```bash
-# Install dependencies
 pip install -r requirements_latest.txt
-
-# Verify architecture
-python arch_config.py
-
-# Build all projects
-./build_all.sh
 ```
+If PyTorch is already provided by the base image, the build script automatically filters the `torch` wheels when installing the remainder of the stack.
 
-### 2. Development and Testing
+## 🔩 Building CUDA Samples
 ```bash
-# Test architecture switching
-python test_architecture_switching.py
-
-# Run specific examples
-python code/ch1/performance_basics.py
-python code/ch2/hardware_info.py
+cd code
+./build_all.sh           # installs deps, builds CUDA samples, runs syntax checks
 ```
+`build_all.sh` iterates over every non-archive Makefile, issues `make ARCH=sm_100`, and reports any failures without aborting the whole pass.
 
-### 3. Performance Analysis
-```bash
-# Comprehensive profiling
-bash profiler_scripts/master_profile.sh your_script.py
+## 🧪 Validation & Profiling
+| Command | Description |
+|---------|-------------|
+| `python code/test_architecture_switching.py` | Sanity suite covering torch.compile, Triton JIT, NVTX, and bandwidth sanity checks. |
+| `bash code/verify_updates.sh` | Lints Makefiles/requirements for lingering legacy compute-capability 9.x references and mismatched pins. |
+| `bash code/profiler_scripts/nsys_profile.sh script.py` | Nsight Systems trace for a workload. |
+| `bash code/profiler_scripts/ncu_profile.sh binary` | Nsight Compute metrics for a CUDA sample. |
 
-# View results
-nsys-ui profile_nsys_sm_90/nsys_timeline_sm_90.nsys-rep
-ncu-ui profile_ncu_sm_90/ncu_kernel_sm_90.ncu-rep
-```
+## 📚 Chapter Layout (Blackwell Focus)
+- **Ch1–Ch9**: Foundational CUDA tuning, occupancy, and memory hierarchy – all built for `sm_100`.
+- **Ch10–Ch12**: Advanced kernel scheduling, CUDA Graphs, and inter-kernel pipelines with stream-ordered memory.
+- **Ch13–Ch16**: PyTorch compilation, Triton kernels, and NVTX profiling pipelines aligned with Blackwell features (TMA, stream-ordered allocators).
+- **Ch17–Ch20**: System-level tuning, adaptive token pipelines, and AI-assisted kernel authoring for Blackwell GPUs.
 
-### 4. Optimization
-```bash
-# Apply architecture-specific optimizations
-# Review profiling results
-# Implement optimizations
-# Re-run profiling to measure improvements
-```
+## ✅ What Was Removed
+- Automatic architecture detection / switching scripts.
+- Blackwell-specific optimisations, banners, and dual-path Makefiles.
+- Legacy requirements that referenced CUDA 12.9 or Triton 3.4 pins.
 
-## 📋 Checklist
+## 📄 Next Steps
+1. Ensure CUDA drivers/toolkits for 12.8 are installed on the target Blackwell system.
+2. Run `./build_all.sh` to prime the toolchain.
+3. Execute chapter-specific workflows (e.g., `python ch16/radix_attention_example.py`).
+4. Use the profiler scripts to capture Nsight/System/perf traces as needed.
 
-### General Optimizations
-- [x] High GPU utilization (>90%)
-- [x] Efficient memory access patterns
-- [x] Optimal kernel occupancy
-- [x] Minimized communication overhead
-- [x] Balanced workload distribution
-
-### Architecture-Specific Optimizations
-- [x] **Hopper**: Transformer Engine enabled, HBM3 optimized
-- [x] **Blackwell**: TMA enabled, HBM3e optimized, stream-ordered memory
-
-### Framework Optimizations
-- [x] torch.compile with max-autotune
-- [x] Dynamic shapes enabled
-- [x] Mixed precision training
-- [x] Memory-efficient training
-- [x] Distributed training optimized
-
-## 🔗 Related Documentation
-
-- [USAGE_GUIDE.md](USAGE_GUIDE.md): Detailed usage guide
-- [PROFILING_GUIDE.md](PROFILING_GUIDE.md): Profiling tools guide
-- [ARCHITECTURE_SWITCHING.md](ARCHITECTURE_SWITCHING.md): Architecture guide
-
-## 🎉 Summary
-
-This repository now provides comprehensive support for:
-
-1. **✅ Architecture Switching**: Seamless switching between Hopper and Blackwell
-2. **✅ Latest Software**: PyTorch 2.8, CUDA 12.8, Triton 3.3
-3. **✅ Advanced Profiling**: Complete profiling toolchain
-4. **✅ Performance Optimization**: Architecture-specific optimizations
-5. **✅ Production Ready**: Comprehensive testing and validation
-
-All code and scripts have been updated to support the latest hardware and software stack, providing maximum performance on both Hopper H100/H200 and Blackwell B200/B300 architectures.
-
-The architecture switching system enables:
-- **Flexible Development**: Work with both current and future GPU architectures
-- **Maximum Performance**: Leverage architecture-specific features
-- **Easy Migration**: Simple scripts for switching and building
-- **Comprehensive Analysis**: Complete profiling and optimization tools
-- **Future-Proof**: Ready for next-generation hardware
-
-This update ensures the repository remains at the cutting edge of AI performance engineering, providing the tools and knowledge needed to achieve maximum performance on the latest GPU architectures.
+Welcome to the streamlined, Blackwell-first AI Performance Engineering toolkit! 🖥️⚡

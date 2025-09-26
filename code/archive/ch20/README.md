@@ -218,7 +218,7 @@ class UltraScaleModel:
 - **AI Integration**: Native support for AI-assisted optimization
 - **Ultra-Scale Ready**: Designed for multi-million GPU clusters
 
-### CUDA 12.9 and Future Optimizations
+### CUDA 12.8 and Future Optimizations
 - **AI-Assisted Compilation**: Automatic kernel optimization
 - **Smart Memory Management**: AI-driven allocation strategies
 - **Automated Debugging**: AI-powered troubleshooting

@@ -6,7 +6,7 @@
 #define TILE_ELEMS 1024
 
 // Blackwell B200/B300 specific optimizations
-#if CUDA_VERSION >= 12.9
+#if CUDA_VERSION >= 12.8
 #define BLACKWELL_OPTIMIZED
 #endif
 

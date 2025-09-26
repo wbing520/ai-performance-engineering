@@ -5,7 +5,7 @@ if [ $# -ne 1 ]; then
 fi
 SCRIPT=$1
 
-# Latest Nsight Compute profiling for CUDA 12.9 and Blackwell B200/B300
+# Latest Nsight Compute profiling for CUDA 12.8 and Blackwell B200/B300
 ncu \
   --mode=launch \
   --target-processes=python3 \

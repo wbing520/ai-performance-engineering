@@ -20,16 +20,7 @@ def get_architecture():
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return {
-            "name": "Hopper H100/H200",
-            "compute_capability": "9.0",
-            "sm_version": "sm_90",
-            "memory_bandwidth": "3.35 TB/s",
-            "tensor_cores": "4th Gen",
-            "features": ["HBM3", "Transformer Engine", "Dynamic Programming"]
-        }
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
@@ -74,7 +65,6 @@ import psutil
 import GPUtil
 from collections import defaultdict, deque
 import hashlib
-
 
 class MonitoringSystem:
     """Comprehensive monitoring and metrics collection for inference systems."""
@@ -163,7 +153,6 @@ class MonitoringSystem:
                 
         return report
 
-
 class DynamicBatcher:
     """Dynamic batching with latency-aware scheduling."""
     
@@ -237,7 +226,6 @@ class DynamicBatcher:
             'avg_tokens_per_batch': np.mean([b['avg_tokens'] for b in recent_batches]),
             'queue_length': len(self.request_queue)
         }
-
 
 class QuantizationManager:
     """Manages different quantization techniques for inference optimization."""
@@ -341,7 +329,6 @@ class QuantizationManager:
         scaled_weights = weights * row_scales.unsqueeze(1) * col_scales.unsqueeze(0)
         return scaled_weights
 
-
 class PrefixCache:
     """Implements prefix caching for efficient prompt reuse."""
     
@@ -404,7 +391,6 @@ class PrefixCache:
             'cache_size': len(self.cache),
             'max_cache_size': self.max_cache_size
         }
-
 
 class ModelCascader:
     """Implements model cascading for tiered inference."""
@@ -470,7 +456,6 @@ class ModelCascader:
             'avg_prompt_length': np.mean([r['prompt_length'] for r in recent_routes])
         }
 
-
 class StreamingResponse:
     """Implements streaming response for improved user experience."""
     
@@ -517,7 +502,6 @@ class StreamingResponse:
             'tokens': tokens,
             'batch_size': len(tokens)
         })
-
 
 class InferenceOptimizer:
     """Main inference optimization system."""
@@ -595,7 +579,6 @@ class InferenceOptimizer:
         }
         return stats
 
-
 def benchmark_inference_optimizations():
     """Benchmark the inference optimization system."""
     print("=== Inference Optimization Benchmark ===\n")
@@ -646,7 +629,6 @@ def benchmark_inference_optimizations():
     
     print("\n=== Benchmark Complete ===")
 
-
 if __name__ == "__main__":
     benchmark_inference_optimizations()
 
@@ -655,9 +637,7 @@ if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    if compute_capability == "9.0":  # Hopper H100/H200
-        print(f"Enabled Hopper H100/H200 optimizations (compute capability {compute_capability})")
-    elif compute_capability == "10.0":  # Blackwell B200/B300
+    if compute_capability == "10.0":  # Blackwell B200/B300
         print(f"Enabled Blackwell B200/B300 optimizations (compute capability {compute_capability})")
     else:
-        print(f"Enabled general optimizations (compute capability {compute_capability})")
+        print(f"⚠ Unsupported compute capability {compute_capability}; running in fallback mode")

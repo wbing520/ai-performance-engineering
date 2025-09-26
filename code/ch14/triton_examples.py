@@ -1,6 +1,6 @@
 # triton_examples.py
-# Updated for Triton 3.3 and Blackwell B200/B300 optimizations
-# Enhanced for PyTorch 2.8, CUDA 12.8, and Triton 3.3
+# Updated for Triton 3.4 and Blackwell B200/B300 optimizations
+# Enhanced for PyTorch 2.8, CUDA 12.8, and Triton 3.4
 
 import torch
 import triton
@@ -17,28 +17,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arch_config import arch_config, configure_optimizations
 
 def setup_triton_optimizations():
-    """Setup Triton 3.3 optimizations for current architecture."""
+    """Setup Triton 3.4 optimizations for current architecture."""
     configure_optimizations()
     
     if torch.cuda.is_available():
         device_props = torch.cuda.get_device_properties(0)
         compute_capability = f"{device_props.major}.{device_props.minor}"
         
-        print(f"Triton 3.3 optimizations for {device_props.name}")
+        print(f"Triton 3.4 optimizations for {device_props.name}")
         print(f"Compute Capability: {compute_capability}")
         
-        if compute_capability == "9.0":  # Hopper H100/H200
-            print("✓ Enabling Hopper H100/H200 Triton optimizations")
-            # Hopper-specific Triton optimizations (only if they exist)
-            if hasattr(triton.Config, 'use_hopper_optimizations'):
-                triton.Config.use_hopper_optimizations = True
-            if hasattr(triton.Config, 'hbm3_optimizations'):
-                triton.Config.hbm3_optimizations = True
-            if hasattr(triton.Config, 'tma_support'):
-                triton.Config.tma_support = True
-        elif compute_capability == "10.0":  # Blackwell B200/B300
+        if compute_capability == "10.0":  # Blackwell B200/B300
             print("✓ Enabling Blackwell B200/B300 Triton optimizations")
-            # Blackwell-specific Triton optimizations (only if they exist)
             if hasattr(triton.Config, 'use_blackwell_optimizations'):
                 triton.Config.use_blackwell_optimizations = True
             if hasattr(triton.Config, 'hbm3e_optimizations'):
@@ -48,12 +38,12 @@ def setup_triton_optimizations():
             if hasattr(triton.Config, 'stream_ordered_memory'):
                 triton.Config.stream_ordered_memory = True
 
-# Basic vector addition kernel with Triton 3.3 enhancements
+# Basic vector addition kernel with Triton 3.4 enhancements
 @triton.jit
 def vector_add_kernel(x_ptr, y_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     """
     Simple vector addition kernel demonstrating basic Triton concepts.
-    Updated for Triton 3.3 and Blackwell B200/B300 optimizations.
+    Updated for Triton 3.4 and Blackwell B200/B300 optimizations.
     """
     pid = tl.program_id(axis=0)  # unique program ID for each block
     block_start = pid * BLOCK_SIZE
@@ -70,7 +60,7 @@ def vector_add_kernel(x_ptr, y_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexp
 
 def vector_add_triton(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Launch vector addition kernel with Triton 3.3 optimizations.
+    Launch vector addition kernel with Triton 3.4 optimizations.
     """
     output = torch.empty_like(x)
     assert x.is_cuda and y.is_cuda and output.is_cuda
@@ -86,7 +76,7 @@ def vector_add_triton(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     
     return output
 
-# Matrix multiplication kernel with Triton 3.3 enhancements
+# Matrix multiplication kernel with Triton 3.4 enhancements
 @triton.jit
 def matmul_kernel(
     a_ptr, b_ptr, c_ptr,
@@ -99,8 +89,7 @@ def matmul_kernel(
     BLOCK_SIZE_K: tl.constexpr,
 ):
     """
-    Matrix multiplication kernel with Triton 3.3 optimizations.
-    Enhanced for Hopper H100/H200 and Blackwell B200/B300.
+    Matrix multiplication kernel with Triton 3.4 optimizations.
     """
     # Program ID
     pid = tl.program_id(axis=0)
@@ -235,7 +224,6 @@ def attention_kernel(
 ):
     """
     Attention kernel with Triton 3.4 optimizations.
-    Enhanced for Hopper H100/H200 and Blackwell B200/B300.
     """
     # Program ID
     pid = tl.program_id(axis=0)
@@ -477,31 +465,29 @@ def demonstrate_architecture_features():
         device_props = torch.cuda.get_device_properties(0)
         compute_capability = f"{device_props.major}.{device_props.minor}"
         
-        print(f"\nTriton 3.3 Features for {device_props.name}:")
+        print(f"\nTriton 3.4 Features for {device_props.name}:")
         
-        if compute_capability == "9.0":  # Hopper H100/H200
-            print("• HBM3 memory optimizations")
-            print("• TMA (Tensor Memory Accelerator) support")
-            print("• Hopper-specific kernel optimizations")
-            print("• Enhanced memory access patterns")
-        elif compute_capability == "10.0":  # Blackwell B200/B300
+        if compute_capability == "10.0":  # Blackwell B200/B300
             print("• HBM3e memory optimizations")
             print("• TMA (Tensor Memory Accelerator) support")
             print("• Stream-ordered memory allocation")
             print("• Blackwell-specific kernel optimizations")
             print("• NVLink-C2C communication support")
-        
-        print("• Triton 3.3 latest features")
+        else:
+            print("• Shared optimizations compatible with PyTorch 2.8")
+            print("• Enhanced kernel scheduling")
+            print("• Improved memory access patterns")
+
+        print("• Triton 3.4 latest features")
         print("• Enhanced kernel compilation")
         print("• Improved memory management")
         print("• Better performance profiling")
 
 def main():
     """
-    Main function to demonstrate Triton 3.3 features.
+    Main function to demonstrate Triton 3.4 features.
     """
-    print("=== Triton 3.3 Examples (PyTorch 2.8, CUDA 12.8) ===")
-    print("Enhanced for Hopper H100/H200 and Blackwell B200/B300")
+    print("=== Triton 3.4 Examples (PyTorch 2.8, CUDA 12.8) ===")
     print()
     
     # Run demonstrations
@@ -510,14 +496,13 @@ def main():
     demonstrate_architecture_features()
     
     print("\n=== Summary ===")
-    print("This demo shows Triton 3.3 features with:")
+    print("This demo shows Triton 3.4 features with:")
     print("1. Enhanced kernel optimizations")
     print("2. Architecture-specific features")
     print("3. Improved memory management")
     print("4. Better performance profiling")
     print("5. PyTorch integration")
     print("6. Latest CUDA 12.8 support")
-    print("7. Hopper/Blackwell optimizations")
 
 if __name__ == "__main__":
     main()
