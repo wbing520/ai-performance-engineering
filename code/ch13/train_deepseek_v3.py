@@ -1,5 +1,8 @@
 import torch
 import os
+import json
+import torch.profiler as profiler
+from torch.profiler import ProfilerActivity
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def get_architecture():

@@ -6,8 +6,13 @@ import torch.nn as nn
 import torch.distributed as dist
 import os
 import functools
-from torch.distributed.fsdp import FSDP, MixedPrecision, BackwardPrefetch, ShardingStrategy
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+
+try:
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision, BackwardPrefetch, ShardingStrategy
+    from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+    FSDP_AVAILABLE = True
+except (ImportError, AttributeError):
+    FSDP_AVAILABLE = False
 
 def get_architecture():
     """Detect and return the current GPU architecture."""
@@ -103,6 +108,8 @@ def setup_distributed():
 
 def create_fsdp_model():
     """Create a model with FSDP wrapping."""
+    if not FSDP_AVAILABLE:
+        raise RuntimeError("FSDP is not available in this PyTorch build")
     rank, world_size = setup_distributed()
     
     # Create the model
@@ -157,6 +164,9 @@ def train_step(model, batch, optimizer, criterion):
 
 def main():
     """Main training function."""
+    if not FSDP_AVAILABLE:
+        print("FSDP modules not available; skipping FSDP training demo")
+        return
     try:
         fsdp_model, rank, world_size = create_fsdp_model()
         
