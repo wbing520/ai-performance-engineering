@@ -54,6 +54,10 @@ if command -v pkill >/dev/null 2>&1; then
     echo "Issued pkill for perf"
     found=1
   fi
+  if pkill -f "$REPO_ROOT/code/" >/dev/null 2>&1; then
+    echo "Issued pkill for example Python scripts"
+    found=1
+  fi
 fi
 
 if [[ $found -eq 0 ]]; then

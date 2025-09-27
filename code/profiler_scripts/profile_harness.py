@@ -20,6 +20,7 @@ from example_registry import (
     ExampleKind,
     SmokeTest,
 )
+from metrics_config import ProfilerOverrides, resolve_overrides
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON = sys.executable
@@ -466,10 +467,18 @@ def profiler_output_dir(session_dir: Path, profiler: str, example: Example) -> P
     return session_dir / profiler / example.name
 
 
-def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, timeout: int) -> RunResult:
+def run_nsys(
+    example: Example,
+    session_dir: Path,
+    context: argparse.Namespace,
+    timeout: int,
+    overrides: ProfilerOverrides,
+) -> RunResult:
     out_dir = profiler_output_dir(session_dir, "nsys", example)
+    out_dir.mkdir(parents=True, exist_ok=True)
     out_base = out_dir / f"nsys_{example.name}"
     target_command = example_run_command(example, REPO_ROOT)
+    trace_modules = overrides.nsys_trace or ["cuda", "nvtx", "osrt", "cudnn", "cublas"]
     command = [
         "nsys",
         "profile",
@@ -477,14 +486,16 @@ def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, t
         "-o",
         str(out_base),
         "-t",
-        "cuda,nvtx,osrt,cudnn,cublas",
+        ",".join(trace_modules),
         "-s",
         "cpu",
         "--python-sampling=true",
         "--python-sampling-frequency=1000",
         "--cudabacktrace=true",
+        "--cudabacktrace-threshold=0",
         "--stats=true",
     ]
+    command.extend(overrides.nsys_extra_args)
     command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
@@ -515,8 +526,15 @@ def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, t
     )
 
 
-def run_ncu(example: Example, session_dir: Path, context: argparse.Namespace, timeout: int) -> RunResult:
+def run_ncu(
+    example: Example,
+    session_dir: Path,
+    context: argparse.Namespace,
+    timeout: int,
+    overrides: ProfilerOverrides,
+) -> RunResult:
     out_dir = profiler_output_dir(session_dir, "ncu", example)
+    out_dir.mkdir(parents=True, exist_ok=True)
     out_base = out_dir / f"ncu_{example.name}"
     _terminate_lingering_nsys()
     target_command = example_run_command(example, REPO_ROOT)
@@ -527,6 +545,8 @@ def run_ncu(example: Example, session_dir: Path, context: argparse.Namespace, ti
         "-o",
         str(out_base),
     ]
+    if overrides.ncu_metrics:
+        command.extend(["--metrics", ",".join(overrides.ncu_metrics)])
     command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
@@ -645,7 +665,7 @@ def main() -> None:
         return
 
     profilers = resolve_profilers(args.profile)
-    pytorch_modes = args.profile_mode or ["full"]
+    cli_pytorch_modes = args.profile_mode or ["full"]
 
     selected = select_examples(args.examples, args.tags)
     if args.max_examples is not None:
@@ -658,6 +678,7 @@ def main() -> None:
 
     for example in selected:
         timeout = example.timeout_seconds or DEFAULT_TIMEOUT
+        overrides = resolve_overrides(example)
 
         build_results, build_ok = prepare_example(example, session_dir, REPO_ROOT, args)
         all_results.extend(build_results)
@@ -693,8 +714,13 @@ def main() -> None:
             if profiler == "pytorch":
                 if example.kind is not ExampleKind.PYTHON:
                     continue
+                requested_modes: List[str] = list(cli_pytorch_modes)
+                for mode in overrides.pytorch_modes:
+                    if mode not in requested_modes:
+                        requested_modes.append(mode)
+
                 modes_to_run: List[str] = []
-                for mode in pytorch_modes:
+                for mode in requested_modes:
                     out_dir = profiler_output_dir(session_dir, f"pytorch_{mode}", example)
                     if maybe_skip_output(out_dir, args.skip_existing):
                         all_results.append(
@@ -779,10 +805,10 @@ def main() -> None:
                 continue
 
             if profiler == "nsys":
-                result = run_nsys(example, session_dir, args, timeout)
+                result = run_nsys(example, session_dir, args, timeout, overrides)
                 all_results.append(result)
             elif profiler == "ncu":
-                result = run_ncu(example, session_dir, args, timeout)
+                result = run_ncu(example, session_dir, args, timeout, overrides)
                 all_results.append(result)
             else:
                 raise AssertionError(f"Unknown profiler {profiler}")
