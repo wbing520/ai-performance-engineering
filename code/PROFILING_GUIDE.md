@@ -77,7 +77,7 @@ ncu \
   --mode=launch \
   --target-processes=python3 \
   --set full \
-  --kernel-regex ".*" \
+  --kernel-name regex:.* \
   --sampling-interval 1 \
   --sampling-max-passes 5 \
   --sampling-period 1000000 \
@@ -286,7 +286,7 @@ nvidia-smi
 watch -n 1 nvidia-smi
 
 # Profile specific kernels
-ncu --kernel-regex "gemm" your_script.py
+ncu --kernel-name regex:gemm your_script.py
 
 # Analyze memory patterns
 nsys profile --trace=cuda,cudamemcpy your_script.py

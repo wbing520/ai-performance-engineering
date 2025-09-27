@@ -172,7 +172,7 @@ def configure_architecture_optimizations():
 def benchmark_model_performance(model: nn.Module, 
                               batch_size: int = 32, 
                               seq_length: int = 128,
-                              num_iterations: int = 100,
+                              num_iterations: int = 20,
                               use_compile: bool = True) -> Dict[str, float]:
     """
     Benchmark model performance and measure goodput with PyTorch 2.8 optimizations.
@@ -211,7 +211,7 @@ def benchmark_model_performance(model: nn.Module,
     
     # Warmup with enhanced profiling
     with torch.no_grad():
-        for _ in range(10):
+        for _ in range(3):
             _ = compiled_model(dummy_input)
     
     # Benchmark with enhanced profiling
@@ -308,7 +308,7 @@ def demonstrate_hardware_software_co_design():
     print("1. Baseline Performance Measurement (Uncompiled)")
     print("-" * 50)
     
-    baseline_results = benchmark_model_performance(model, num_iterations=50, use_compile=False)
+    baseline_results = benchmark_model_performance(model, num_iterations=12, use_compile=False)
     
     print(f"Throughput: {baseline_results['throughput_tokens_per_second']:.2f} tokens/sec")
     print(f"Goodput Ratio: {baseline_results['goodput_ratio']:.3f}")
@@ -318,7 +318,7 @@ def demonstrate_hardware_software_co_design():
     print("\n2. PyTorch 2.8 Compiled Performance")
     print("-" * 50)
     
-    compiled_results = benchmark_model_performance(model, num_iterations=50, use_compile=True)
+    compiled_results = benchmark_model_performance(model, num_iterations=12, use_compile=True)
     
     print(f"Throughput: {compiled_results['throughput_tokens_per_second']:.2f} tokens/sec")
     print(f"Goodput Ratio: {compiled_results['goodput_ratio']:.3f}")
@@ -374,7 +374,7 @@ def demonstrate_mechanical_sympathy():
     print("\n=== Mechanical Sympathy Demo (PyTorch 2.8) ===")
     
     # Show how different batch sizes affect performance
-    batch_sizes = [8, 16, 32, 64, 128]
+    batch_sizes = [8, 16, 32]
     model = SimpleTransformer()
     
     print("\nBatch Size vs Performance (Compiled vs Uncompiled):")
@@ -385,12 +385,12 @@ def demonstrate_mechanical_sympathy():
         try:
             # Test uncompiled
             uncompiled_results = benchmark_model_performance(
-                model, batch_size=batch_size, num_iterations=20, use_compile=False
+                model, batch_size=batch_size, num_iterations=8, use_compile=False
             )
             
             # Test compiled
             compiled_results = benchmark_model_performance(
-                model, batch_size=batch_size, num_iterations=20, use_compile=True
+                model, batch_size=batch_size, num_iterations=8, use_compile=True
             )
             
             speedup = compiled_results['throughput_tokens_per_second'] / uncompiled_results['throughput_tokens_per_second']

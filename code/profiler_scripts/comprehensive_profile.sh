@@ -79,7 +79,7 @@ ncu \
     --mode=launch \
     --target-processes=python3 \
     --set full \
-    --kernel-regex ".*" \
+    --kernel-name regex:.* \
     --sampling-interval 1 \
     --sampling-max-passes 5 \
     --sampling-period 1000000 \

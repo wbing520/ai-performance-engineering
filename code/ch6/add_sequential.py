@@ -49,7 +49,9 @@ def get_architecture_info():
 import torch
 import time
 
-N = 1_000_000
+# Smaller problem size keeps the demo representative without multi-minute runtimes
+N = 10000
+
 A = torch.arange(N, dtype=torch.float32, device='cuda')
 B = 2 * A
 C = torch.empty_like(A)

@@ -2,6 +2,7 @@ import torch.profiler as profiler
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
 import torch.cuda.nvtx as nvtx
 import torch
+import torch.nn as nn
 import os
 
 def get_architecture():
@@ -50,9 +51,9 @@ def demonstrate_memory_profiling():
     class SimpleModel(nn.Module):
         def __init__(self):
             super().__init__()
-            self.linear1 = nn.Linear(1024, 2048)
-            self.linear2 = nn.Linear(2048, 4096)
-            self.linear3 = nn.Linear(4096, 1000)
+            self.linear1 = nn.Linear(512, 1024)
+            self.linear2 = nn.Linear(1024, 2048)
+            self.linear3 = nn.Linear(2048, 512)
             
         def forward(self, x):
             x = torch.relu(self.linear1(x))
@@ -62,9 +63,9 @@ def demonstrate_memory_profiling():
     model = SimpleModel().to(device)
     
     # Create input data
-    batch_size = 32
-    input_data = torch.randn(batch_size, 1024, device=device)
-    target = torch.randint(0, 1000, (batch_size,), device=device)
+    batch_size = 16
+    input_data = torch.randn(batch_size, 512, device=device)
+    target = torch.randint(0, 512, (batch_size,), device=device)
     
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
@@ -79,7 +80,7 @@ def demonstrate_memory_profiling():
         torch.cuda.memory._record_memory_history(True)
     
     # Training loop with memory tracking
-    for epoch in range(3):
+    for epoch in range(2):
         optimizer.zero_grad()
         
         # Forward pass
@@ -126,7 +127,7 @@ def demonstrate_memory_optimization():
         def __init__(self):
             super().__init__()
             self.layers = nn.ModuleList([
-                nn.Linear(1024, 1024) for _ in range(10)
+                nn.Linear(512, 512) for _ in range(5)
             ])
             
         def forward(self, x):
@@ -137,7 +138,7 @@ def demonstrate_memory_optimization():
     
     print("1. Gradient Checkpointing:")
     model = CheckpointModel().to(device)
-    x = torch.randn(32, 1024, device=device, requires_grad=True)
+    x = torch.randn(16, 512, device=device, requires_grad=True)
     
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
@@ -153,7 +154,7 @@ def demonstrate_memory_optimization():
     print("\n2. Memory-efficient attention:")
     
     def efficient_attention_demo():
-        batch_size, seq_len, embed_dim = 8, 512, 512
+        batch_size, seq_len, embed_dim = 8, 256, 256
         
         query = torch.randn(batch_size, seq_len, embed_dim, device=device)
         key = torch.randn(batch_size, seq_len, embed_dim, device=device)
@@ -178,12 +179,12 @@ def demonstrate_memory_optimization():
     print("\n3. Mixed precision training:")
     
     def mixed_precision_demo():
-        model = nn.Linear(1024, 1024).to(device)
+        model = nn.Linear(512, 512).to(device)
         optimizer = torch.optim.Adam(model.parameters())
         scaler = torch.amp.GradScaler('cuda')
         
-        x = torch.randn(32, 1024, device=device)
-        target = torch.randn(32, 1024, device=device)
+        x = torch.randn(16, 512, device=device)
+        target = torch.randn(16, 512, device=device)
         
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()

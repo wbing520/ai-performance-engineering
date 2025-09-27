@@ -194,6 +194,14 @@ def base_env(example: Example) -> Dict[str, str]:
     return env
 
 
+def _terminate_lingering_nsys() -> None:
+    """Best-effort cleanup for stray Nsight Systems agents before NCU runs."""
+    try:
+        subprocess.run(["pkill", "-f", "nsys"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
 def check_preconditions(example: Example, profiler: str) -> Optional[str]:
     import shutil
 
@@ -280,6 +288,7 @@ def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, t
 def run_ncu(example: Example, session_dir: Path, context: argparse.Namespace, timeout: int) -> RunResult:
     out_dir = profiler_output_dir(session_dir, "ncu", example)
     out_base = out_dir / f"ncu_{example.name}"
+    _terminate_lingering_nsys()
     command = [
         "ncu",
         "--set",

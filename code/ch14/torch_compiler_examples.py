@@ -102,7 +102,7 @@ class SimpleModel(torch.nn.Module):
     Simple model for demonstrating torch.compile optimizations.
     Updated for PyTorch 2.8 nightly features.
     """
-    def __init__(self, input_size=1024, hidden_size=512, output_size=10):
+    def __init__(self, input_size=256, hidden_size=256, output_size=10):
         super().__init__()
         self.fc1 = torch.nn.Linear(input_size, hidden_size)
         self.fc2 = torch.nn.Linear(hidden_size, hidden_size)
@@ -155,7 +155,7 @@ def benchmark_compilation_modes():
     
     # Create model and sample data
     model = SimpleModel().to(device)
-    x = torch.randn(32, 1024, device=device)
+    x = torch.randn(16, 256, device=device)
     
     # Test different compilation modes
     modes = ['default', 'reduce-overhead', 'max-autotune']
@@ -183,7 +183,7 @@ def benchmark_compilation_modes():
         
         # Warmup with enhanced profiling
         with torch.no_grad():
-            for _ in range(10):
+            for _ in range(3):
                 with nvtx.range(f"warmup_{mode}"):
                     _ = compiled_model(x)
         
@@ -209,7 +209,7 @@ def benchmark_compilation_modes():
             )
         ) as prof:
             with torch.no_grad():
-                for _ in range(100):
+                for _ in range(20):
                     with nvtx.range(f"benchmark_{mode}"):
                         output = compiled_model(x)
         
@@ -217,7 +217,7 @@ def benchmark_compilation_modes():
             torch.cuda.synchronize()
         
         end_time = time.time()
-        avg_time = (end_time - start_time) / 100
+        avg_time = (end_time - start_time) / 20
         
         results[mode] = avg_time
         print(f"Average time per forward pass: {avg_time:.4f}s")
@@ -237,7 +237,7 @@ def benchmark_compilation_modes():
     
     # Warmup
     with torch.no_grad():
-        for _ in range(10):
+        for _ in range(3):
             with nvtx.range("warmup_baseline"):
                 _ = model(x)
     
@@ -246,7 +246,7 @@ def benchmark_compilation_modes():
     
     start_time = time.time()
     with torch.no_grad():
-        for _ in range(100):
+        for _ in range(20):
             with nvtx.range("benchmark_baseline"):
                 output = model(x)
     
@@ -254,7 +254,7 @@ def benchmark_compilation_modes():
         torch.cuda.synchronize()
     
     end_time = time.time()
-    baseline_time = (end_time - start_time) / 100
+    baseline_time = (end_time - start_time) / 20
     
     results['uncompiled'] = baseline_time
     print(f"Average time per forward pass: {baseline_time:.4f}s")
@@ -309,7 +309,7 @@ def dynamic_shape_example():
             return F.relu(x)
     
     # Test with different input sizes
-    sizes = [(32, 50, 128), (32, 150, 128), (16, 75, 128)]
+    sizes = [(16, 40, 128), (16, 120, 128), (8, 60, 128)]
     
     compiled_model = torch.compile(
         dynamic_model, 
@@ -337,7 +337,7 @@ def custom_operator_example():
         z = torch.sin(y)
         return z.sum()
     
-    x = torch.randn(1000, 1000, requires_grad=True)
+    x = torch.randn(256, 256, requires_grad=True)
     
     # Forward pass
     with nvtx.range("custom_operator_forward"):
@@ -359,7 +359,7 @@ def memory_efficient_compilation():
         def __init__(self):
             super().__init__()
             self.layers = torch.nn.ModuleList([
-                torch.nn.Linear(1024, 1024) for _ in range(10)
+                torch.nn.Linear(256, 256) for _ in range(5)
             ])
         
         def forward(self, x):
@@ -381,7 +381,7 @@ def memory_efficient_compilation():
         dynamic=True
     )
     
-    x = torch.randn(32, 1024, device=device, requires_grad=True)
+    x = torch.randn(16, 256, device=device, requires_grad=True)
     
     # Measure memory usage with enhanced monitoring
     if device.type == 'cuda':
@@ -436,7 +436,7 @@ def enhanced_profiling_example():
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SimpleModel().to(device)
-    x = torch.randn(64, 1024, device=device)
+    x = torch.randn(32, 256, device=device)
     
     # Enhanced profiler configuration
     with profile(
@@ -454,7 +454,7 @@ def enhanced_profiling_example():
         )
     ) as prof:
         with torch.no_grad():
-            for _ in range(50):
+            for _ in range(20):
                 with nvtx.range("enhanced_profiling"):
                     output = model(x)
     

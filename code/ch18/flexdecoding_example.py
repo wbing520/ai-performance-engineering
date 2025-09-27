@@ -35,7 +35,7 @@ class FlexDecodingAttention(torch.nn.Module):
     Demonstrates efficient autoregressive inference with custom attention patterns.
     """
     
-    def __init__(self, dim: int, num_heads: int, max_seq_len: int = 2048):
+    def __init__(self, dim: int, num_heads: int, max_seq_len: int = 512):
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -104,7 +104,7 @@ class FlexDecodingAttention(torch.nn.Module):
         device = next(self.parameters()).device if list(self.parameters()) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Create sample tensors for compilation - flex_attention expects [batch, num_heads, seq_len, head_dim]
-        seq_len = 512
+        seq_len = 128
         q_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
         k_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
         v_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
@@ -319,7 +319,7 @@ class NestedJaggedTensorDemo:
             max_len = max(len(seq) for seq in sequences)
         
         batch_size = len(sequences)
-        dim = sequences[0].shape[-1] if len(sequences) > 0 else 512
+        dim = sequences[0].shape[-1] if len(sequences) > 0 else 256
         
         # Create padded tensor and offsets
         padded = torch.zeros(batch_size, max_len, dim)
@@ -364,7 +364,7 @@ class NestedJaggedTensorDemo:
             last_token = prefill_out[:, -1:, :]  # [1, 1, dim]
             generated = [last_token]
             
-            for step in range(5):  # Generate 5 tokens
+            for step in range(3):  # Generate 3 tokens
                 decode_out = model.decode_step(last_token, seq_len + step)
                 generated.append(decode_out)
                 last_token = decode_out
@@ -384,10 +384,10 @@ def benchmark_flexdecoding():
     print(f"Running on: {device}")
     
     # Model parameters
-    dim = 2048
-    num_heads = 16
-    max_seq_len = 2048
-    batch_size = 8
+    dim = 256
+    num_heads = 4
+    max_seq_len = 1024
+    batch_size = 4
     
     # Create models
     flex_model = FlexDecodingAttention(dim, num_heads, max_seq_len).to(device)
@@ -402,19 +402,19 @@ def benchmark_flexdecoding():
         flex_model.compile_kernels(pattern)
         
         # Create test data
-        seq_len = 1024
+        seq_len = 256
         x = torch.randn(batch_size, seq_len, dim, device=device)
         
         # Benchmark prefill phase
         torch.cuda.synchronize()
         start_time = time.time()
         
-        for _ in range(10):
+        for _ in range(3):
             with torch.no_grad():
                 _ = flex_model.prefill(x)
-        
+
         torch.cuda.synchronize()
-        prefill_time = (time.time() - start_time) / 10
+        prefill_time = (time.time() - start_time) / 3
         
         # Benchmark decode phase
         single_token = torch.randn(batch_size, 1, dim, device=device)
@@ -422,12 +422,12 @@ def benchmark_flexdecoding():
         torch.cuda.synchronize()
         start_time = time.time()
         
-        for step in range(50):
+        for step in range(20):
             with torch.no_grad():
                 _ = flex_model.decode_step(single_token, seq_len + step)
-        
+
         torch.cuda.synchronize()
-        decode_time = (time.time() - start_time) / 50
+        decode_time = (time.time() - start_time) / 20
         
         print(f"  Prefill time: {prefill_time*1000:.2f} ms")
         print(f"  Decode time: {decode_time*1000:.2f} ms")
@@ -444,11 +444,11 @@ def demonstrate_paged_attention_integration():
     print("\n=== PagedAttention Integration Demo ===")
     
     # Parameters
-    batch_size = 4
-    num_heads = 8
-    head_dim = 64
-    block_size = 16  # Tokens per page
-    num_blocks = 32
+    batch_size = 2
+    num_heads = 4
+    head_dim = 32
+    block_size = 8  # Tokens per page
+    num_blocks = 16
     
     # Simulate logical KV blocks (what the model sees)
     logical_k = torch.randn(batch_size, num_blocks * block_size, num_heads, head_dim)
@@ -502,30 +502,30 @@ def main():
     print("\n=== Basic FlexDecoding Demo ===")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = FlexDecodingAttention(512, 8, 1024).to(device)
+    model = FlexDecodingAttention(256, 4, 512).to(device)
     
     # Compile kernels
     model.compile_kernels("causal")
     
     # Test prefill
-    prompt = torch.randn(1, 64, 512, device=device)
+    prompt = torch.randn(1, 32, 256, device=device)
     print("Running prefill phase...")
     output = model.prefill(prompt)
     print(f"Prefill output shape: {output.shape}")
     
     # Test decode steps
     print("Running decode steps...")
-    for step in range(5):
-        token = torch.randn(1, 1, 512, device=device)
-        output = model.decode_step(token, 64 + step)
+    for step in range(3):
+        token = torch.randn(1, 1, 256, device=device)
+        output = model.decode_step(token, 32 + step)
         print(f"Decode step {step + 1} output shape: {output.shape}")
     
     # Demonstrate jagged tensor support
     print("\n=== Jagged Tensor Demo ===")
     sequences = [
-        torch.randn(32, 512),   # Short sequence
-        torch.randn(64, 512),   # Medium sequence  
-        torch.randn(128, 512),  # Long sequence
+        torch.randn(16, 256),   # Short sequence
+        torch.randn(32, 256),   # Medium sequence  
+        torch.randn(64, 256),   # Long sequence
     ]
     
     jagged_demo = NestedJaggedTensorDemo()

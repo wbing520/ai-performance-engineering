@@ -104,6 +104,7 @@ run_nsys() {
 
 run_ncu() {
     require_command ncu "Nsight Compute" || return
+    pkill -f nsys >/dev/null 2>&1 || true
     local base="${SESSION_DIR}/ncu_${ARCH_VALUE}_$(timestamp)"
     local cmd=(ncu --set full -o "$base" "$PYTHON_BIN" "$SCRIPT_PATH")
     if ((${#SCRIPT_ARGS[@]})); then
@@ -276,6 +277,7 @@ if [[ "$SCRIPT_PATH" =~ /code/ch1/ || "$SCRIPT_PATH" =~ /code/ch2/ || "$SCRIPT_P
     export TORCHINDUCTOR_AUTOTUNE=${TORCHINDUCTOR_AUTOTUNE:-0}
     export TORCH_COMPILE_DISABLE=${TORCH_COMPILE_DISABLE:-1}
 fi
+
 
 PROFILE_SPEC="${PROFILE_SPEC,,}"
 IFS="," read -r -a RAW_TOOLS <<< "$PROFILE_SPEC"

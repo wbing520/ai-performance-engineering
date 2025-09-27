@@ -2,7 +2,13 @@ import torch.profiler as profiler
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
 import torch.cuda.nvtx as nvtx
 import torch
+import torch.distributed as dist
 import os
+import ctypes
+import psutil
+import subprocess
+import re
+from torch.utils.data import Dataset, DataLoader
 
 def get_architecture():
     """Detect and return the current GPU architecture."""

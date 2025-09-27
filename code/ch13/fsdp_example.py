@@ -2,7 +2,12 @@ import torch.profiler as profiler
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
 import torch.cuda.nvtx as nvtx
 import torch
+import torch.nn as nn
+import torch.distributed as dist
 import os
+import functools
+from torch.distributed.fsdp import FSDP, MixedPrecision, BackwardPrefetch, ShardingStrategy
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 
 def get_architecture():
     """Detect and return the current GPU architecture."""
@@ -37,7 +42,7 @@ def get_architecture_info():
 
 class TransformerBlock(nn.Module):
     """Simple transformer block for FSDP demonstration."""
-    def __init__(self, dim=512, num_heads=8, ff_dim=2048):
+    def __init__(self, dim=256, num_heads=4, ff_dim=1024):
         super().__init__()
         self.attention = nn.MultiheadAttention(dim, num_heads, batch_first=True)
         self.norm1 = nn.LayerNorm(dim)
@@ -60,9 +65,9 @@ class TransformerBlock(nn.Module):
         return x
 
 class MyModel(nn.Module):
-    def __init__(self, num_layers=12, dim=512):
+    def __init__(self, num_layers=4, dim=256):
         super().__init__()
-        self.embedding = nn.Embedding(10000, dim)
+        self.embedding = nn.Embedding(4096, dim)
         self.layers = nn.ModuleList([
             TransformerBlock(dim) for _ in range(num_layers)
         ])
@@ -101,7 +106,7 @@ def create_fsdp_model():
     rank, world_size = setup_distributed()
     
     # Create the model
-    model = MyModel(num_layers=12, dim=512)
+    model = MyModel(num_layers=4, dim=256)
     
     # Mixed precision policy for FP16 training
     mixed_precision_policy = MixedPrecision(
@@ -160,9 +165,9 @@ def main():
         criterion = nn.CrossEntropyLoss(ignore_index=-100)
         
         # Create dummy data
-        batch_size = 4
-        seq_length = 128
-        vocab_size = 10000
+        batch_size = 2
+        seq_length = 64
+        vocab_size = 4096
         
         device = torch.cuda.current_device() if torch.cuda.is_available() else torch.device("cpu")
         
@@ -178,7 +183,7 @@ def main():
                 print(f"Memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
         
         # Training loop
-        for step in range(5):
+        for step in range(2):
             loss = train_step(fsdp_model, (input_ids, labels), optimizer, criterion)
             
             if rank == 0:
@@ -210,10 +215,10 @@ def demonstrate_memory_efficiency():
     print("Testing without FSDP:")
     torch.cuda.reset_peak_memory_stats()
     
-    regular_model = MyModel(num_layers=6, dim=512).cuda()
+    regular_model = MyModel(num_layers=3, dim=256).cuda()
     optimizer = torch.optim.AdamW(regular_model.parameters())
     
-    input_ids = torch.randint(0, 10000, (4, 128), device="cuda")
+    input_ids = torch.randint(0, 4096, (2, 64), device="cuda")
     labels = input_ids.clone()
     
     # Forward and backward pass

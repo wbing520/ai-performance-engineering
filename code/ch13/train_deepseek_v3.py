@@ -1,5 +1,6 @@
 import torch
 import os
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def get_architecture():
     """Detect and return the current GPU architecture."""
@@ -35,10 +36,9 @@ def get_architecture_info():
 def main():
     # Set up model and data
     model_name = "deepseek-ai/DeepSeek-V3"
-    
-    # For this example, we'll use a smaller model for demonstration
-    # Replace with actual DeepSeek-V3 when available
-    model_name = "microsoft/DialoGPT-medium"  # Fallback for demo
+
+    # Use a tiny model so the example fits comfortably on a single GPU
+    model_name = "sshleifer/tiny-gpt2"
     
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,7 +46,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     
-    batch_size = 4
+    batch_size = 2
     input_texts = ["DeepSeek is great."] * batch_size
     
     # Add padding token if not present
@@ -60,7 +60,7 @@ def main():
     
     # Warm-up (not profiled)
     print("Running warm-up iterations...")
-    for _ in range(5):
+    for _ in range(1):
         optimizer.zero_grad()
         outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
         loss = outputs.loss

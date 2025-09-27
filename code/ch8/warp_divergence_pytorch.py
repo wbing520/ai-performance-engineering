@@ -50,7 +50,7 @@ def threshold_operations():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Create test data with mix of positive and negative values
-    N = 1 << 20  # 1M elements
+    N = 1 << 18  # 262K elements
     X = torch.randn(N, device=device)
     threshold = 0.0
     
@@ -61,7 +61,7 @@ def threshold_operations():
     # Method 1: Using torch.maximum (efficient, no divergence)
     start = time.time()
     with torch.cuda.nvtx.range("threshold_maximum"):
-        for _ in range(100):
+        for _ in range(20):
             Y1 = torch.maximum(X, torch.zeros_like(X))
     torch.cuda.synchronize()
     maximum_time = time.time() - start
@@ -69,7 +69,7 @@ def threshold_operations():
     # Method 2: Using torch.where (also efficient)
     start = time.time()
     with torch.cuda.nvtx.range("threshold_where"):
-        for _ in range(100):
+        for _ in range(20):
             Y2 = torch.where(X > threshold, X, torch.zeros_like(X))
     torch.cuda.synchronize()
     where_time = time.time() - start
@@ -77,7 +77,7 @@ def threshold_operations():
     # Method 3: Using torch.clamp (another option)
     start = time.time()
     with torch.cuda.nvtx.range("threshold_clamp"):
-        for _ in range(100):
+        for _ in range(20):
             Y3 = torch.clamp(X, min=threshold)
     torch.cuda.synchronize()
     clamp_time = time.time() - start
@@ -85,7 +85,7 @@ def threshold_operations():
     # Method 4: ReLU (most optimized for this specific case)
     start = time.time()
     with torch.cuda.nvtx.range("threshold_relu"):
-        for _ in range(100):
+        for _ in range(20):
             Y4 = torch.relu(X)
     torch.cuda.synchronize()
     relu_time = time.time() - start
@@ -107,8 +107,8 @@ def conditional_operations():
     device = torch.device('cuda')
     
     # Create test data
-    x = torch.randn(1000000, device=device)
-    y = torch.randn(1000000, device=device)
+    x = torch.randn(200000, device=device)
+    y = torch.randn(200000, device=device)
     
     print("\n=== Conditional Operations ===")
     
@@ -148,7 +148,7 @@ def conditional_operations():
     result_vectorized_small = vectorized_approach(x_small, y_small)
     
     print(f"Python loop time (1K elements): {loop_time*1000:.3f}ms")
-    print(f"Vectorized time (1M elements): {vectorized_time*1000:.3f}ms")
+    print(f"Vectorized time (200K elements): {vectorized_time*1000:.3f}ms")
     print(f"Results equal (first 1K): {torch.allclose(result_loop, result_vectorized_small)}")
     
     return result_loop, result_vectorized
@@ -185,8 +185,8 @@ def compiled_conditional_operations():
     print("\n=== Compiled Conditional Operations ===")
     
     # Create test data
-    x = torch.randn(1000000, device=device)
-    y = torch.randn(1000000, device=device)
+    x = torch.randn(200000, device=device)
+    y = torch.randn(200000, device=device)
     threshold = 0.5
     
     # Warm up compiled version
@@ -195,7 +195,7 @@ def compiled_conditional_operations():
     # Time uncompiled version
     start = time.time()
     with torch.cuda.nvtx.range("uncompiled_conditional"):
-        for _ in range(50):
+        for _ in range(20):
             result_uncompiled = uncompiled_conditional(x, y, threshold)
     torch.cuda.synchronize()
     uncompiled_time = time.time() - start
@@ -203,7 +203,7 @@ def compiled_conditional_operations():
     # Time compiled version
     start = time.time()
     with torch.cuda.nvtx.range("compiled_conditional"):
-        for _ in range(50):
+        for _ in range(20):
             result_compiled = compiled_conditional(x, y, threshold)
     torch.cuda.synchronize()
     compiled_time = time.time() - start
@@ -225,11 +225,11 @@ def mask_operations():
     device = torch.device('cuda')
     
     # Create sparse-like data where only some elements need processing
-    data = torch.randn(1000000, device=device)
+    data = torch.randn(200000, device=device)
     
     # Create a sparse mask (only 10% of elements are "active")
     torch.manual_seed(42)
-    mask = torch.rand(1000000, device=device) < 0.1
+    mask = torch.rand(200000, device=device) < 0.1
     
     print("\n=== Mask-Based Operations ===")
     print(f"Data size: {data.shape}")
@@ -238,7 +238,7 @@ def mask_operations():
     # Method 1: Process all elements, use mask to zero out unused
     start = time.time()
     with torch.cuda.nvtx.range("mask_all_elements"):
-        for _ in range(100):
+        for _ in range(20):
             processed = torch.sin(data) * torch.cos(data)  # Some computation
             result1 = torch.where(mask, processed, torch.zeros_like(processed))
     torch.cuda.synchronize()
@@ -247,7 +247,7 @@ def mask_operations():
     # Method 2: Use advanced indexing to process only active elements
     start = time.time()
     with torch.cuda.nvtx.range("mask_active_only"):
-        for _ in range(100):
+        for _ in range(20):
             active_indices = torch.nonzero(mask, as_tuple=False).squeeze()
             active_data = data[active_indices]
             processed_active = torch.sin(active_data) * torch.cos(active_data)

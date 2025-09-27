@@ -104,7 +104,7 @@ class RadixTree:
     def __init__(self):
         self.root = RadixTreeNode()
         self.access_counter = 0
-        self.max_cache_size = 1000  # Maximum number of cached prefixes
+        self.max_cache_size = 200  # Maximum number of cached prefixes
         self.current_cache_count = 0
     
     def longest_prefix(self, tokens: List[int]) -> Tuple[RadixTreeNode, int]:
@@ -320,7 +320,7 @@ class ModelState:
 class SimpleTransformerModel:
     """Simplified transformer model for demonstration."""
     
-    def __init__(self, vocab_size: int = 50000, hidden_dim: int = 512, num_heads: int = 8):
+    def __init__(self, vocab_size: int = 2048, hidden_dim: int = 256, num_heads: int = 4):
         self.vocab_size = vocab_size
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
@@ -517,7 +517,7 @@ def benchmark_prefix_caching():
     model = SimpleTransformerModel(vocab_size=1000, hidden_dim=256, num_heads=4)
     
     # Common system prompt (long)
-    system_prompt = list(range(1, 21))  # 20 tokens
+    system_prompt = list(range(1, 11))  # 10 tokens
     
     # Test prompts that share the system prompt
     test_prompts = [
@@ -543,7 +543,7 @@ def benchmark_prefix_caching():
         
         # Generate response
         response = []
-        for _ in range(5):  # Generate 5 tokens
+        for _ in range(3):  # Generate 3 tokens
             if state.is_finished():
                 break
             token, state = model.generate_next(state)
@@ -579,7 +579,7 @@ def benchmark_prefix_caching():
         
         # Generate response
         response = []
-        for _ in range(5):  # Generate 5 tokens
+        for _ in range(3):  # Generate 3 tokens
             if state.is_finished():
                 break
             token, state = model.generate_next(state)

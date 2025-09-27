@@ -206,14 +206,14 @@ def benchmark_tensor_operations():
         ("Reduction Sum", lambda x, y: x.sum()),
     ]
     
-    size = 4096
+    size = 1024
     a = torch.randn(size, size, device='cuda')
     b = torch.randn(size, size, device='cuda')
     
     for op_name, op_func in operations:
         try:
             # Warmup
-            for _ in range(5):
+            for _ in range(2):
                 if op_name == "Reduction Sum":
                     _ = op_func(a, b)
                 elif op_name == "Matrix Transpose":
@@ -226,7 +226,7 @@ def benchmark_tensor_operations():
             
             # Benchmark
             with nvtx.range(f"tensor_op_{op_name.lower().replace(' ', '_')}"):
-                for _ in range(50):
+                for _ in range(10):
                     if op_name == "Reduction Sum":
                         result = op_func(a, b)
                     elif op_name == "Matrix Transpose":
@@ -237,7 +237,7 @@ def benchmark_tensor_operations():
             torch.cuda.synchronize()
             end_time = time.time()
             
-            avg_time = (end_time - start_time) / 50
+            avg_time = (end_time - start_time) / 10
             print(f"{op_name:25}: {avg_time:.6f}s")
             
         except Exception as e:
