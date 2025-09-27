@@ -2,8 +2,34 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+
+class ExampleKind(str, Enum):
+    PYTHON = "python"
+    CUDA = "cuda"
+    SHELL = "shell"
+    BINARY = "binary"
+
+
+@dataclass(frozen=True)
+class BuildStep:
+    command: Tuple[str, ...]
+    workdir: Path
+    outputs: Tuple[Path, ...] = ()
+    env: Dict[str, str] = field(default_factory=dict)
+    description: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class SmokeTest:
+    command: Tuple[str, ...]
+    workdir: Path
+    env: Dict[str, str] = field(default_factory=dict)
+    timeout_seconds: Optional[int] = None
+    description: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -23,10 +49,29 @@ class Example:
     allow_cpu_fallback: bool = True
     env: Dict[str, str] = field(default_factory=dict)
     timeout_seconds: Optional[int] = None
+    kind: ExampleKind = ExampleKind.PYTHON
+    source: Optional[Path] = None
+    build_steps: Tuple[BuildStep, ...] = field(default_factory=tuple)
+    smoke_test: Optional[SmokeTest] = None
+    run_command: Optional[Tuple[str, ...]] = None
+    workdir: Optional[Path] = None
 
     def resolved_path(self, repo_root: Optional[Path] = None) -> Path:
         base = repo_root if repo_root is not None else Path.cwd()
         return (base / self.path).resolve()
+
+    def resolved_source(self, repo_root: Optional[Path] = None) -> Path:
+        source_path = self.source if self.source is not None else self.path
+        base = repo_root if repo_root is not None else Path.cwd()
+        return (base / source_path).resolve()
+
+    def resolved_workdir(self, repo_root: Optional[Path] = None) -> Path:
+        if self.workdir is not None:
+            base = repo_root if repo_root is not None else Path.cwd()
+            return (base / self.workdir).resolve()
+        if self.kind is ExampleKind.CUDA and self.source is not None:
+            return self.resolved_source(repo_root).parent
+        return self.resolved_path(repo_root).parent
 
 
 def _example(
@@ -44,6 +89,12 @@ def _example(
     allow_cpu_fallback: bool = True,
     env: Optional[Dict[str, str]] = None,
     timeout_seconds: Optional[int] = None,
+    kind: ExampleKind = ExampleKind.PYTHON,
+    source: Optional[str] = None,
+    build_steps: Optional[Sequence[BuildStep]] = None,
+    smoke_test: Optional[SmokeTest] = None,
+    run_command: Optional[Sequence[str]] = None,
+    workdir: Optional[str] = None,
 ) -> Example:
     return Example(
         name=name,
@@ -59,7 +110,92 @@ def _example(
         allow_cpu_fallback=allow_cpu_fallback,
         env=dict(env or {}),
         timeout_seconds=timeout_seconds,
+        kind=ExampleKind(kind.value if isinstance(kind, ExampleKind) else kind),
+        source=Path(source) if source else None,
+        build_steps=tuple(build_steps or ()),
+        smoke_test=smoke_test,
+        run_command=tuple(run_command) if run_command else None,
+        workdir=Path(workdir) if workdir else None,
     )
+
+
+def _format_chapter_tag(chapter: str) -> str:
+    if chapter.startswith("ch"):
+        suffix = chapter[2:]
+        if suffix.isdigit():
+            return f"ch{int(suffix):02d}"
+    return chapter
+
+
+def _discover_cuda_examples(existing_names: Optional[Iterable[str]] = None) -> List[Example]:
+    repo_root = Path(__file__).resolve().parents[2]
+    code_root = repo_root / "code"
+    existing = set(existing_names or [])
+    discovered: List[Example] = []
+
+    if not code_root.exists():
+        return discovered
+
+    for cu_path in sorted(code_root.glob("ch*/**/*.cu")):
+        chapter_dir = cu_path.parent
+        chapter = chapter_dir.relative_to(code_root).parts[0]
+        chapter_tag = _format_chapter_tag(chapter)
+
+        rel_source = cu_path.relative_to(repo_root)
+        rel_to_code = cu_path.relative_to(code_root)
+        name = "_".join(rel_to_code.with_suffix("").parts)
+        if name in existing:
+            continue
+
+        binary_rel = Path("build") / rel_to_code.with_suffix("")
+        build_step = BuildStep(
+            command=(
+                "nvcc",
+                "-O3",
+                "-std=c++17",
+                "-arch=sm_100",
+                "--expt-relaxed-constexpr",
+                "-o",
+                str(binary_rel),
+                str(rel_source),
+            ),
+            workdir=repo_root,
+            outputs=(binary_rel,),
+            description="Compile CUDA example for profiling",
+        )
+
+        smoke = SmokeTest(
+            command=(str(binary_rel),),
+            workdir=repo_root,
+            description="Run compiled CUDA binary",
+        )
+
+        discovered.append(
+            Example(
+                name=name,
+                path=binary_rel,
+                description=f"CUDA example {rel_to_code.name} ({chapter_tag})",
+                default_args=[],
+                tags=sorted({chapter_tag, "cuda"}),
+                requires_modules=[],
+                optional_modules=[],
+                requires_commands=["nvcc"],
+                requires_cuda=True,
+                min_cuda_gpus=1,
+                allow_cpu_fallback=False,
+                env={},
+                timeout_seconds=300,
+                kind=ExampleKind.CUDA,
+                source=rel_source,
+                build_steps=(build_step,),
+                smoke_test=smoke,
+                run_command=None,
+                workdir=None,
+            )
+        )
+        existing.add(name)
+
+    return discovered
 
 
 EXAMPLES: List[Example] = [
@@ -434,6 +570,9 @@ EXAMPLES: List[Example] = [
         timeout_seconds=1200,
     ),
 ]
+
+
+EXAMPLES.extend(_discover_cuda_examples(example.name for example in EXAMPLES))
 
 
 EXAMPLE_BY_NAME = {example.name: example for example in EXAMPLES}

@@ -11,19 +11,28 @@ This guide covers the latest profiling tools and best practices for:
 
 All chapter examples share a common manifest in `code/profiler_scripts/example_registry.py` and can be profiled through the unified harness.
 
+### Inventory and preparation
+- `python code/tools/generate_example_inventory.py --output profiles/example_inventory.json` produces a chapter-by-chapter catalogue of CUDA, Python, and shell artefacts along with chapter requirements.
+- CUDA sources are compiled automatically into `build/chXX/<name>` before profiling. The harness checks timestamps and skips redundant builds unless `--force-build` is supplied.
+- Every example runs a smoke test (or `--skip-smoke` bypass) so Nsight only launches once the workload is verified.
+
 ### Quick start
 - `python code/profiler_scripts/profile_harness.py --list` shows every registered example with tags.
-- `python code/profiler_scripts/profile_harness.py --profile all` captures Nsight Systems, Nsight Compute, and torch.profiler traces for every example.
-- Wrapper scripts are available: `code/profiler_scripts/run_all_nsys.sh`, `code/profiler_scripts/run_all_ncu.sh`, and `code/profiler_scripts/run_all_pytorch.sh`.
+- `python code/profiler_scripts/master_profile.py ch10_warp_specialized_pipeline --profile nsys ncu` compiles the CUDA kernel, runs its smoke test, and captures Nsight traces.
+- `python code/profiler_scripts/profile_harness.py --profile all` captures Nsight Systems, Nsight Compute, and torch.profiler traces for every registered example.
+- Wrapper scripts are available: `code/profiler_scripts/run_all_nsys.sh`, `code/profiler_scripts/run_all_ncu.sh`, `code/profiler_scripts/run_all_pytorch.sh`, and the convenience launcher `code/profiler_scripts/master_profile.sh` (shell wrapper around the Python entry point).
 - `./clean_profiles.sh` removes accumulated artefacts under `profiles/` when you want a fresh run.
 
 ### Filters and configuration
 - `--examples` and `--tags` allow targeting subsets, e.g. `--tags ch14 compiler`.
-- `--profile` accepts `nsys`, `ncu`, `pytorch`, or `all` (default).
+- Positional arguments to `master_profile.py` (example names or source paths) are resolved automatically and merged into the `--examples` list.
+- `--profile` accepts `nsys`, `ncu`, `pytorch`, or `all` (default). Multiple comma-separated values are supported.
 - PyTorch runs support multiple modes via repeated `--profile-mode` flags (e.g. `--profile-mode full --profile-mode memory`).
 - `--skip-existing` reuses previous outputs, while `--dry-run` prints commands without executing.
+- `--force-build` recompiles binaries even when up-to-date; `--skip-smoke` disables the preflight run for advanced scenarios.
 
 ### Outputs
+- Build logs and smoke-test output are written to `profiles/<timestamp>/prep/<example>/` so failures are visible before profiler runs.
 - Results are organised under `profiles/<timestamp>/<profiler>/<example>/` with per-run `stdout.log`, `stderr.log`, `command.json`, and profiler artefacts.
 - A session-wide `summary.json` consolidates exit codes, durations, and skip reasons.
 - Use `./clean_profiles.sh` to prune the directory once runs are complete.

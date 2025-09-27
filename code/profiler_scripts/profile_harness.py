@@ -12,7 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from example_registry import EXAMPLE_BY_NAME, EXAMPLES, Example
+from example_registry import (
+    EXAMPLE_BY_NAME,
+    EXAMPLES,
+    BuildStep,
+    Example,
+    ExampleKind,
+    SmokeTest,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON = sys.executable
@@ -32,6 +39,220 @@ class RunResult:
     skipped: bool
     skip_reason: Optional[str] = None
 
+
+def example_run_command(example: Example, repo_root: Path) -> List[str]:
+    if example.run_command:
+        base_command = list(example.run_command)
+    elif example.kind is ExampleKind.PYTHON:
+        base_command = [sys.executable, str(example.resolved_path(repo_root))]
+    elif example.kind is ExampleKind.CUDA:
+        base_command = [str(example.resolved_path(repo_root))]
+    elif example.kind is ExampleKind.SHELL:
+        base_command = ["bash", str(example.resolved_path(repo_root))]
+    else:
+        base_command = [str(example.resolved_path(repo_root))]
+
+    return base_command + list(example.default_args)
+
+
+def resolved_build_steps(example: Example, repo_root: Path) -> List[BuildStep]:
+    if example.build_steps:
+        return list(example.build_steps)
+
+    if example.kind is ExampleKind.PYTHON:
+        return [
+            BuildStep(
+                command=(
+                    sys.executable,
+                    "-m",
+                    "py_compile",
+                    str(example.resolved_source(repo_root)),
+                ),
+                workdir=repo_root,
+                description="Python syntax check",
+            )
+        ]
+
+    return []
+
+
+def should_run_build_step(
+    example: Example,
+    step: BuildStep,
+    repo_root: Path,
+    force_build: bool,
+) -> bool:
+    if force_build:
+        return True
+    if not step.outputs:
+        return True
+
+    outputs = [(repo_root / output).resolve() for output in step.outputs]
+    if any(not output.exists() for output in outputs):
+        return True
+
+    try:
+        source_mtime = example.resolved_source(repo_root).stat().st_mtime
+    except FileNotFoundError:
+        return False
+
+    for output in outputs:
+        try:
+            if output.stat().st_mtime < source_mtime:
+                return True
+        except FileNotFoundError:
+            return True
+
+    return False
+
+
+def preparation_output_dir(session_dir: Path, example: Example, category: str) -> Path:
+    return session_dir / "prep" / example.name / category
+
+
+def execute_build_step(
+    example: Example,
+    step: BuildStep,
+    session_dir: Path,
+    repo_root: Path,
+    description: str,
+    context: argparse.Namespace,
+    force_build: bool,
+) -> RunResult:
+    idx = description
+    out_dir = preparation_output_dir(session_dir, example, idx)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    stdout_path = out_dir / "stdout.log"
+    stderr_path = out_dir / "stderr.log"
+
+    for output in step.outputs:
+        (repo_root / output).parent.mkdir(parents=True, exist_ok=True)
+
+    env = base_env(example)
+    env.update(step.env)
+
+    should_run = should_run_build_step(example, step, repo_root, force_build)
+    if not should_run:
+        return RunResult(
+            profiler="build",
+            example=example,
+            command=list(step.command),
+            output_dir=out_dir,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            duration=0.0,
+            exit_code=0,
+            skipped=True,
+            skip_reason="up-to-date",
+        )
+
+    exit_code, duration = run_command(
+        list(step.command),
+        cwd=step.workdir,
+        env=env,
+        timeout=DEFAULT_TIMEOUT,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        dry_run=context.dry_run,
+    )
+
+    return RunResult(
+        profiler="build",
+        example=example,
+        command=list(step.command),
+        output_dir=out_dir,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        duration=duration,
+        exit_code=exit_code,
+        skipped=context.dry_run,
+        skip_reason="dry-run" if context.dry_run else None,
+    )
+
+
+def prepare_example(
+    example: Example,
+    session_dir: Path,
+    repo_root: Path,
+    context: argparse.Namespace,
+) -> Tuple[List[RunResult], bool]:
+    build_steps = resolved_build_steps(example, repo_root)
+    results: List[RunResult] = []
+
+    for index, step in enumerate(build_steps, start=1):
+        label = f"build_{index:02d}"
+        result = execute_build_step(
+            example,
+            step,
+            session_dir,
+            repo_root,
+            label,
+            context,
+            force_build=context.force_build,
+        )
+        results.append(result)
+        if not result.skipped and result.exit_code != 0:
+            break
+
+    success = all(r.skipped or r.exit_code == 0 for r in results)
+    return results, success
+
+
+def resolved_smoke_test(example: Example, repo_root: Path) -> SmokeTest:
+    if example.smoke_test is not None:
+        return example.smoke_test
+
+    command = tuple(example_run_command(example, repo_root))
+    workdir = example.resolved_workdir(repo_root)
+    return SmokeTest(
+        command=command,
+        workdir=workdir,
+        env={"APE_SMOKE_TEST": "1"},
+        timeout_seconds=min(example.timeout_seconds or DEFAULT_TIMEOUT, 120),
+        description="Auto smoke test",
+    )
+
+
+def run_smoke_test(
+    example: Example,
+    session_dir: Path,
+    repo_root: Path,
+    context: argparse.Namespace,
+) -> RunResult:
+    smoke = resolved_smoke_test(example, repo_root)
+    out_dir = preparation_output_dir(session_dir, example, "smoke")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = out_dir / "stdout.log"
+    stderr_path = out_dir / "stderr.log"
+
+    env = base_env(example)
+    env.update(smoke.env)
+
+    timeout = smoke.timeout_seconds or min(example.timeout_seconds or DEFAULT_TIMEOUT, 300)
+
+    exit_code, duration = run_command(
+        list(smoke.command),
+        cwd=smoke.workdir,
+        env=env,
+        timeout=timeout,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        dry_run=context.dry_run,
+    )
+
+    return RunResult(
+        profiler="smoke",
+        example=example,
+        command=list(smoke.command),
+        output_dir=out_dir,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        duration=duration,
+        exit_code=exit_code,
+        skipped=context.dry_run,
+        skip_reason="dry-run" if context.dry_run else None,
+    )
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Profiling harness for all chapter examples")
@@ -84,6 +305,16 @@ def parse_args() -> argparse.Namespace:
         "--list",
         action="store_true",
         help="List available examples and exit",
+    )
+    parser.add_argument(
+        "--force-build",
+        action="store_true",
+        help="Force rebuild of all examples before profiling",
+    )
+    parser.add_argument(
+        "--skip-smoke",
+        action="store_true",
+        help="Skip smoke tests before profiling",
     )
     return parser.parse_args()
 
@@ -238,6 +469,7 @@ def profiler_output_dir(session_dir: Path, profiler: str, example: Example) -> P
 def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, timeout: int) -> RunResult:
     out_dir = profiler_output_dir(session_dir, "nsys", example)
     out_base = out_dir / f"nsys_{example.name}"
+    target_command = example_run_command(example, REPO_ROOT)
     command = [
         "nsys",
         "profile",
@@ -252,17 +484,15 @@ def run_nsys(example: Example, session_dir: Path, context: argparse.Namespace, t
         "--python-sampling-frequency=1000",
         "--cudabacktrace=true",
         "--stats=true",
-        "python",
-        str(example.resolved_path(REPO_ROOT)),
-        *example.default_args,
     ]
+    command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
     stderr_path = out_dir / "stderr.log"
 
     exit_code, duration = run_command(
         command,
-        cwd=REPO_ROOT,
+        cwd=example.resolved_workdir(REPO_ROOT),
         env=base_env(example),
         timeout=timeout,
         stdout_path=stdout_path,
@@ -289,23 +519,22 @@ def run_ncu(example: Example, session_dir: Path, context: argparse.Namespace, ti
     out_dir = profiler_output_dir(session_dir, "ncu", example)
     out_base = out_dir / f"ncu_{example.name}"
     _terminate_lingering_nsys()
+    target_command = example_run_command(example, REPO_ROOT)
     command = [
         "ncu",
         "--set",
         "full",
         "-o",
         str(out_base),
-        "python",
-        str(example.resolved_path(REPO_ROOT)),
-        *example.default_args,
     ]
+    command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
     stderr_path = out_dir / "stderr.log"
 
     exit_code, duration = run_command(
         command,
-        cwd=REPO_ROOT,
+        cwd=example.resolved_workdir(REPO_ROOT),
         env=base_env(example),
         timeout=timeout,
         stdout_path=stdout_path,
@@ -358,7 +587,7 @@ def run_pytorch_profiler(
 
         exit_code, duration = run_command(
             command,
-            cwd=REPO_ROOT,
+            cwd=example.resolved_workdir(REPO_ROOT),
             env=base_env(example),
             timeout=timeout,
             stdout_path=stdout_path,
@@ -429,8 +658,41 @@ def main() -> None:
 
     for example in selected:
         timeout = example.timeout_seconds or DEFAULT_TIMEOUT
+
+        build_results, build_ok = prepare_example(example, session_dir, REPO_ROOT, args)
+        all_results.extend(build_results)
+        if not build_ok:
+            print(f"[skip] {example.name} -> build failed")
+            continue
+
+        if args.skip_smoke:
+            smoke_dir = preparation_output_dir(session_dir, example, "smoke")
+            smoke_dir.mkdir(parents=True, exist_ok=True)
+            all_results.append(
+                RunResult(
+                    profiler="smoke",
+                    example=example,
+                    command=[],
+                    output_dir=smoke_dir,
+                    stdout_path=smoke_dir / "stdout.log",
+                    stderr_path=smoke_dir / "stderr.log",
+                    duration=0.0,
+                    exit_code=0,
+                    skipped=True,
+                    skip_reason="user-skip",
+                )
+            )
+        else:
+            smoke_result = run_smoke_test(example, session_dir, REPO_ROOT, args)
+            all_results.append(smoke_result)
+            if not smoke_result.skipped and smoke_result.exit_code != 0:
+                print(f"[skip] {example.name} -> smoke test failed")
+                continue
+
         for profiler in profilers:
             if profiler == "pytorch":
+                if example.kind is not ExampleKind.PYTHON:
+                    continue
                 modes_to_run: List[str] = []
                 for mode in pytorch_modes:
                     out_dir = profiler_output_dir(session_dir, f"pytorch_{mode}", example)
