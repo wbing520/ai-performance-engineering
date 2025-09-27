@@ -413,7 +413,7 @@ class SimpleTransformerModel:
         return next_token, state
 
 def generate_with_radix(prompt_tokens: List[int], model: SimpleTransformerModel, 
-                       radix: RadixTree) -> List[int]:
+                       radix: RadixTree, max_generated_tokens: int = 6) -> List[int]:
     """
     Generate tokens using RadixAttention prefix caching.
     
@@ -442,7 +442,7 @@ def generate_with_radix(prompt_tokens: List[int], model: SimpleTransformerModel,
     
     # 4) Now generate new tokens autoregressively
     output_tokens = []
-    while not model_state.is_finished():
+    while not model_state.is_finished() and len(output_tokens) < max_generated_tokens:
         token, model_state = model.generate_next(model_state)
         output_tokens.append(token)
         
@@ -475,7 +475,7 @@ def simulate_multi_turn_conversation():
     
     # Turn 1: User says "Hello"
     prompt1 = system_prompt + [10, 11]  # + "Hello"
-    response1 = generate_with_radix(prompt1, model, radix)
+        response1 = generate_with_radix(prompt1, model, radix)
     
     # Turn 2: Continue conversation
     prompt2 = prompt1 + response1 + [12, 13]  # + "How are you?"
