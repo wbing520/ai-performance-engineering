@@ -70,23 +70,16 @@ nsys profile \
     --capture-range-op=both \
     --multi-gpu=all \
     --duration=$PROFILE_DURATION \
-    python "../$SCRIPT_NAME" &
-NSYS_PID=$!
+    python "../$SCRIPT_NAME"
 
 # 2. Nsight Compute Kernel Analysis (Enhanced metrics)
 echo "2. Running Nsight Compute kernel analysis..."
 ncu \
-    --mode=launch \
-    --target-processes=python3 \
     --set full \
     --kernel-name regex:.* \
-    --sampling-interval 1 \
-    --sampling-max-passes 5 \
-    --sampling-period 1000000 \
     --metrics achieved_occupancy,warp_execution_efficiency,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram_read_throughput,dram_write_throughput,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed,sm__cycles_elapsed.avg.pct_of_peak_sustained_elapsed \
     -o "ncu_kernel_${ARCH}" \
-    python "../$SCRIPT_NAME" &
-NCU_PID=$!
+    python "../$SCRIPT_NAME"
 
 # 3. Memory Profiling (Enhanced for HBM3/HBM3e)
 echo "3. Running memory profiling..."
@@ -98,8 +91,7 @@ nsys profile \
     --capture-range=cudaProfilerApi \
     --capture-range-end=stop \
     --capture-range-op=both \
-    python "../$SCRIPT_NAME" &
-MEMORY_PID=$!
+    python "../$SCRIPT_NAME"
 
 # 4. HTA (Holistic Tracing Analysis) - Enhanced for multi-GPU
 echo "4. Running HTA analysis..."
@@ -119,24 +111,20 @@ nsys profile \
     --capture-range-op=both \
     --multi-gpu=all \
     --duration=$PROFILE_DURATION \
-    python "../$SCRIPT_NAME" &
-HTA_PID=$!
+    python "../$SCRIPT_NAME"
 
 # 5. Perf System-Level Analysis (Enhanced)
 echo "5. Running Perf system-level analysis..."
 perf record \
     -g \
-    -p $(pgrep python) \
-    -o "perf_system_${ARCH}" \
+    -o "perf_system_${ARCH}.data" \
     --call-graph=dwarf \
     --freq=1000 \
-    -- sleep $PROFILE_DURATION &
-PERF_PID=$!
+    "$PYTHON_BIN" "../$SCRIPT_NAME"
 
 # 6. GPU Metrics Monitoring (Enhanced)
 echo "6. Monitoring GPU metrics..."
-nvidia-smi dmon -s pucvmet -d 1 -o T > "gpu_metrics_${ARCH}.log" &
-GPU_MONITOR_PID=$!
+timeout "$PROFILE_DURATION" nvidia-smi dmon -s pucvmet -d 1 -o T > "gpu_metrics_${ARCH}.log" || true
 
 # 7. PyTorch Profiler (Enhanced for 2.8)
 echo "7. Running PyTorch profiler..."
@@ -179,8 +167,7 @@ with open('pytorch_summary_${ARCH}.txt', 'w') as f:
     f.write('PyTorch Profiler Summary\n')
     f.write('='*40 + '\n')
     f.write(prof.key_averages().table(sort_by='cuda_time_total', row_limit=20))
-" &
-PYTORCH_PID=$!
+"
 
 # 8. Triton Profiler (if available)
 echo "8. Running Triton profiler..."
@@ -197,14 +184,7 @@ try:
     subprocess.run([sys.executable, '../$SCRIPT_NAME'], timeout=$PROFILE_DURATION)
 except ImportError:
     print('Triton not available')
-" &
-TRITON_PID=$!
-
-# Wait for all profiling to complete
-echo "Waiting for profiling to complete..."
-wait $NSYS_PID $NCU_PID $MEMORY_PID $HTA_PID $PERF_PID $PYTORCH_PID
-kill $GPU_MONITOR_PID 2>/dev/null || true
-kill $TRITON_PID 2>/dev/null || true
+"
 
 # Generate comprehensive report
 echo "Generating comprehensive report..."

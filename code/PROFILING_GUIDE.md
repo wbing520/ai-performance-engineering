@@ -74,13 +74,8 @@ bash profiler_scripts/ncu_profile.sh your_script.py
 
 # Advanced profiling
 ncu \
-  --mode=launch \
-  --target-processes=python3 \
   --set full \
   --kernel-name regex:.* \
-  --sampling-interval 1 \
-  --sampling-max-passes 5 \
-  --sampling-period 1000000 \
   -o ncu_report \
   python your_script.py
 ```
@@ -322,7 +317,7 @@ def run_profiling(script_path):
     
     # Run Nsight Compute
     subprocess.run([
-        "ncu", "--mode=launch", "--target-processes=python3",
+        "ncu", "--set", "full",
         "--set", "full", "-o", "ncu_report", "python", script_path
     ])
     

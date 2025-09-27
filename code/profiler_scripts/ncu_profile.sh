@@ -22,13 +22,8 @@ fi
 echo "Nsight Compute profiling for $SCRIPT_NAME (Architecture: $ARCH)"
 
 ncu \
-    --mode=launch \
-    --target-processes=python3 \
     --set full \
     --clock-control none \
     --kernel-name regex:.* \
-    --sampling-interval 1 \
-    --sampling-max-passes 5 \
-    --sampling-period 1000000 \
     -o "ncu_profile_${ARCH}_$(date +%Y%m%d_%H%M%S)" \
     python "$SCRIPT_NAME"
