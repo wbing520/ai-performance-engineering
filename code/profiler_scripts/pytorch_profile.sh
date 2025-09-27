@@ -260,9 +260,9 @@ cat > "pytorch_report_${ARCH}.md" << EOF
 - **Architecture**: $ARCH
 - **Profile Mode**: $PROFILE_MODE
 - **Timestamp**: $TIMESTAMP
-- **PyTorch**: 2.8
-- **CUDA**: 12.8
-- **Triton**: 3.3
+- **PyTorch**: 2.9
+- **CUDA**: 12.9
+- **Triton**: 3.4
 
 ## Architecture Details
 EOF
