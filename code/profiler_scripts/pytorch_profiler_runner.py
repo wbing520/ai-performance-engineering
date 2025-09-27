@@ -159,28 +159,31 @@ def run_profiler(script: Path, output_dir: Path, mode: str, script_args: Optiona
         (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
         if 'prof' in locals() and getattr(prof, "profiler", None) is not None:
-            trace_path = output_dir / f"chrome_trace_{mode}.json"
-            prof.export_chrome_trace(str(trace_path))
-
-            summary_path = output_dir / f"summary_{mode}.txt"
-            parts: List[str] = []
-            parts.append("Top operators by CUDA time\n")
             try:
-                parts.append(prof.key_averages().table(sort_by="cuda_time_total", row_limit=25))
-            except Exception:
-                parts.append("CUDA metrics unavailable\n")
-            parts.append("\nTop operators by CPU time\n")
-            parts.append(prof.key_averages().table(sort_by="cpu_time_total", row_limit=25))
-            if profiler_kwargs.get("profile_memory"):
-                parts.append("\nTop operators by CPU memory usage\n")
-                parts.append(prof.key_averages().table(sort_by="cpu_memory_usage", row_limit=25))
-            if profiler_kwargs.get("with_flops"):
-                parts.append("\nTop operators by FLOPs\n")
+                trace_path = output_dir / f"chrome_trace_{mode}.json"
+                prof.export_chrome_trace(str(trace_path))
+
+                summary_path = output_dir / f"summary_{mode}.txt"
+                parts: List[str] = []
+                parts.append("Top operators by CUDA time\n")
                 try:
-                    parts.append(prof.key_averages().table(sort_by="flops", row_limit=25))
+                    parts.append(prof.key_averages().table(sort_by="cuda_time_total", row_limit=25))
                 except Exception:
-                    parts.append("FLOP metrics unavailable\n")
-            summary_path.write_text("\n".join(parts))
+                    parts.append("CUDA metrics unavailable\n")
+                parts.append("\nTop operators by CPU time\n")
+                parts.append(prof.key_averages().table(sort_by="cpu_time_total", row_limit=25))
+                if profiler_kwargs.get("profile_memory"):
+                    parts.append("\nTop operators by CPU memory usage\n")
+                    parts.append(prof.key_averages().table(sort_by="cpu_memory_usage", row_limit=25))
+                if profiler_kwargs.get("with_flops"):
+                    parts.append("\nTop operators by FLOPs\n")
+                    try:
+                        parts.append(prof.key_averages().table(sort_by="flops", row_limit=25))
+                    except Exception:
+                        parts.append("FLOP metrics unavailable\n")
+                summary_path.write_text("\n".join(parts))
+            except AttributeError:
+                pass
 
 
 def main() -> None:

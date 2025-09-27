@@ -475,7 +475,7 @@ def simulate_multi_turn_conversation():
     
     # Turn 1: User says "Hello"
     prompt1 = system_prompt + [10, 11]  # + "Hello"
-        response1 = generate_with_radix(prompt1, model, radix)
+    response1 = generate_with_radix(prompt1, model, radix)
     
     # Turn 2: Continue conversation
     prompt2 = prompt1 + response1 + [12, 13]  # + "How are you?"
