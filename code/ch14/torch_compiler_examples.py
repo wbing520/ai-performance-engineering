@@ -100,7 +100,7 @@ def model_with_torch_where(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 class SimpleModel(torch.nn.Module):
     """
     Simple model for demonstrating torch.compile optimizations.
-    Updated for PyTorch 2.8 nightly features.
+    Updated for PyTorch 2.9 nightly features.
     """
     def __init__(self, input_size=256, hidden_size=256, output_size=10):  # compact to keep profiling under a few seconds
         super().__init__()
@@ -119,7 +119,7 @@ class SimpleModel(torch.nn.Module):
 
 def configure_blackwell_optimizations():
     """
-    Configure PyTorch 2.8 nightly optimizations for Blackwell B200/B300.
+    Configure PyTorch 2.9 nightly optimizations for Blackwell B200/B300.
     """
     if torch.cuda.is_available():
         # Enable Blackwell B200/B300 specific optimizations (only if they exist)
@@ -146,7 +146,7 @@ def configure_blackwell_optimizations():
 
 def benchmark_compilation_modes():
     """
-    Benchmark different torch.compile modes with PyTorch 2.8 nightly features.
+    Benchmark different torch.compile modes with PyTorch 2.9 nightly features.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -193,7 +193,7 @@ def benchmark_compilation_modes():
         # Benchmark with enhanced timing and profiling
         start_time = time.time()
         
-        # Enhanced profiler configuration for PyTorch 2.8
+        # Enhanced profiler configuration for PyTorch 2.9
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             record_shapes=True,
@@ -291,7 +291,7 @@ def analyze_graph_breaks():
 
 def dynamic_shape_example():
     """
-    Example showing dynamic shape handling with PyTorch 2.8 enhancements.
+    Example showing dynamic shape handling with PyTorch 2.9 enhancements.
     """
     def dynamic_model(x):
         # This creates dynamic shapes based on input
@@ -353,7 +353,7 @@ def custom_operator_example():
 def memory_efficient_compilation():
     """
     Example showing memory-efficient patterns with torch.compile.
-    Updated for PyTorch 2.8 memory optimizations.
+    Updated for PyTorch 2.9 memory optimizations.
     """
     class MemoryEfficientModel(torch.nn.Module):
         def __init__(self):
@@ -428,11 +428,11 @@ def demonstrate_blackwell_features():
             print("• Stream-ordered Memory Allocation")
         else:
             print("• Standard CUDA Architecture")
-            print("• Compatible with PyTorch 2.8 optimizations")
+            print("• Compatible with PyTorch 2.9 optimizations")
 
 def enhanced_profiling_example():
     """
-    Demonstrate enhanced profiling with PyTorch 2.8 nightly features.
+    Demonstrate enhanced profiling with PyTorch 2.9 nightly features.
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SimpleModel().to(device)
@@ -504,9 +504,9 @@ def system_monitoring():
 
 def main():
     """
-    Run all torch.compile examples with PyTorch 2.8 nightly features.
+    Run all torch.compile examples with PyTorch 2.9 nightly features.
     """
-    print("PyTorch 2.8 Compiler Examples (Blackwell B200/B300 Optimized)")
+    print("PyTorch 2.9 Compiler Examples (Blackwell B200/B300 Optimized)")
     print("=" * 60)
     
     print("\n1. Analyzing Graph Breaks:")

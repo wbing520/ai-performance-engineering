@@ -52,7 +52,7 @@ This chapter introduces GPU architecture fundamentals and CUDA programming patte
 
 ## Requirements
 
-- CUDA 12.8+
+- CUDA 12.9+
 - NVIDIA GPU with compute capability 5.0+
 - For optimal performance: Blackwell B200/B300 (SM100)
 

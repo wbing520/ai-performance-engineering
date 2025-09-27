@@ -1,6 +1,6 @@
 # Overview – Blackwell-Only Stack
 
-This repository now targets a single architecture: **NVIDIA Blackwell B200/B300 (SM100)**. Every script, kernel, and document assumes CUDA 12.8, PyTorch 2.8, and Triton 3.3. Legacy compute capability 9.x support has been removed to keep the code base lean and focused.
+This repository now targets a single architecture: **NVIDIA Blackwell B200/B300 (SM100)**. Every script, kernel, and document assumes CUDA 12.9, PyTorch 2.9 nightlies, and Triton 3.4. Legacy compute capability 9.x support has been removed to keep the code base lean and focused.
 
 ## Core Components
 - **Architecture configuration** lives in `arch_config.py` and always resolves to Blackwell.
@@ -10,9 +10,9 @@ This repository now targets a single architecture: **NVIDIA Blackwell B200/B300 
 ## Toolchain Expectations
 | Component | Version / Channel | Notes |
 |-----------|------------------|-------|
-| CUDA Toolkit | 12.8 (nvcc 12.8.93) | `nvcc -arch=sm_100` is the default everywhere. |
-| PyTorch | 2.8.0 (cu128 nightly) | Install from `https://download.pytorch.org/whl/nightly/cu128`. |
-| Triton | 3.3.1 | Required for Triton kernels in Chapters 14 & 16. |
+| CUDA Toolkit | 12.9 (nvcc 12.9.x) | `nvcc -arch=sm_100` is the default everywhere. |
+| PyTorch | 2.9.0 (cu129 nightly) | Install from `https://download.pytorch.org/whl/nightly/cu129`. |
+| Triton | 3.4.0 | Required for Triton kernels in Chapters 14 & 16. |
 | Nsight Systems | 2024.6+ | Used in profiling scripts. |
 | Nsight Compute | 2024.3+ | Kernel-level analysis. |
 
@@ -45,10 +45,10 @@ cd code
 ## ✅ What Was Removed
 - Automatic architecture detection / switching scripts.
 - Blackwell-specific optimisations, banners, and dual-path Makefiles.
-- Legacy requirements that referenced CUDA 12.9 or Triton 3.4 pins.
+- Legacy requirements that referenced CUDA 12.8 or Triton 3.3 pins.
 
 ## Next Steps
-1. Ensure CUDA drivers/toolkits for 12.8 are installed on the target Blackwell system.
+1. Ensure CUDA drivers/toolkits for 12.9 are installed on the target Blackwell system.
 2. Run `./build_all.sh` to prime the toolchain.
 3. Execute chapter-specific workflows (e.g., `python ch16/radix_attention_example.py`).
 4. Use the profiler scripts to capture Nsight/System/perf traces as needed.

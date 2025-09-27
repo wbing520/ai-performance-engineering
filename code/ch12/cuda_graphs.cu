@@ -1,4 +1,4 @@
-// Architecture-specific optimizations for CUDA 12.8
+// Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
 // cuda_graphs.cu
 // CUDA Graphs examples for reducing kernel launch overhead
@@ -311,12 +311,12 @@ void demonstrateConditionalGraphs() {
         cudaGraph_t graph;
         cudaGraphCreate(&graph, 0);
         
-        // Note: Conditional graph handles are not supported in CUDA 12.8
+        // Note: Conditional graph handles are not supported in CUDA 12.9
         // cudaGraphConditionalHandle condHandle;
         // cudaGraphConditionalHandleCreate(&condHandle, graph, 0);
         
         // Add condition setter kernel
-        // Note: Conditional graph functionality not supported in CUDA 12.8
+        // Note: Conditional graph functionality not supported in CUDA 12.9
         // cudaGraphNode_t setNode;
         // cudaKernelNodeParams setParams = {};
         // setParams.func = (void*)setCondition;
@@ -341,9 +341,9 @@ void demonstrateConditionalGraphs() {
         
         cudaGraphAddKernelNode(&bodyNode, bodyGraph, nullptr, 0, &bodyParams);
         
-        // Note: Conditional graph nodes are not supported in CUDA 12.8
+        // Note: Conditional graph nodes are not supported in CUDA 12.9
         // This is a placeholder for future CUDA versions
-        printf("Conditional graph nodes not supported in CUDA 12.8\n");
+        printf("Conditional graph nodes not supported in CUDA 12.9\n");
         
         // Execute the conditional graph
         cudaGraphExec_t graphExec;

@@ -2,9 +2,9 @@
 
 ## Overview
 This guide covers the latest profiling tools and best practices for:
-- **CUDA 12.8**
-- **PyTorch 2.8**
-- **OpenAI Triton 3.3**
+- **CUDA 12.9**
+- **PyTorch 2.9**
+- **OpenAI Triton 3.4**
 - **Architecture switching: Blackwell B200/B300 GPUs**
 
 ## Automated Example Harness
@@ -60,7 +60,7 @@ nsys profile \\
 nsys stats --report summary,cuda_api,osrt --format sqlite,csv profile_report -o profile_report
 ```
 
-**Key Features for CUDA 12.8**:
+**Key Features for CUDA 12.9**:
 - Python backtrace sampling
 - CUDA backtrace integration
 - Multi-GPU support
@@ -91,7 +91,7 @@ ncu \\
 - Transformer Engine metrics for Blackwell
 
 ### 3. PyTorch Profiler
-**Latest Version**: PyTorch 2.8 nightly
+**Latest Version**: PyTorch 2.9 nightly
 **Purpose**: Framework-level profiling
 
 ```python
@@ -113,7 +113,7 @@ if getattr(prof, "profiler", None) is not None:
     print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 ```
 
-**Key Features for PyTorch 2.8 nightly**:
+**Key Features for PyTorch 2.9 nightly**:
 - Enhanced memory profiling
 - FLOP counting
 - Module-level analysis
@@ -121,7 +121,7 @@ if getattr(prof, "profiler", None) is not None:
 - Architecture-specific optimizations (Blackwell and Blackwell)
 
 ### 4. Triton Profiler
-**Latest Version**: Triton 3.3
+**Latest Version**: Triton 3.4
 **Purpose**: Kernel generation analysis
 
 ```bash
@@ -134,7 +134,7 @@ export TRITON_PROFILER=1
 export TRITON_PROFILER_OUTPUT=triton_profile.json
 ```
 
-**Key Features for Triton 3.3**:
+**Key Features for Triton 3.4**:
 - Kernel generation analysis
 - Autotuning insights
 - Memory access patterns
@@ -226,14 +226,14 @@ perf report -i perf.data
   - **Stream-ordered Memory**: Use `cudaMallocAsync`/`cudaFreeAsync`
   - **NVLink-C2C**: Direct GPU-to-GPU communication
 
-### 3. PyTorch 2.8 Nightly Optimizations
+### 3. PyTorch 2.9 Nightly Optimizations
 - **torch.compile**: Enable with `mode="max-autotune"`
 - **Dynamic Shapes**: Use `automatic_dynamic_shapes=True`
 - **Memory Profiling**: Enable `profile_memory=True`
 - **NVTX Integration**: Add custom markers
 - **Architecture Optimizations**: Enable architecture-specific features
 
-### 4. Triton 3.3 Features
+### 4. Triton 3.4 Features
 - **Autotuning**: Use `triton.autotune_mode = "max-autotune"`
 - **Kernel Fusion**: Enable kernel combination
 - **Memory Coalescing**: Optimize memory access patterns
@@ -252,11 +252,11 @@ perf report -i perf.data
 7. **TMA Efficiency**: Tensor Memory Accelerator usage
 
 ### Expected Performance
-- **CUDA 12.8**: 10-15% improvement over CUDA 12.4
+- **CUDA 12.9**: 10-15% improvement over CUDA 12.4
 - **Blackwell H200**: 20-30% improvement over H100
 - **Blackwell B200/B300**: 30-50% improvement over H100
-- **PyTorch 2.8 nightly**: 20-30% improvement over stable releases
-- **Triton 3.3**: 15-20% improvement in kernel generation
+- **PyTorch 2.9 nightly**: 20-30% improvement over stable releases
+- **Triton 3.4**: 15-20% improvement in kernel generation
 
 ## Troubleshooting
 
@@ -325,4 +325,4 @@ def run_profiling(script_path):
 
 ## Conclusion
 
-This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.8, PyTorch 2.8, and Triton 3.3 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.
+This profiling setup provides comprehensive analysis capabilities for the latest CUDA 12.9, PyTorch 2.9, and Triton 3.4 stack, with specific optimizations for Blackwell B200/B300 GPUs. Use these tools in combination to achieve maximum performance and identify optimization opportunities.

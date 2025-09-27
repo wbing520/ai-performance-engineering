@@ -38,7 +38,7 @@ class ArchitectureConfig:
                 "NVLink-C2C communication"
             ],
             "triton_features": [
-                "Triton 3.3 Blackwell optimisations",
+                "Triton 3.4 Blackwell optimisations",
                 "HBM3e access patterns",
                 "TMA intrinsic support",
                 "Stream-ordered memory",

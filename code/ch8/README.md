@@ -56,6 +56,6 @@ python -c "import torch; torch.profiler.profile(...)"
 
 ## Requirements
 
-- CUDA 12.8+
-- PyTorch 2.8+
+- CUDA 12.9+
+- PyTorch 2.9+
 - Nsight Compute/Systems for profiling

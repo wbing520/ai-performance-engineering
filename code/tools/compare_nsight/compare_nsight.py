@@ -544,7 +544,7 @@ if torch.cuda.is_available():
         torch._inductor.config.triton.hbm3e_optimizations = True
         torch._inductor.config.triton.tma_support = True
     
-    # Enable latest PyTorch 2.8 features
+    # Enable latest PyTorch 2.9 features
     torch._inductor.config.triton.unique_kernel_names = True
     torch._inductor.config.triton.autotune_mode = "max-autotune"
     torch._dynamo.config.automatic_dynamic_shapes = True

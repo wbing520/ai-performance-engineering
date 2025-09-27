@@ -1,8 +1,8 @@
-// Architecture-specific optimizations for CUDA 12.8
+// Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
 // addParallel.cu
 // Parallel vector addition example (optimal performance)
-// Updated for CUDA 12.8 and Blackwell B200/B300 (SM100)
+// Updated for CUDA 12.9 and Blackwell B200/B300 (SM100)
 
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@ __global__ void addParallel(const float* __restrict__ A,
     }
 }
 
-// CUDA 12.8 stream-ordered memory allocation example
+// CUDA 12.9 stream-ordered memory allocation example
 __global__ void addParallelStreamOrdered(const float* __restrict__ A,
                                         const float* __restrict__ B,
                                         float* __restrict__ C,
@@ -118,14 +118,14 @@ int main() {
     printf("Parallel kernel time: %.2f ms\n", milliseconds);
     printf("Result: C[0] = %.1f, C[N-1] = %.1f\n", h_C[0], h_C[N-1]);
     
-    // CUDA 12.8 stream-ordered memory allocation example
-    printf("\n--- CUDA 12.8 Stream-Ordered Memory Example ---\n");
+    // CUDA 12.9 stream-ordered memory allocation example
+    printf("\n--- CUDA 12.9 Stream-Ordered Memory Example ---\n");
     
     // Create CUDA stream
     cudaStream_t stream;
     cudaStreamCreate(&stream);
     
-    // Stream-ordered memory allocation (CUDA 12.8 feature)
+    // Stream-ordered memory allocation (CUDA 12.9 feature)
     float *d_A_async, *d_B_async, *d_C_async;
     cudaMallocAsync(&d_A_async, N * sizeof(float), stream);
     cudaMallocAsync(&d_B_async, N * sizeof(float), stream);
@@ -185,6 +185,6 @@ int main() {
     }
     
     printf("All operations completed successfully!\n");
-    printf("CUDA 12.8 and SM100 optimizations applied.\n");
+    printf("CUDA 12.9 and SM100 optimizations applied.\n");
     return 0;
 }

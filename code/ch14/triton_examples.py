@@ -1,6 +1,6 @@
 # triton_examples.py
 # Updated for Triton 3.4 and Blackwell B200/B300 optimizations
-# Enhanced for PyTorch 2.8, CUDA 12.8, and Triton 3.4
+# Enhanced for PyTorch 2.9, CUDA 12.9, and Triton 3.4
 
 import torch
 import triton
@@ -474,7 +474,7 @@ def demonstrate_architecture_features():
             print("• Blackwell-specific kernel optimizations")
             print("• NVLink-C2C communication support")
         else:
-            print("• Shared optimizations compatible with PyTorch 2.8")
+            print("• Shared optimizations compatible with PyTorch 2.9")
             print("• Enhanced kernel scheduling")
             print("• Improved memory access patterns")
 
@@ -487,7 +487,7 @@ def main():
     """
     Main function to demonstrate Triton 3.4 features.
     """
-    print("=== Triton 3.4 Examples (PyTorch 2.8, CUDA 12.8) ===")
+    print("=== Triton 3.4 Examples (PyTorch 2.9, CUDA 12.9) ===")
     print()
     
     # Run demonstrations
@@ -502,7 +502,7 @@ def main():
     print("3. Improved memory management")
     print("4. Better performance profiling")
     print("5. PyTorch integration")
-    print("6. Latest CUDA 12.8 support")
+    print("6. Latest CUDA 12.9 support")
 
 if __name__ == "__main__":
     main()

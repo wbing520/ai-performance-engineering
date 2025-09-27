@@ -91,7 +91,7 @@ The script will demonstrate:
 
 ## Dependencies
 
-- PyTorch 2.8+ for GPU operations and CUDA support
+- PyTorch 2.9+ for GPU operations and CUDA support
 - psutil for system monitoring
 - GPUtil for GPU metrics
 - numpy for numerical operations

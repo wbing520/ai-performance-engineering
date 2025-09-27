@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Blackwell validation suite covering PyTorch 2.8, CUDA 12.8, and Triton 3.3 features.
+Blackwell validation suite covering PyTorch 2.9, CUDA 12.9, and Triton 3.4 features.
 """
 
 import torch
@@ -32,9 +32,9 @@ def test_architecture_detection():
     else:
         print(f"⚠ Non-Blackwell GPU detected (compute capability {compute_capability})")
 
-def test_pytorch_28_features():
-    """Test PyTorch 2.8 features."""
-    print("\n=== PyTorch 2.8 Features Test ===")
+def test_pytorch_29_features():
+    """Test PyTorch 2.9 features."""
+    print("\n=== PyTorch 2.9 Features Test ===")
     
     # Test torch.compile
     try:
@@ -66,9 +66,9 @@ def test_pytorch_28_features():
     except Exception as e:
         print(f"❌ Triton config access failed: {e}")
 
-def test_cuda_128_features():
-    """Test CUDA 12.8 features."""
-    print("\n=== CUDA 12.8 Features Test ===")
+def test_cuda_129_features():
+    """Test CUDA 12.9 features."""
+    print("\n=== CUDA 12.9 Features Test ===")
     
     # Test stream-ordered memory allocation
     try:
@@ -194,8 +194,8 @@ def main():
     print("=" * 60)
     
     test_architecture_detection()
-    test_pytorch_28_features()
-    test_cuda_128_features()
+    test_pytorch_29_features()
+    test_cuda_129_features()
     test_profiling_tools()
     test_triton_34()
     test_performance()

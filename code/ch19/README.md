@@ -27,8 +27,8 @@ Code examples demonstrating adaptive parallelism strategies and dynamic precisio
 
 ## Requirements
 
-- CUDA 12.8+
-- PyTorch 2.8+ with distributed support
+- CUDA 12.9+
+- PyTorch 2.9+ with distributed support
 - HQQ library (optional, for advanced quantization)
 - GPU with compute capability 7.0+ for optimal mixed precision
 

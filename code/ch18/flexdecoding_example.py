@@ -24,7 +24,7 @@ try:
     print("✓ FlexAttention is available - using experimental flex_attention API")
 except (ImportError, AttributeError) as e:
     FLEX_ATTENTION_AVAILABLE = False
-    print("⚠ FlexAttention not available in this PyTorch build (2.8.0.dev20250613+cu128)")
+    print("⚠ FlexAttention not available in this PyTorch build (requires PyTorch 2.9 nightly with cu129)")
     print("  - FlexAttention was introduced in PyTorch 2.5.0")
     print("  - Falling back to scaled_dot_product_attention with torch.compile")
     flex_attention = None

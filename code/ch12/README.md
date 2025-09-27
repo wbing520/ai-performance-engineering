@@ -310,7 +310,7 @@ for batch in dataloader:
 
 ## Requirements
 
-- CUDA 11.0+ (CUDA 12.8+ recommended for all features)
+- CUDA 11.0+ (CUDA 12.9+ recommended for all features)
 - Compute Capability 3.5+ (dynamic parallelism)
 - Compute Capability 7.5+ (CUDA graphs, device launch)
 - Adequate L2 cache for atomic performance

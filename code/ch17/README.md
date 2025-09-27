@@ -28,7 +28,7 @@ Code examples demonstrating disaggregated inference systems with dynamic routing
 
 ## Requirements
 
-- PyTorch 2.8+
+- PyTorch 2.9+
 - PyYAML for configuration files
 - Threading support for concurrent simulation
 

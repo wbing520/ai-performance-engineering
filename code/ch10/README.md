@@ -163,7 +163,7 @@ nsys profile --force-overwrite=true -o warp_analysis ./warp_specialized_pipeline
 
 ### CUDA Pipeline API Support
 - **Minimum**: CUDA 11.0+, Compute Capability 7.0+
-- **Optimal**: CUDA 12.8+, Compute Capability 10.0 (Blackwell)
+- **Optimal**: CUDA 12.9+, Compute Capability 10.0 (Blackwell)
 - **Latest Features**: Compute Capability 9.0+ (Blackwell) for cluster support
 
 ### Cooperative Launch Support
@@ -222,7 +222,7 @@ The compiled kernels achieve similar performance to hand-optimized CUDA implemen
 
 ## Requirements
 
-- CUDA 12.8+
+- CUDA 12.9+
 - Compute Capability 7.0+ (Pipeline API)
 - Compute Capability 8.0+ (optimal performance)
 - Compute Capability 9.0+ (thread block clusters)

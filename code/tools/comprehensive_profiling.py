@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Profiling Tools Demo
-Latest profiling tools for PyTorch 2.8, CUDA 12.8, and Blackwell B200/B300
+Latest profiling tools for PyTorch 2.9, CUDA 12.9, and Blackwell B200/B300
 
 This script demonstrates:
 - Nsight Systems (nsys) timeline analysis
@@ -12,7 +12,7 @@ This script demonstrates:
 - Memory profiling
 - FLOP counting
 - Module-level analysis
-- Triton 3.3 profiling
+- Triton 3.4 profiling
 - Architecture-specific optimizations
 """
 
@@ -63,7 +63,7 @@ class ProfilingDemoModel(nn.Module):
         return x
 
 def configure_architecture_optimizations():
-    """Configure PyTorch 2.8 optimizations for current architecture."""
+    """Configure PyTorch 2.9 optimizations for current architecture."""
     configure_optimizations()
     
     if torch.cuda.is_available():
@@ -72,7 +72,8 @@ def configure_architecture_optimizations():
         
         print(f"GPU: {device_props.name}")
         print(f"Compute Capability: {compute_capability}")
-        
+
+        if compute_capability.startswith("9."):  # Hopper
             print("✓ Enabling optimizations")
             torch._inductor.config.triton.use_hopper_optimizations = True
             torch._inductor.config.triton.hbm3_optimizations = True
@@ -97,7 +98,7 @@ def demonstrate_pytorch_profiler():
     """
     Demonstrate PyTorch profiler with latest features.
     """
-    print("=== PyTorch Profiler Demo (PyTorch 2.8) ===")
+    print("=== PyTorch Profiler Demo (PyTorch 2.9) ===")
     
     # Configure optimizations
     configure_architecture_optimizations()
@@ -515,7 +516,7 @@ def main():
     Main function to demonstrate comprehensive profiling tools.
     """
     print("=== Comprehensive Profiling Tools Demo ===")
-    print("PyTorch 2.8, CUDA 12.8, Triton 3.3 Support")
+    print("PyTorch 2.9, CUDA 12.9, Triton 3.4 Support")
     print("Enhanced for Blackwell B200/B300")
     print()
     
@@ -536,7 +537,7 @@ def main():
     
     print("\n=== Summary ===")
     print("This demo shows comprehensive profiling with:")
-    print("1. PyTorch 2.8 enhanced profiler")
+    print("1. PyTorch 2.9 enhanced profiler")
     print("2. Nsight Systems timeline analysis")
     print("3. Nsight Compute kernel analysis")
     print("4. HTA for multi-GPU systems")
@@ -546,8 +547,8 @@ def main():
     print("8. Module-level analysis")
     print("9. Architecture-specific features")
     print("10. Automated profiling pipeline")
-    print("11. Latest CUDA 12.8 support")
-    print("12. Triton 3.3 integration")
+    print("11. Latest CUDA 12.9 support")
+    print("12. Triton 3.4 integration")
 
 if __name__ == "__main__":
     main()

@@ -54,7 +54,7 @@ pip install -r code/ch1/requirements.txt
 
 ### Architecture Support
 
-The main branch targets **Blackwell B200/B300 (SM100)** exclusively. New examples should default to `ARCH ?= sm_100` and inherit the CUDA 12.8 toolchain. If you prototype support for other GPUs, keep it behind clearly documented flags or submit it as a separate branch.
+The main branch targets **Blackwell B200/B300 (SM100)** exclusively. New examples should default to `ARCH ?= sm_100` and inherit the CUDA 12.9 toolchain. If you prototype support for other GPUs, keep it behind clearly documented flags or submit it as a separate branch.
 
 ## Development Workflow
 
@@ -105,8 +105,8 @@ python tools/comprehensive_profiling.py
 
 #### **Compatibility Testing**
 - Confirm runs on Blackwell B200/B300 hardware
-- Verify PyTorch 2.8 nightly/cu128 environment
-- Ensure CUDA 12.8 toolkit compatibility
+- Verify PyTorch 2.9 nightly/cu129 environment
+- Ensure CUDA 12.9 toolkit compatibility
 
 ### 4. Submitting Your Contribution
 

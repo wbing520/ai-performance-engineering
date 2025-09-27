@@ -29,8 +29,8 @@ Code examples demonstrating advanced decode kernels, KV cache optimizations, and
 
 ## Requirements
 
-- CUDA 12.8+ with Ampere (SM 8.0) or newer for optimal FlashMLA performance
-- PyTorch 2.8+ with flex_attention support
+- CUDA 12.9+ with Ampere (SM 8.0) or newer for optimal FlashMLA performance
+- PyTorch 2.9+ with flex_attention support
 - NVIDIA NIXL library for RDMA transfers
 - InfiniBand or NVLink for high-speed interconnects
 

@@ -74,7 +74,7 @@ Most examples use modest tensor sizes and short iteration counts so Nsight and t
 
 ### Blackwell Workflow
 
-This repository now targets a single architecture profile: **NVIDIA Blackwell B200/B300 (SM100)**. All tooling, CUDA builds, and PyTorch examples assume CUDA 12.8, PyTorch 2.8 nightlies, and Triton 3.3. Use the helper scripts to stay aligned with that stack:
+This repository now targets a single architecture profile: **NVIDIA Blackwell B200/B300 (SM100)**. All tooling, CUDA builds, and PyTorch examples assume CUDA 12.9, PyTorch 2.9 nightlies, and Triton 3.4. Use the helper scripts to stay aligned with that stack:
 
 ```bash
 # Build CUDA samples and run sanity checks
@@ -91,11 +91,11 @@ For hardware details and optimisation notes, see [`code/README.md`](code/README.
 
 ### Latest Features
 
-**Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3:**
+**Updated for PyTorch 2.9, CUDA 12.9, and Triton 3.4:**
 
-- **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.8**: Latest CUDA features, improved kernel performance
-- **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
+- **PyTorch 2.9**: Enhanced compiler, dynamic shapes, improved profiler
+- **CUDA 12.9**: Latest CUDA features, improved kernel performance
+- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
 - **Enhanced Profiling**: Nsight Systems 2024.1, Nsight Compute 2024.1
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **Perf**: Enhanced system-level analysis

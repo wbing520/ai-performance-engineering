@@ -16,25 +16,26 @@ for path in root.rglob('requirements*.txt'):
 PY
 TEMPLATE
 # AI Performance Engineering - Blackwell Requirements
-# Target: Blackwell B200/B300 (SM100) with PyTorch 2.8, CUDA 12.8, Triton 3.3
+# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.4
 
---index-url https://download.pytorch.org/whl/nightly/cu128
-torch==2.8.0.dev
-torchvision==0.19.0.dev
-torchaudio==2.8.0.dev
+--index-url https://download.pytorch.org/whl/nightly/cu129
+torch>=2.9.0.dev,<2.10
+torchvision>=0.24.0.dev,<0.25
+torchaudio>=2.9.0.dev,<2.10
 
-nvidia-cuda-runtime-cu12==12.8.*
-nvidia-cuda-nvrtc-cu12==12.8.*
-nvidia-cudnn-cu12==9.12.0.46
-nvidia-cublas-cu12==12.8.*
-nvidia-cufft-cu12==11.3.3.83
+# CUDA 12.9 runtime libraries
+nvidia-cuda-runtime-cu12==12.9.*
+nvidia-cuda-nvrtc-cu12==12.9.*
+nvidia-cudnn-cu12==9.13.*
+nvidia-cublas-cu12==12.9.*
+nvidia-cufft-cu12==11.4.*
 nvidia-curand-cu12==10.3.10.19
-# nvidia-cusolver-cu12==12.8.*
-# nvidia-cusparse-cu12==12.8.*
-nvidia-nccl-cu12==2.20.5
-nvidia-nvtx-cu12==12.8.*
+# nvidia-cusolver-cu12==12.9.*
+# nvidia-cusparse-cu12==12.9.*
+nvidia-nccl-cu12==2.28.3
+nvidia-nvtx-cu12==12.9.*
 
-triton==3.3.1
+triton==3.4.0
 
 nvidia-ml-py3==7.352.0
 psutil==6.1.0

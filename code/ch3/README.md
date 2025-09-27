@@ -23,13 +23,13 @@ This directory contains code examples and configuration files for optimizing ope
 
 ### Container and Orchestration
 
-- **`docker_gpu_optimized.dockerfile`** - Multi-stage Docker build optimized for GPU performance with PyTorch 2.8 and CUDA 12.8
+- **`docker_gpu_optimized.dockerfile`** - Multi-stage Docker build optimized for GPU performance with PyTorch 2.9 and CUDA 12.9
 - **`kubernetes_mig_pod.yaml`** - Kubernetes pod configuration for Multi-Instance GPU (MIG) workloads
 - **`kubernetes_topology_pod.yaml`** - Advanced Kubernetes pod with topology awareness and NUMA affinity
 
 ### Dependencies
 
-- **`requirements.txt`** - Python dependencies including PyTorch 2.8, Triton 3.3, and performance monitoring tools
+- **`requirements.txt`** - Python dependencies including PyTorch 2.9, Triton 3.4, and performance monitoring tools
 
 ## Key Optimizations Covered
 
@@ -103,14 +103,14 @@ sudo nvidia-smi -pm ENABLED
 ## Hardware Requirements
 
 - NVIDIA GPU with compute capability 10.0 (Blackwell B200/B300)
-- CUDA 12.8+ compatible drivers
+- CUDA 12.9+ compatible drivers
 - Linux kernel with NUMA support
 - InfiniBand/Ethernet networking for multi-node setups
 
 ## Software Stack
 
-- **PyTorch 2.8** with CUDA 12.8 support
-- **Triton 3.3** for custom kernel development
+- **PyTorch 2.9** with CUDA 12.9 support
+- **Triton 3.4** for custom kernel development
 - **NVIDIA Container Toolkit** for containerized GPU access
 - **Kubernetes 1.28+** with GPU device plugin
 - **NVIDIA GPU Operator** for automated management

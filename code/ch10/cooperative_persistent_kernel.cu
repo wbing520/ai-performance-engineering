@@ -1,4 +1,4 @@
-// Architecture-specific optimizations for CUDA 12.8
+// Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
 // cooperative_persistent_kernel.cu
 // Example demonstrating cooperative groups and persistent kernels

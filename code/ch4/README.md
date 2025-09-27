@@ -163,7 +163,7 @@ ddp_model = DistributedDataParallel(
 - **Minimum**: 2 NVIDIA GPUs with NVLink or PCIe
 - **Recommended**: NVL72 rack or multi-node with InfiniBand
 - **Network**: InfiniBand (preferred) or high-speed Ethernet
-- **CUDA**: 12.8+ with compatible drivers
+- **CUDA**: 12.9+ with compatible drivers
 
 ## Expected Performance Gains
 

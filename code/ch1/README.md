@@ -66,7 +66,7 @@ The script will demonstrate:
 
 ## Dependencies
 
-- PyTorch 2.8+ for deep learning functionality
+- PyTorch 2.9+ for deep learning functionality
 - psutil for system monitoring
 - GPUtil for GPU metrics
 - numpy for numerical operations

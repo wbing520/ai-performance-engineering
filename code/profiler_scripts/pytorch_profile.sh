@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # PyTorch Profiling Script
-# Uses latest PyTorch 2.8 profiler features
+# Uses latest PyTorch 2.9 profiler features
 # Targets Blackwell B200/B300 (SM100)
-# Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
+# Updated for PyTorch 2.9, CUDA 12.9, and Triton 3.4
 
 set -e
 
@@ -27,7 +27,7 @@ fi
 echo "=== PyTorch Profiling for $SCRIPT_NAME ==="
 echo "Architecture: $ARCH"
 echo "Profile Mode: $PROFILE_MODE"
-echo "PyTorch 2.8, CUDA 12.8, Triton 3.3 Support"
+echo "PyTorch 2.9, CUDA 12.9, Triton 3.4 Support"
 echo ""
 
 # Set environment variables for optimal PyTorch profiling
@@ -55,8 +55,8 @@ cat > "pytorch_profiler_wrapper.py" << 'EOF'
 #!/usr/bin/env python3
 """
 PyTorch Profiler Wrapper
-Uses latest PyTorch 2.8 profiler features
-Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3
+Uses latest PyTorch 2.9 profiler features
+Updated for PyTorch 2.9, CUDA 12.9, and Triton 3.4
 """
 
 import torch
@@ -68,7 +68,7 @@ import os
 import time
 
 def setup_architecture_optimizations():
-    """Setup architecture-specific optimizations for PyTorch 2.8."""
+    """Setup architecture-specific optimizations for PyTorch 2.9."""
     if torch.cuda.is_available():
         device_props = torch.cuda.get_device_properties(0)
         compute_capability = f"{device_props.major}.{device_props.minor}"
@@ -89,7 +89,7 @@ def setup_architecture_optimizations():
             if hasattr(torch._inductor.config.triton, "nvlink_c2c"):
                 torch._inductor.config.triton.nvlink_c2c = True
 
-        # Enable latest PyTorch 2.8 features
+        # Enable latest PyTorch 2.9 features
         torch._inductor.config.triton.unique_kernel_names = True
         torch._inductor.config.triton.autotune_mode = "max-autotune"
         torch._dynamo.config.automatic_dynamic_shapes = True
@@ -184,7 +184,7 @@ def run_with_profiler(script_path, profile_mode="full"):
     
     # Print summary with enhanced analysis
     print("\n" + "="*60)
-    print("PyTorch Profiler Results (PyTorch 2.8)")
+    print("PyTorch Profiler Results (PyTorch 2.9)")
     print("="*60)
     
     if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell"]:
@@ -205,7 +205,7 @@ def run_with_profiler(script_path, profile_mode="full"):
     
     # Save detailed results with enhanced information
     with open(f"profiler_summary_{profile_mode}.txt", "w") as f:
-        f.write("PyTorch Profiler Summary (PyTorch 2.8)\n")
+        f.write("PyTorch Profiler Summary (PyTorch 2.9)\n")
         f.write("="*50 + "\n")
         f.write(f"Script: {script_name}\n")
         f.write(f"Profile Mode: {profile_mode}\n")
@@ -277,7 +277,7 @@ EOF
 
 cat >> "pytorch_report_${ARCH}.md" << EOF
 
-## PyTorch 2.8 Features Used
+## PyTorch 2.9 Features Used
 - **torch.compile**: With max-autotune mode
 - **Dynamic Shapes**: Automatic dynamic shape support
 - **Memory Profiling**: Detailed memory allocation tracking
@@ -313,9 +313,9 @@ cat >> "pytorch_report_${ARCH}.md" << EOF
 - Enable Blackwell-specific Triton kernels
 
 ## Latest Features Used
-- **PyTorch 2.8**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.8**: Latest CUDA features, improved kernel performance
-- **Triton 3.3**: Latest Triton optimizations, architecture-specific kernels
+- **PyTorch 2.9**: Enhanced compiler, dynamic shapes, improved profiler
+- **CUDA 12.9**: Latest CUDA features, improved kernel performance
+- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
 - **Enhanced Profiler**: Improved profiling capabilities
 - **Architecture Optimizations**: Blackwell-specific features
 

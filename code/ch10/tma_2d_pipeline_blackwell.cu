@@ -1,5 +1,5 @@
 // Blackwell-only example: 2D tiled copy + compute pipeline using cuda::pipeline
-// Requires: SM100 (Blackwell), CUDA 12.8+
+// Requires: SM100 (Blackwell), CUDA 12.9+
 // Focus: Demonstrate asynchronous global->shared staging and overlapped compute
 
 #include <cuda/pipeline>

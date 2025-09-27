@@ -1,6 +1,6 @@
 # AI Systems Performance Engineering – Usage Guide
 
-This guide documents all the profiling scripts and command examples for the latest CUDA 12.8, PyTorch 2.8 nightly, Triton 3.3, and dedicated Blackwell B200/B300 GPU support.
+This guide documents all the profiling scripts and command examples for the latest CUDA 12.9, PyTorch 2.9 nightly, Triton 3.4, and dedicated Blackwell B200/B300 GPU support.
 
 ## Chapter Overview
 
@@ -45,8 +45,8 @@ The book is organized into 20 chapters covering all aspects of AI systems perfor
 pip install -r requirements_latest.txt
 
 # Verify CUDA installation
-nvcc --version  # Should show CUDA 12.8
-python -c "import torch; print(torch.version.cuda)"  # Should show 12.8
+nvcc --version  # Should show CUDA 12.9
+python -c "import torch; print(torch.version.cuda)"  # Should show 12.9
 
 # Check architecture support
 python arch_config.py  # Shows current architecture
@@ -867,7 +867,7 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
    - TMA: Tensor Memory Accelerator
    - Multi-GPU: Direct GPU-to-GPU communication
 
-2. **CUDA 12.8 Optimizations**:
+2. **CUDA 12.9 Optimizations**:
    - Stream-ordered memory allocation
    - CUDA Graphs for kernel replay
    - Unified Memory with HBM3e
@@ -891,8 +891,8 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 
 1. **CUDA Version Mismatch**:
    ```bash
-  nvcc --version  # Should show CUDA 12.8
-  python -c "import torch; print(torch.version.cuda)"  # Should show 12.8
+  nvcc --version  # Should show CUDA 12.9
+  python -c "import torch; print(torch.version.cuda)"  # Should show 12.9
    ```
 
 2. **Memory Issues**:
@@ -944,7 +944,7 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 - **Memory Bandwidth**: HBM3e ~3.2TB/s per GPU
 - **Grace CPU**: ARM-based with high GPU bandwidth
 
-### CUDA 12.8 Features
+### CUDA 12.9 Features
 
 - **Stream-ordered Memory**: `cudaMallocAsync`/`cudaFreeAsync`
 - **CUDA Graphs**: Capture and replay kernel sequences
@@ -952,4 +952,4 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 - **Unified Memory**: HBM3e provides faster CPU-GPU access
 - **TMA**: Tensor Memory Accelerator for efficient data movement
 
-This comprehensive profiling setup provides the tools needed to achieve maximum performance on the latest Blackwell B200/B300 architecture with CUDA 12.8, PyTorch 2.8 nightly, and Triton 3.3.
+This comprehensive profiling setup provides the tools needed to achieve maximum performance on the latest Blackwell B200/B300 architecture with CUDA 12.9, PyTorch 2.9 nightly, and Triton 3.4.

@@ -234,7 +234,7 @@ For ultra-low latency inference:
 
 ## Requirements
 
-- CUDA 11.0+ (CUDA 12.8+ recommended for all features)
+- CUDA 11.0+ (CUDA 12.9+ recommended for all features)
 - Compute Capability 6.0+ (7.0+ recommended)
 - Memory pools support (most modern GPUs)
 - Multiple SMs for effective concurrency

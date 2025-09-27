@@ -609,7 +609,7 @@ if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
-    # Enable latest PyTorch 2.8 features
+    # Enable latest PyTorch 2.9 features
     try:
         torch._inductor.config.triton.unique_kernel_names = True
         torch._inductor.config.triton.autotune_mode = "max-autotune"

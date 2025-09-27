@@ -4,11 +4,11 @@ A comprehensive guide to optimizing AI systems for maximum performance, efficien
 
 ## Overview
 
-This repository targets a single hardware profile: **Blackwell B200/B300 (SM100)**, built on PyTorch 2.8, CUDA 12.8, and Triton 3.3.
+This repository targets a single hardware profile: **Blackwell B200/B300 (SM100)**, built on PyTorch 2.9 nightlies, CUDA 12.9, and Triton 3.4.
 
-- **PyTorch 2.8**: Enhanced compiler stack with Blackwell-specific optimisations
-- **CUDA 12.8**: Latest toolkit tuned for SM100
-- **Triton 3.3**: Custom kernel development on Blackwell
+- **PyTorch 2.9 nightlies**: Enhanced compiler stack with Blackwell-specific optimisations
+- **CUDA 12.9**: Latest toolkit tuned for SM100
+- **Triton 3.4**: Custom kernel development on Blackwell
 - **Grace Blackwell Superchip**: Unified memory architecture examples
 - **NVL72 Systems**: Multi-GPU cluster optimisation examples
 - **Enhanced Profiling**: Nsight Systems/Compute, HTA, and Perf integration
@@ -20,7 +20,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Chapter 1: Introduction and AI System Overview
 - **`code/ch1/performance_basics.py`**: Basic performance measurement and goodput analysis
 - Demonstrates unified memory architecture, Tensor Core performance, and Transformer Engine
-- Enhanced with PyTorch 2.8 optimizations and architecture-specific features
+- Enhanced with PyTorch 2.9 optimizations and architecture-specific features
 
 ### Chapter 2: AI System Hardware Overview  
 - **`code/ch2/hardware_info.py`**: Grace Blackwell superchip hardware analysis
@@ -41,7 +41,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Chapter 5: CUDA Programming Fundamentals
 - **`code/ch5/`**: CUDA kernel development and optimization
 - Memory coalescing, shared memory usage, and kernel fusion techniques
-- Updated for CUDA 12.8 and latest features
+- Updated for CUDA 12.9 and latest features
 
 ### Chapter 6: GPU Memory Hierarchy Optimization
 - **`code/ch6/`**: Memory bandwidth optimization and cache utilization
@@ -71,12 +71,12 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Chapter 11: PyTorch Optimization
 - **`code/ch11/`**: PyTorch-specific optimizations and techniques
 - Compiler optimizations, memory management, and distributed training
-- Enhanced with PyTorch 2.8 features and optimizations
+- Enhanced with PyTorch 2.9 features and optimizations
 
 ### Chapter 12: Triton for Custom GPU Kernels
 - **`code/ch12/`**: OpenAI Triton for high-performance GPU kernel development
 - Custom attention mechanisms, fused operations, and kernel autotuning
-- Updated for Triton 3.3 and latest features
+- Updated for Triton 3.4 and latest features
 
 ### Chapter 13: Distributed Training Optimization
 - **`code/ch13/`**: Large-scale distributed training techniques
@@ -123,7 +123,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 ### Prerequisites
 
 - **NVIDIA GPU**: Blackwell B200/B300 (SM100)
-- **CUDA 12.8**: Latest CUDA toolkit
+- **CUDA 12.9**: Latest CUDA toolkit
 - **Python 3.9+**: Python environment
 - **Linux**: Ubuntu 22.04+ recommended
 
@@ -275,10 +275,10 @@ iostat
 
 - **NVIDIA Nsight Systems 2025.1**: Timeline analysis
 - **NVIDIA Nsight Compute 2025.1**: Kernel profiling  
-- **PyTorch Profiler 2.8**: Framework-level profiling
+- **PyTorch Profiler 2.9**: Framework-level profiling
 - **HTA (Holistic Tracing Analysis)**: Multi-GPU analysis
 - **Perf**: System-level analysis
-- **Triton 3.3**: Custom kernel profiling
+- **Triton 3.4**: Custom kernel profiling
 
 ### Enhanced Profiling Commands
 
@@ -327,7 +327,7 @@ flake8 code/
 This repository is based on the comprehensive AI Performance Engineering book, covering:
 
 - **Hardware Optimization**: Grace Blackwell superchips, NVL72 systems
-- **Software Optimization**: PyTorch 2.8, CUDA 12.8, Triton 3.3
+- **Software Optimization**: PyTorch 2.9, CUDA 12.9, Triton 3.4
 - **System Optimization**: NUMA binding, memory pinning, network tuning
 - **Algorithm Optimization**: Distributed training, model parallelism, quantization
 - **Profiling Optimization**: Latest profiling tools and techniques

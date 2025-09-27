@@ -16,7 +16,7 @@ ENV MALLOC_CONF="narenas:8,dirty_decay_ms:10000,muzzy_decay_ms:10000,background_
 ENV TCMALLOC_MAX_TOTAL_THREAD_CACHE_BYTES=536870912
 ENV TCMALLOC_RELEASE_RATE=16
 
-# Set CUDA environment variables for PyTorch 2.8
+# Set CUDA environment variables for PyTorch 2.9 nightly
 ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
 ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
 
@@ -26,8 +26,8 @@ WORKDIR /app
 
 # Install Python dependencies with latest versions
 RUN pip install --upgrade pip && \
-    pip install --index-url https://download.pytorch.org/whl/nightly/cu128 torch>=2.8.0.dev torchvision>=0.19.0.dev torchaudio>=2.8.0.dev && \
-    pip install triton==3.3.1 && \
+    pip install --index-url https://download.pytorch.org/whl/nightly/cu129 torch>=2.9.0.dev torchvision>=0.24.0.dev torchaudio>=2.9.0.dev && \
+    pip install triton==3.4.0 && \
     pip install nvidia-ml-py3==7.352.0 psutil==6.1.0 GPUtil==1.4.0
 
 

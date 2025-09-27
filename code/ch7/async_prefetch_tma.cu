@@ -1,4 +1,4 @@
-// Architecture-specific optimizations for CUDA 12.8
+// Architecture-specific optimizations for CUDA 12.9
 // Simplified version for Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
 #include <iostream>

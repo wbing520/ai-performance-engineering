@@ -1,7 +1,7 @@
 # nccl_benchmark.py
 """
 Comprehensive NCCL benchmark for testing different collective operations
-and communication patterns with PyTorch 2.8 and CUDA 12.8.
+and communication patterns with PyTorch 2.9 and CUDA 12.9.
 """
 import os
 import time

@@ -151,7 +151,7 @@ AI = (FLOPs) / (Bytes transferred)
 
 ## Requirements
 
-- CUDA 12.8+
-- PyTorch 2.8+
+- CUDA 12.9+
+- PyTorch 2.9+
 - CUTLASS (for CUTLASS examples)
 - Nsight Compute/Systems for profiling

@@ -26,8 +26,8 @@ Code examples demonstrating AI-assisted optimization workflows and scaling conce
 
 ## Requirements
 
-- PyTorch 2.8+
-- CUDA 12.8+ with nvcc compiler
+- PyTorch 2.9+
+- CUDA 12.9+ with nvcc compiler
 - NVIDIA GPUs with Ampere architecture or newer
 - Sufficient disk space for temporary kernel compilation
 

@@ -352,7 +352,7 @@ export TORCH_COMPILE_DEBUG=1
 
 ### Compatibility Fixes (August 2025)
 
-The following fixes have been applied to ensure compatibility with PyTorch 2.8 and CUDA 12.8:
+The following fixes have been applied to ensure compatibility with PyTorch 2.9 and CUDA 12.9:
 
 1. **NumPy Compatibility**: Downgraded NumPy to <2.0 to resolve compatibility issues with SciPy and other dependencies
 2. **Deprecated API Updates**:

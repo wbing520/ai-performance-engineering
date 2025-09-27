@@ -7,9 +7,9 @@ This example demonstrates the core concepts from Chapter 1:
 - Measuring goodput (useful throughput)
 - Hardware-software co-design principles
 - Performance profiling and benchmarking
-- PyTorch 2.8 optimizations for Blackwell B200/B300
+- PyTorch 2.9 optimizations for Blackwell B200/B300
 - Latest profiling tools integration
-- CUDA 12.8 and Triton 3.3 support
+- CUDA 12.9 and Triton 3.4 support
 """
 
 import time
@@ -30,7 +30,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arch_config import arch_config, configure_optimizations
 
 class SimpleTransformer(nn.Module):
-    """A simplified transformer model for demonstration purposes with PyTorch 2.8 optimizations."""
+    """A simplified transformer model for demonstration purposes with PyTorch 2.9 optimizations."""
     
     def __init__(self, vocab_size: int = 10000, d_model: int = 512, 
                  n_heads: int = 8, n_layers: int = 6):
@@ -175,7 +175,7 @@ def benchmark_model_performance(model: nn.Module,
                               num_iterations: int = 20,
                               use_compile: bool = True) -> Dict[str, float]:
     """
-    Benchmark model performance and measure goodput with PyTorch 2.8 optimizations.
+    Benchmark model performance and measure goodput with PyTorch 2.9 optimizations.
     
     This demonstrates the mechanical sympathy principle by measuring
     how efficiently the hardware is being utilized.
@@ -190,7 +190,7 @@ def benchmark_model_performance(model: nn.Module,
     # Create dummy input
     dummy_input = torch.randint(0, 10000, (batch_size, seq_length)).to(device)
     
-    # Compile model with PyTorch 2.8 optimizations if requested
+    # Compile model with PyTorch 2.9 optimizations if requested
     if use_compile and device.type == 'cuda':
         try:
             compiled_model = torch.compile(
@@ -217,7 +217,7 @@ def benchmark_model_performance(model: nn.Module,
     # Benchmark with enhanced profiling
     useful_work_start = time.time()
     
-    # Enhanced profiler configuration for PyTorch 2.8
+    # Enhanced profiler configuration for PyTorch 2.9
     profiler_data = None
     if use_compile:  # Only use profiler for compiled models
         with profile(
@@ -291,12 +291,12 @@ def benchmark_model_performance(model: nn.Module,
 
 def demonstrate_hardware_software_co_design():
     """
-    Demonstrate hardware-software co-design principles with PyTorch 2.8 optimizations.
+    Demonstrate hardware-software co-design principles with PyTorch 2.9 optimizations.
     
     This shows how different optimizations can affect performance
     and how to measure the impact of changes.
     """
-    print("=== Chapter 1: AI Systems Performance Engineering Demo (PyTorch 2.8) ===\n")
+    print("=== Chapter 1: AI Systems Performance Engineering Demo (PyTorch 2.9) ===\n")
     
     # Print architecture information
     arch_config.print_info()
@@ -315,7 +315,7 @@ def demonstrate_hardware_software_co_design():
     print(f"Efficiency: {baseline_results['efficiency_percentage']:.1f}%")
     print(f"Total Tokens Processed: {baseline_results['total_tokens_processed']:,}")
     
-    print("\n2. PyTorch 2.8 Compiled Performance")
+    print("\n2. PyTorch 2.9 Compiled Performance")
     print("-" * 50)
     
     compiled_results = benchmark_model_performance(model, num_iterations=12, use_compile=True)
@@ -353,25 +353,25 @@ def demonstrate_hardware_software_co_design():
     else:
         print("Profiler data not available")
     
-    print("\n5. Key Takeaways from Chapter 1 (PyTorch 2.8)")
+    print("\n5. Key Takeaways from Chapter 1 (PyTorch 2.9)")
     print("-" * 50)
-    print("• PyTorch 2.8 torch.compile provides significant speedup")
+    print("• PyTorch 2.9 torch.compile provides significant speedup")
     print("• Architecture-specific optimizations improve performance")
     print("• Enhanced profiler provides detailed insights")
     print("• Memory profiling helps identify bottlenecks")
     print("• Hardware-software co-design is crucial")
     print("• Use NVTX markers for detailed timeline analysis")
     print("• Latest profiling tools provide comprehensive analysis")
-    print("• CUDA 12.8 and Triton 3.3 support latest features")
+    print("• CUDA 12.9 and Triton 3.4 support latest features")
     
     return compiled_results
 
 def demonstrate_mechanical_sympathy():
     """
     Demonstrate mechanical sympathy by showing how hardware awareness
-    can lead to better performance with PyTorch 2.8 optimizations.
+    can lead to better performance with PyTorch 2.9 optimizations.
     """
-    print("\n=== Mechanical Sympathy Demo (PyTorch 2.8) ===")
+    print("\n=== Mechanical Sympathy Demo (PyTorch 2.9) ===")
     
     # Show how different batch sizes affect performance
     batch_sizes = [8, 16, 32]
@@ -546,7 +546,7 @@ def demonstrate_latest_profiling_tools():
     print("4. HTA (Holistic Tracing Analysis) - Multi-GPU analysis")
     print("5. Perf - System-level analysis")
     print("6. Enhanced PyTorch profiler - Memory, FLOPs, modules")
-    print("7. Triton 3.3 profiler - Custom kernel analysis")
+    print("7. Triton 3.4 profiler - Custom kernel analysis")
     
     print("\nProfiling commands:")
     print("# Nsight Systems timeline")
@@ -575,15 +575,15 @@ if __name__ == "__main__":
     demonstrate_latest_profiling_tools()
     
     print("\n=== Summary ===")
-    print("This demo shows the core principles from Chapter 1 with PyTorch 2.8:")
+    print("This demo shows the core principles from Chapter 1 with PyTorch 2.9:")
     print("1. Performance measurement and goodput calculation")
     print("2. Hardware-software co-design (mechanical sympathy)")
     print("3. Enhanced profiling and bottleneck identification")
-    print("4. PyTorch 2.8 torch.compile optimizations")
+    print("4. PyTorch 2.9 torch.compile optimizations")
     print("5. Architecture-specific features (Blackwell)")
     print("6. System-level optimization considerations")
     print("7. Latest profiling tools integration")
     print("8. Advanced monitoring and analysis capabilities")
-    print("9. CUDA 12.8 and Triton 3.3 support")
+    print("9. CUDA 12.9 and Triton 3.4 support")
     print("10. Enhanced memory and performance optimizations")
     print("\nThese concepts will be explored in detail throughout the book.")
