@@ -115,7 +115,7 @@ GPU: B200/B300
 Compute Capability: 10.0 (SM100)
 Memory: 192GB/288GB HBM3e
 Memory Bandwidth: 3.2 TB/s
-Tensor Cores: 4th Generation
+Tensor Cores: 5th Generation
 TMA: Tensor Memory Accelerator
 NVLink-C2C: Direct GPU-to-GPU communication
 ```
@@ -863,7 +863,7 @@ print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 1. **Architecture Features**:
    - Compute Capability: SM100 (10.0)
    - HBM3e Memory: Up to 3.2TB/s bandwidth
-   - Tensor Cores: 4th Generation
+   - Tensor Cores: 5th Generation
    - TMA: Tensor Memory Accelerator
    - Multi-GPU: Direct GPU-to-GPU communication
 

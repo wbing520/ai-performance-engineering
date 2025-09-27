@@ -28,7 +28,7 @@ def get_architecture_info():
             "compute_capability": "10.0",
             "sm_version": "sm_100",
             "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "4th Gen",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:

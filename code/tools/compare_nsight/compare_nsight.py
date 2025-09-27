@@ -13,25 +13,20 @@ def get_architecture():
     compute_capability = f"{device_props.major}.{device_props.minor}"
     
     # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
+    if compute_capability == "10.0":
         return "blackwell"  # B200/B300
-    else:
-        return "other"
+    return "other"
 
 def get_architecture_info():
     """Get detailed architecture information."""
     arch = get_architecture()
-    if arch == "hopper":
-        return
-    elif arch == "blackwell":
+    if arch == "blackwell":
         return {
             "name": "Blackwell B200/B300",
             "compute_capability": "10.0",
             "sm_version": "sm_100",
             "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "4th Gen",
+            "tensor_cores": "5th Gen",
             "features": ["HBM3e", "TMA", "NVLink-C2C"]
         }
     else:
@@ -536,15 +531,23 @@ if __name__ == "__main__":
 if torch.cuda.is_available():
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-        torch._inductor.config.triton.use_hopper_optimizations = True
-        torch._inductor.config.triton.hbm3_optimizations = True
-    elif compute_capability == "10.0":  # Blackwell B200/B300
-        torch._inductor.config.triton.use_blackwell_optimizations = True
-        torch._inductor.config.triton.hbm3e_optimizations = True
-        torch._inductor.config.triton.tma_support = True
-    
-    # Enable latest PyTorch 2.9 features
-    torch._inductor.config.triton.unique_kernel_names = True
-    torch._inductor.config.triton.autotune_mode = "max-autotune"
-    torch._dynamo.config.automatic_dynamic_shapes = True
+
+    triton_cfg = getattr(getattr(getattr(torch, "_inductor", None), "config", None), "triton", None)
+    if triton_cfg is not None:
+        if compute_capability == "10.0":
+            if hasattr(triton_cfg, "use_blackwell_optimizations"):
+                triton_cfg.use_blackwell_optimizations = True
+            if hasattr(triton_cfg, "hbm3e_optimizations"):
+                triton_cfg.hbm3e_optimizations = True
+            if hasattr(triton_cfg, "tma_support"):
+                triton_cfg.tma_support = True
+        if hasattr(triton_cfg, "stream_ordered_memory"):
+            triton_cfg.stream_ordered_memory = True
+        if hasattr(triton_cfg, "unique_kernel_names"):
+            triton_cfg.unique_kernel_names = True
+        if hasattr(triton_cfg, "autotune_mode"):
+            triton_cfg.autotune_mode = "max-autotune"
+
+    dynamo_cfg = getattr(getattr(torch, "_dynamo", None), "config", None)
+    if dynamo_cfg is not None and hasattr(dynamo_cfg, "automatic_dynamic_shapes"):
+        dynamo_cfg.automatic_dynamic_shapes = True
