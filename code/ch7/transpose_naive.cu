@@ -1,11 +1,15 @@
 // Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
+
+namespace cg = cooperative_groups;
 
 #define TILE_DIM 32
 
 __global__ void transposeNaive(const float *idata, float *odata, int width) {
     __shared__ float tile[TILE_DIM][TILE_DIM];
+    cg::thread_block block = cg::this_thread_block();
     
     int x = blockIdx.x * TILE_DIM + threadIdx.x;
     int y = blockIdx.y * TILE_DIM + threadIdx.y;
@@ -13,7 +17,7 @@ __global__ void transposeNaive(const float *idata, float *odata, int width) {
     // Write input element into shared memory (coalesced write)
     tile[threadIdx.x][threadIdx.y] = idata[y * width + x];
     
-    __syncthreads();
+    block.sync();
     
     // Read from shared memory with transposed indices
     // This is a classic case of all threads in a warp

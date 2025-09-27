@@ -4,8 +4,11 @@
 // CUDA Graphs examples for reducing kernel launch overhead
 
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
 #include <stdio.h>
 #include <chrono>
+
+namespace cg = cooperative_groups;
 
 // Simple kernels for graph demonstration
 __global__ void kernelA(float* data, int N) {
@@ -40,14 +43,15 @@ __global__ void setCondition(cudaGraphConditionalHandle handle, float* data, int
     } else {
         sdata[tid] = 0.0f;
     }
-    __syncthreads();
+    cg::thread_block cta = cg::this_thread_block();
+    cta.sync();
     
     // Simple reduction
     for (int s = 16; s > 0; s >>= 1) {
         if (tid < s) {
             sdata[tid] += sdata[tid + s];
         }
-        __syncthreads();
+        cta.sync();
     }
     
     if (tid == 0) {

@@ -23,12 +23,12 @@ __global__ void cluster_sum_kernel(const float *in, float *out, int elems_per_bl
     }
 
     sdata[threadIdx.x] = sum;
-    __syncthreads();
+    cta.sync();
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
         if (threadIdx.x < stride) {
             sdata[threadIdx.x] += sdata[threadIdx.x + stride];
         }
-        __syncthreads();
+        cta.sync();
     }
 
     if (threadIdx.x == 0) {

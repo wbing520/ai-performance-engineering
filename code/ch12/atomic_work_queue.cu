@@ -91,7 +91,9 @@ __global__ void computeKernelDynamicLargeBatch(const float* input, float* output
 __global__ void computeKernelHierarchical(const float* input, float* output, int N) {
     __shared__ unsigned int blockBase;
     __shared__ int blockWorkCount;
-    
+
+    thread_block cta = this_thread_block();
+
     const int blockSize = blockDim.x;
     const int batchSize = blockSize * 4; // Process 4x block size per batch
     
@@ -101,7 +103,7 @@ __global__ void computeKernelHierarchical(const float* input, float* output, int
             blockBase = atomicAdd(&globalIndex, batchSize);
             blockWorkCount = min(batchSize, max(0, N - (int)blockBase));
         }
-        __syncthreads();
+        cta.sync();
         
         if (blockWorkCount <= 0 || blockBase >= (unsigned int)N) break;
         
@@ -117,7 +119,7 @@ __global__ void computeKernelHierarchical(const float* input, float* output, int
             }
             output[idx] = result;
         }
-        __syncthreads();
+        cta.sync();
     }
 }
 

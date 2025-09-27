@@ -4,11 +4,14 @@
 // Example demonstrating GEMM optimization for optimal arithmetic intensity
 
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
 #include <cublas_v2.h>
 #include <iostream>
 #include <chrono>
 #include <random>
 #include <algorithm>
+
+namespace cg = cooperative_groups;
 
 // Simple GEMM kernel for demonstration
 __global__ void simple_gemm_kernel(
@@ -34,6 +37,7 @@ __global__ void optimized_gemm_kernel(
     
     __shared__ float sA[32][32];
     __shared__ float sB[32][32];
+    cg::thread_block block = cg::this_thread_block();
     
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -54,7 +58,7 @@ __global__ void optimized_gemm_kernel(
             sB[threadIdx.y][threadIdx.x] = 0.0f;
         }
         
-        __syncthreads();
+        block.sync();
         
         // Compute partial dot product
         int tile_size = min(32, K - k);
@@ -62,7 +66,7 @@ __global__ void optimized_gemm_kernel(
             sum += sA[threadIdx.y][i] * sB[i][threadIdx.x];
         }
         
-        __syncthreads();
+        block.sync();
     }
     
     if (row < M && col < N) {

@@ -8,12 +8,14 @@
 #include <cuda_fp16.h>
 #include <mma.h>
 #include <cub/cub.cuh>
+#include <cooperative_groups.h>
 #include <iostream>
 #include <vector>
 #include <chrono>
 #include <cassert>
 
 using namespace nvcuda;
+namespace cg = cooperative_groups;
 
 // Define half4 struct for vectorized operations
 struct half4 {
@@ -45,6 +47,8 @@ __global__ void flashmla_decode_kernel(
     
     const int tid = threadIdx.x;
     const int lane_id = tid % WARP_SIZE;
+
+    cg::thread_block block = cg::this_thread_block();
     
     // Block handles one (batch, head) pair
     const int batch_idx = blockIdx.x / num_heads;
@@ -60,7 +64,7 @@ __global__ void flashmla_decode_kernel(
     for (int i = tid; i < head_dim; i += blockDim.x) {
         shared_query[i] = query[query_offset + i];
     }
-    __syncthreads();
+    block.sync();
     
     // Phase 1: Compute attention scores
     // Use warp-level primitives for efficiency
@@ -103,7 +107,7 @@ __global__ void flashmla_decode_kernel(
     
     // Broadcast max to all threads in warp
     max_score = __shfl_sync(0xffffffff, max_score, 0);
-    __syncthreads();
+    block.sync();
     
     // Phase 2: Compute softmax and weighted sum in fused manner
     half sum_exp = __float2half(0.0f);
@@ -176,6 +180,8 @@ __global__ void thunder_mla_mega_kernel(
     const int tid = threadIdx.x;
     const int batch_idx = blockIdx.x / num_heads;
     const int head_idx = blockIdx.x % num_heads;
+
+    cg::thread_block block = cg::this_thread_block();
     
     if (batch_idx >= batch_size) return;
     
@@ -202,7 +208,7 @@ __global__ void thunder_mla_mega_kernel(
         
         ff_intermediate[tid] = gelu_out;
     }
-    __syncthreads();
+    block.sync();
     
     // Step 3: Second linear layer
     if (tid < head_dim) {

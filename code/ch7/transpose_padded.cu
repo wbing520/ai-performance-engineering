@@ -1,6 +1,9 @@
 // Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
+
+namespace cg = cooperative_groups;
 
 #define TILE_DIM 32
 #define PAD 1 // padding columns to avoid bank conflicts
@@ -8,13 +11,14 @@
 __global__ void transposePadded(const float *idata, float *odata, int width) {
     // Each row is TILE_DIM+1 elements to shift bank mapping
     __shared__ float tile[TILE_DIM][TILE_DIM + PAD];
+    cg::thread_block block = cg::this_thread_block();
     
     int x = blockIdx.x * TILE_DIM + threadIdx.x;
     int y = blockIdx.y * TILE_DIM + threadIdx.y;
     
     tile[threadIdx.x][threadIdx.y] = idata[y * width + x];
     
-    __syncthreads();
+    block.sync();
     
     odata[x * width + y] = tile[threadIdx.y][threadIdx.x];
 }

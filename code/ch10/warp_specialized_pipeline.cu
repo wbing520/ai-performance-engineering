@@ -119,6 +119,8 @@ __global__ void naive_kernel(
     int warp_id = thread_idx >> 5;
     int lane_id = thread_idx & 31;
 
+    thread_block block = this_thread_block();
+
     int warps_per_block = blockDim.x >> 5;
     int totalWarps = gridDim.x * warps_per_block;
     int global_warp = warp_id + (blockIdx.x * warps_per_block);
@@ -132,7 +134,7 @@ __global__ void naive_kernel(
             B_tile[lane_id] = B_global[offset + lane_id];
         }
 
-        __syncthreads();
+        block.sync();
 
         // Compute
         if (lane_id < TILE_SIZE) {
@@ -145,7 +147,7 @@ __global__ void naive_kernel(
             }
         }
 
-        __syncthreads();
+        block.sync();
     }
 }
 

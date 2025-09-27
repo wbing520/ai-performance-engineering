@@ -151,6 +151,8 @@ __global__ void gemm_tiled_naive(
     float* A_tile = naive_shared_mem;
     float* B_tile = naive_shared_mem + TILE_SIZE * TILE_SIZE;
 
+    cg::thread_block cta = cg::this_thread_block();
+
     int tx = threadIdx.x, ty = threadIdx.y;
     int block_row = blockIdx.y * TILE_SIZE;
     int block_col = blockIdx.x * TILE_SIZE;
@@ -177,7 +179,7 @@ __global__ void gemm_tiled_naive(
             B_tile[ty * TILE_SIZE + tx] = 0.0f;
         }
 
-        __syncthreads();
+        cta.sync();
 
         // Compute
         #pragma unroll
@@ -185,7 +187,7 @@ __global__ void gemm_tiled_naive(
             accum += A_tile[ty * TILE_SIZE + k] * B_tile[k * TILE_SIZE + tx];
         }
 
-        __syncthreads();
+        cta.sync();
     }
 
     // Write result

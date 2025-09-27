@@ -1,7 +1,10 @@
 // Architecture-specific optimizations for CUDA 12.9
 // Simplified version for Blackwell B200/B300 (sm_100)
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
 #include <iostream>
+
+namespace cg = cooperative_groups;
 
 #define TILE_SIZE 1024 // example tile size
 
@@ -9,17 +12,18 @@
 __device__ void processTile(const float* tile) {
     // Simulate some computation on the tile
     // In practice, this would be your actual computation
-    __syncthreads();
+    cg::thread_block block = cg::this_thread_block();
+    block.sync();
     
     // Example computation: sum reduction
     __shared__ float sum;
     if (threadIdx.x == 0) sum = 0.0f;
-    __syncthreads();
+    block.sync();
     
     for (int i = threadIdx.x; i < TILE_SIZE; i += blockDim.x) {
         atomicAdd(&sum, tile[i]);
     }
-    __syncthreads();
+    block.sync();
 }
 
 __global__ void kernelWithAsyncCopy(const float* __restrict__ global_ptr,
@@ -28,6 +32,8 @@ __global__ void kernelWithAsyncCopy(const float* __restrict__ global_ptr,
     __shared__ float tile0[TILE_SIZE];
     __shared__ float tile1[TILE_SIZE];
     float* tiles[2] = { tile0, tile1 };
+
+    cg::thread_block block = cg::this_thread_block();
     
     int tileIdx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -40,11 +46,11 @@ __global__ void kernelWithAsyncCopy(const float* __restrict__ global_ptr,
                 tiles[t % 2][i] = global_ptr[offset + i];
             }
         }
-        __syncthreads();
+        block.sync();
         
         // Process the tile
         processTile(tiles[t % 2]);
-        __syncthreads();
+        block.sync();
     }
 }
 

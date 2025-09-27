@@ -4,8 +4,11 @@
 // Fused L2 normalization kernel from Chapter 9
 
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
 #include <stdio.h>
 #include <math.h>
+
+namespace cg = cooperative_groups;
 
 // Non-fused version (two separate kernels)
 __global__ void computeNorms(const float* x, float* norms, int batch_size, int hidden_size) {
@@ -13,6 +16,7 @@ __global__ void computeNorms(const float* x, float* norms, int batch_size, int h
     if (batch_idx >= batch_size) return;
     
     extern __shared__ float sdata[];
+    cg::thread_block block = cg::this_thread_block();
     
     float sum = 0.0f;
     for (int i = threadIdx.x; i < hidden_size; i += blockDim.x) {
@@ -22,13 +26,13 @@ __global__ void computeNorms(const float* x, float* norms, int batch_size, int h
     
     // Reduce within block
     sdata[threadIdx.x] = sum;
-    __syncthreads();
+    block.sync();
     
     for (int s = blockDim.x / 2; s > 0; s >>= 1) {
         if (threadIdx.x < s) {
             sdata[threadIdx.x] += sdata[threadIdx.x + s];
         }
-        __syncthreads();
+        block.sync();
     }
     
     if (threadIdx.x == 0) {
@@ -52,6 +56,7 @@ __global__ void fusedL2Norm(const float* x, float* output, int batch_size, int h
     if (batch_idx >= batch_size) return;
     
     extern __shared__ float sdata[];
+    cg::thread_block block = cg::this_thread_block();
     
     // Phase 1: Compute L2 norm
     float sum = 0.0f;
@@ -62,18 +67,18 @@ __global__ void fusedL2Norm(const float* x, float* output, int batch_size, int h
     
     // Reduce within block
     sdata[threadIdx.x] = sum;
-    __syncthreads();
+    block.sync();
     
     for (int s = blockDim.x / 2; s > 0; s >>= 1) {
         if (threadIdx.x < s) {
             sdata[threadIdx.x] += sdata[threadIdx.x + s];
         }
-        __syncthreads();
+        block.sync();
     }
     
     // Broadcast norm to all threads
     float norm = sqrtf(sdata[0]);
-    __syncthreads();
+    block.sync();
     
     // Phase 2: Normalize and write output
     for (int i = threadIdx.x; i < hidden_size; i += blockDim.x) {
@@ -91,6 +96,7 @@ __global__ void fusedL2NormOptimized(const float* __restrict__ x, float* __restr
     extern __shared__ float sdata[];
     const int tid = threadIdx.x;
     const int block_size = blockDim.x;
+    cg::thread_block block = cg::this_thread_block();
     
     // Phase 1: Compute L2 norm with optimized access pattern
     float local_sum = 0.0f;
@@ -104,12 +110,12 @@ __global__ void fusedL2NormOptimized(const float* __restrict__ x, float* __restr
     
     // Optimized reduction
     sdata[tid] = local_sum;
-    __syncthreads();
-    
+    block.sync();
+
     // Unroll the reduction for better performance
-    if (block_size >= 512) { if (tid < 256) sdata[tid] += sdata[tid + 256]; __syncthreads(); }
-    if (block_size >= 256) { if (tid < 128) sdata[tid] += sdata[tid + 128]; __syncthreads(); }
-    if (block_size >= 128) { if (tid < 64)  sdata[tid] += sdata[tid + 64];  __syncthreads(); }
+    if (block_size >= 512) { if (tid < 256) sdata[tid] += sdata[tid + 256]; block.sync(); }
+    if (block_size >= 256) { if (tid < 128) sdata[tid] += sdata[tid + 128]; block.sync(); }
+    if (block_size >= 128) { if (tid < 64)  sdata[tid] += sdata[tid + 64];  block.sync(); }
     
     // Final warp reduction
     if (tid < 32) {

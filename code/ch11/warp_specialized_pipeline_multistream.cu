@@ -42,6 +42,8 @@ __global__ void warp_specialized_kernel(
     float* B_tile = shared_mem + TILE_SIZE;        // [TILE_SIZE ... 2*TILE_SIZE-1]
     float* C_tile = shared_mem + 2 * TILE_SIZE;    // [2*TILE_SIZE ... 3*TILE_SIZE-1]
 
+    thread_block cta = this_thread_block();
+
     // Compute warp_id and lane_id
     int warp_id = threadIdx.x >> 5;
     int lane_id = threadIdx.x & 31;
@@ -64,7 +66,7 @@ __global__ void warp_specialized_kernel(
         }
 
         // Synchronize to ensure data is loaded
-        __syncthreads();
+        cta.sync();
 
         // Compute (warp 1)
         if (warp_id == 1 && lane_id < TILE_SIZE) {
@@ -74,7 +76,7 @@ __global__ void warp_specialized_kernel(
         }
 
         // Synchronize to ensure computation is done
-        __syncthreads();
+        cta.sync();
 
         // Store results (warp 2)
         if (warp_id == 2 && lane_id < TILE_SIZE) {
@@ -84,7 +86,7 @@ __global__ void warp_specialized_kernel(
         }
 
         // Synchronize before next iteration
-        __syncthreads();
+        cta.sync();
     }
 }
 

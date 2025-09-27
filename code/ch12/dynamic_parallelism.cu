@@ -4,7 +4,10 @@
 // Device-initiated kernel launches and CUDA graph orchestration
 
 #include <cuda_runtime.h>
+#include <cooperative_groups.h>
 #include <stdio.h>
+
+namespace cg = cooperative_groups;
 
 // Child kernel launched by parent
 __global__ void childKernel(float* data, int start, int count, float scale) {
@@ -68,6 +71,7 @@ __device__ cudaGraphExec_t g_graphExec; // Global graph executor
 __device__ int g_workIndex = 0;         // Global work counter
 
 __global__ void persistentScheduler(float* workData, int numTasks, int maxIterations) {
+    cg::thread_block cta = cg::this_thread_block();
     while (true) {
         // Atomically get next work item
         int workIdx = atomicAdd(&g_workIndex, 1);
@@ -89,7 +93,7 @@ __global__ void persistentScheduler(float* workData, int numTasks, int maxIterat
         
         // Small delay to simulate work
         for (int i = 0; i < 1000; ++i) {
-            __syncthreads();
+            cta.sync();
         }
     }
 }
