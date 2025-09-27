@@ -95,6 +95,10 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
             "sm__warps_active.avg.pct_of_peak_sustained_active",
         ]
     ),
+    "ch12": _overrides_from_lists(
+        nsys_extra_args=["--gpu-metrics-device=all"],
+        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn"],
+    ),
     "ch13": _overrides_from_lists(
         nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn", "nvlink"],
         pytorch_modes=["blackwell"],
