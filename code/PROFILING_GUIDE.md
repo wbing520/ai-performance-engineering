@@ -7,6 +7,30 @@ This guide covers the latest profiling tools and best practices for:
 - **OpenAI Triton 3.3**
 - **Architecture switching: Blackwell B200/B300 GPUs**
 
+## Automated Example Harness
+
+All chapter examples share a common manifest in `code/profiler_scripts/example_registry.py` and can be profiled through the unified harness.
+
+### Quick start
+- `python code/profiler_scripts/profile_harness.py --list` shows every registered example with tags.
+- `python code/profiler_scripts/profile_harness.py --profile all` captures Nsight Systems, Nsight Compute, and torch.profiler traces for every example.
+- Wrapper scripts are available: `code/profiler_scripts/run_all_nsys.sh`, `code/profiler_scripts/run_all_ncu.sh`, and `code/profiler_scripts/run_all_pytorch.sh`.
+
+### Filters and configuration
+- `--examples` and `--tags` allow targeting subsets, e.g. `--tags ch14 compiler`.
+- `--profile` accepts `nsys`, `ncu`, `pytorch`, or `all` (default).
+- PyTorch runs support multiple modes via repeated `--profile-mode` flags (e.g. `--profile-mode full --profile-mode memory`).
+- `--skip-existing` reuses previous outputs, while `--dry-run` prints commands without executing.
+
+### Outputs
+- Results are organised under `profiles/<timestamp>/<profiler>/<example>/` with per-run `stdout.log`, `stderr.log`, `command.json`, and profiler artefacts.
+- A session-wide `summary.json` consolidates exit codes, durations, and skip reasons.
+
+### Prerequisites
+- Install Python dependencies with `pip install -r code/requirements_latest.txt`.
+- Ensure Nsight Systems (`nsys`) and Nsight Compute (`ncu`) binaries are on `PATH`.
+- Some examples rely on optional modules listed in the manifest (e.g. `transformers`, `yaml`, `GPUtil`); the harness skips runs when requirements are missing.
+
 ## Profiling Tools
 
 ### 1. Nsight Systems (nsys)

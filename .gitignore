@@ -1,3 +1,4 @@
+profiles/
 *.out
 *.err
 run_report_*.md
