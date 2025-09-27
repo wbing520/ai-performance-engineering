@@ -51,7 +51,7 @@ def demonstrate_memory_profiling():
     class SimpleModel(nn.Module):
         def __init__(self):
             super().__init__()
-            self.linear1 = nn.Linear(512, 1024)
+            self.linear1 = nn.Linear(512, 1024)  # reduced sizes for fast profiling
             self.linear2 = nn.Linear(1024, 2048)
             self.linear3 = nn.Linear(2048, 512)
             
@@ -63,7 +63,7 @@ def demonstrate_memory_profiling():
     model = SimpleModel().to(device)
     
     # Create input data
-    batch_size = 16
+    batch_size = 16  # smaller batch keeps demo responsive during profiling
     input_data = torch.randn(batch_size, 512, device=device)
     target = torch.randint(0, 512, (batch_size,), device=device)
     

@@ -413,7 +413,7 @@ class SimpleTransformerModel:
         return next_token, state
 
 def generate_with_radix(prompt_tokens: List[int], model: SimpleTransformerModel, 
-                       radix: RadixTree, max_generated_tokens: int = 6) -> List[int]:
+                       radix: RadixTree, max_generated_tokens: int = 6) -> List[int]:  # cap generation so profiling stays snappy
     """
     Generate tokens using RadixAttention prefix caching.
     

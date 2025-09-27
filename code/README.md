@@ -1,8 +1,8 @@
-# 🚀 AI Performance Engineering
+# AI Performance Engineering
 
 A comprehensive guide to optimizing AI systems for maximum performance, efficiency, and scalability. This repository contains practical examples and code for performance engineering on modern AI hardware, including NVIDIA's Grace Blackwell superchips and NVL72 systems.
 
-## 🚀 Overview
+## Overview
 
 This repository targets a single hardware profile: **Blackwell B200/B300 (SM100)**, built on PyTorch 2.8, CUDA 12.8, and Triton 3.3.
 
@@ -13,7 +13,7 @@ This repository targets a single hardware profile: **Blackwell B200/B300 (SM100)
 - **NVL72 Systems**: Multi-GPU cluster optimisation examples
 - **Enhanced Profiling**: Nsight Systems/Compute, HTA, and Perf integration
 
-## 📚 Book Chapters
+## Book Chapters
 
 Each chapter contains practical code examples demonstrating key performance engineering concepts:
 
@@ -118,7 +118,7 @@ Each chapter contains practical code examples demonstrating key performance engi
 - AI-assisted optimization, automated tuning, and emerging hardware
 - Latest trends and emerging technologies
 
-## 🛠️ Installation
+## Installation
 
 ### Prerequisites
 
@@ -158,7 +158,7 @@ sudo apt install -y numactl nvidia-container-toolkit infiniband-diags perftest
 sudo yum install -y numactl nvidia-container-toolkit infiniband-diags perftest
 ```
 
-## 🚀 Quick Examples
+## Quick Examples
 
 ### Basic Performance Analysis
 ```bash
@@ -205,7 +205,7 @@ bash code/tools/run_all_examples.sh
 ### Enhanced Profiling
 ```bash
 # Comprehensive profiling
-bash code/profiler_scripts/comprehensive_profile.sh script.py
+python code/profiler_scripts/profile_harness.py --profile nsys --profile pytorch --examples ch7_vectorized
 
 # PyTorch profiling
 bash code/profiler_scripts/pytorch_profile.sh script.py
@@ -214,7 +214,7 @@ bash code/profiler_scripts/pytorch_profile.sh script.py
 bash code/profiler_scripts/pytorch_profile.sh script.py blackwell
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -254,7 +254,7 @@ docker build -t ai-perf-eng .
 docker run --gpus all --rm -it ai-perf-eng
 ```
 
-## 📈 Performance Monitoring
+## Performance Monitoring
 
 ### Real-time Monitoring
 
@@ -297,7 +297,7 @@ perf record -g -p $(pgrep python) -o perf.data
 perf report -i perf.data
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -315,14 +315,14 @@ black code/
 flake8 code/
 ```
 
-## 📖 Documentation
+## Documentation
 
 - **Book Chapters**: Each chapter contains detailed explanations and code examples
 - **API Reference**: Comprehensive documentation for all functions and classes
 - **Performance Guides**: Step-by-step optimization guides
 - **Troubleshooting**: Common issues and solutions
 
-## 🏆 Acknowledgments
+## Acknowledgments
 
 This repository is based on the comprehensive AI Performance Engineering book, covering:
 
@@ -332,11 +332,11 @@ This repository is based on the comprehensive AI Performance Engineering book, c
 - **Algorithm Optimization**: Distributed training, model parallelism, quantization
 - **Profiling Optimization**: Latest profiling tools and techniques
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## Links
 
 - **NVIDIA CUDA**: https://developer.nvidia.com/cuda-zone
 - **PyTorch**: https://pytorch.org/

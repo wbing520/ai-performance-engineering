@@ -206,7 +206,7 @@ def benchmark_tensor_operations():
         ("Reduction Sum", lambda x, y: x.sum()),
     ]
     
-    size = 1024
+    size = 1024  # modest matrix size so profiling runs stay sub-second
     a = torch.randn(size, size, device='cuda')
     b = torch.randn(size, size, device='cuda')
     

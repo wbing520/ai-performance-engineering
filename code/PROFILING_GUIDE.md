@@ -15,6 +15,7 @@ All chapter examples share a common manifest in `code/profiler_scripts/example_r
 - `python code/profiler_scripts/profile_harness.py --list` shows every registered example with tags.
 - `python code/profiler_scripts/profile_harness.py --profile all` captures Nsight Systems, Nsight Compute, and torch.profiler traces for every example.
 - Wrapper scripts are available: `code/profiler_scripts/run_all_nsys.sh`, `code/profiler_scripts/run_all_ncu.sh`, and `code/profiler_scripts/run_all_pytorch.sh`.
+- `./clean_profiles.sh` removes accumulated artefacts under `profiles/` when you want a fresh run.
 
 ### Filters and configuration
 - `--examples` and `--tags` allow targeting subsets, e.g. `--tags ch14 compiler`.
@@ -25,6 +26,10 @@ All chapter examples share a common manifest in `code/profiler_scripts/example_r
 ### Outputs
 - Results are organised under `profiles/<timestamp>/<profiler>/<example>/` with per-run `stdout.log`, `stderr.log`, `command.json`, and profiler artefacts.
 - A session-wide `summary.json` consolidates exit codes, durations, and skip reasons.
+- Use `./clean_profiles.sh` to prune the directory once runs are complete.
+
+### Profiling-friendly workloads
+Several chapter scripts use reduced tensor sizes or iteration counts so the profiling suite finishes in minutes rather than hours. Comments in each script call this out (for example, `ch6/add_sequential.py` notes the smaller `N`). These tweaks keep the instructional flow intact while ensuring Nsight and the PyTorch profiler collect data quickly.
 
 ### Prerequisites
 - Install Python dependencies with `pip install -r code/requirements_latest.txt`.
@@ -41,18 +46,16 @@ All chapter examples share a common manifest in `code/profiler_scripts/example_r
 # Basic profiling
 bash profiler_scripts/nsys_profile.sh your_script.py
 
-# Advanced profiling with Python sampling
-nsys profile \
-  --force-overwrite=true \
-  -o profile_report \
-  -t cuda,nvtx,osrt,cudnn,cublas \
-  -s cpu \
-  --python-sampling=true \
-  --python-sampling-frequency=1000 \
-  --cudabacktrace=true \
-  --cudabacktrace-threshold=0 \
-  --gpu-metrics-device=all \
-  --stats=true \
+# Manual invocation
+nsys profile \\
+  --force-overwrite=true \\
+  -o profile_report \\
+  -t cuda,nvtx,osrt,cudnn,cublas \\
+  -s cpu \\
+  --python-sampling=true \\
+  --python-sampling-frequency=1000 \\
+  --cudabacktrace=true \\
+  --stats=true \\
   python your_script.py
 nsys stats --report summary,cuda_api,osrt --format sqlite,csv profile_report -o profile_report
 ```
@@ -72,11 +75,10 @@ nsys stats --report summary,cuda_api,osrt --format sqlite,csv profile_report -o 
 # Basic profiling
 bash profiler_scripts/ncu_profile.sh your_script.py
 
-# Advanced profiling
-ncu \
-  --set full \
-  --kernel-name regex:.* \
-  -o ncu_report \
+# Manual invocation
+ncu \\
+  --set full \\
+  -o ncu_report \\
   python your_script.py
 ```
 
@@ -93,30 +95,22 @@ ncu \
 **Purpose**: Framework-level profiling
 
 ```python
-from torch.profiler import profile, record_function, ProfilerActivity, schedule
-import torch.cuda.nvtx as nvtx
+from torch.profiler import profile, ProfilerActivity
 
-# Latest PyTorch 2.8 nightly profiler configuration
 with profile(
     activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-    profile_memory=True, 
     record_shapes=True,
+    profile_memory=True,
     with_stack=True,
     with_flops=True,
     with_modules=True,
-    schedule=schedule(
-        wait=1,
-        warmup=1,
-        active=3,
-        repeat=2
-    )
 ) as prof:
-    # Your training loop here
-    pass
+    # Run your workload here
+    ...
 
-# Export results
-prof.export_chrome_trace("trace.json")
-print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+if getattr(prof, "profiler", None) is not None:
+    prof.export_chrome_trace("trace.json")
+    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 ```
 
 **Key Features for PyTorch 2.8 nightly**:

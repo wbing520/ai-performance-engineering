@@ -49,7 +49,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
     
-    batch_size = 2
+    batch_size = 2  # intentionally tiny for quick profiler turnaround
     input_texts = ["DeepSeek is great."] * batch_size
     
     # Add padding token if not present

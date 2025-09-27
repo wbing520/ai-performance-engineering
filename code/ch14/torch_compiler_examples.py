@@ -102,7 +102,7 @@ class SimpleModel(torch.nn.Module):
     Simple model for demonstrating torch.compile optimizations.
     Updated for PyTorch 2.8 nightly features.
     """
-    def __init__(self, input_size=256, hidden_size=256, output_size=10):
+    def __init__(self, input_size=256, hidden_size=256, output_size=10):  # compact to keep profiling under a few seconds
         super().__init__()
         self.fc1 = torch.nn.Linear(input_size, hidden_size)
         self.fc2 = torch.nn.Linear(hidden_size, hidden_size)

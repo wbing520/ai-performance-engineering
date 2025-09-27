@@ -523,7 +523,7 @@ def main():
     # Demonstrate jagged tensor support
     print("\n=== Jagged Tensor Demo ===")
     sequences = [
-        torch.randn(16, 256),   # Short sequence
+        torch.randn(16, 256),   # Short sequence keeping runtime low
         torch.randn(32, 256),   # Medium sequence  
         torch.randn(64, 256),   # Long sequence
     ]

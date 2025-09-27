@@ -70,9 +70,6 @@ run_profiling_tool() {
         "pytorch")
             bash ../../pytorch_profile.sh "../../$SCRIPT_NAME" "$ARCH" "full"
             ;;
-        "comprehensive")
-            bash ../../comprehensive_profile.sh "../../$SCRIPT_NAME" "$ARCH" "$PROFILE_DURATION"
-            ;;
         *)
             echo "Unknown profiling tool: $tool"
             return 1

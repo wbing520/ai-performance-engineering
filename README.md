@@ -1,6 +1,6 @@
 # AI Performance Engineering
 
-## 📚 About This Repository
+## About This Repository
 
 This repository contains comprehensive code examples, tools, and resources for AI Systems Performance Engineering. It accompanies the O'Reilly book covering GPU optimization, distributed training, inference scaling, and performance tuning for modern AI workloads.
 
@@ -9,7 +9,7 @@ This repository contains comprehensive code examples, tools, and resources for A
 > **O'Reilly Book - Fall 2025**  
 > [Available on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 
-## 📋 AI Systems Performance Engineering Book Checklist
+## AI Systems Performance Engineering Book Checklist
 
 The book includes a comprehensive **175+ item performance checklist** covering:
 
@@ -26,7 +26,7 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 
 ---
 
-## 🔗 Links
+## Links
 
 - **Book**: [AI Systems Performance Engineering on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 - **Meetup**: [AI Performance Engineering Meetup Group](https://www.meetup.com/ai-performance-engineering)
@@ -34,11 +34,11 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 
 ---
 
-*Built with ❤️ in San Francisco for the AI performance engineering community*
+*Built in San Francisco for the AI performance engineering community*
 
 ---
 
-### 🎯 Key Focus Areas
+### Key Focus Areas
 - **GPU Architecture, PyTorch, CUDA, and Open AI Triton Programming**
 - **Distributed Training & Inference**
 - **Memory Optimization & Profiling**
@@ -47,7 +47,7 @@ The book includes a comprehensive **175+ item performance checklist** covering:
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - NVIDIA GPU with CUDA support
@@ -67,9 +67,12 @@ pip install -r requirements.txt
 
 # Run examples
 python performance_basics.py
+
+# Profiling-friendly workloads
+Most examples use modest tensor sizes and short iteration counts so Nsight and the PyTorch profiler finish in seconds. Comments inside each script highlight these adjustments; increase the sizes if you need larger-scale numbers.
 ```
 
-### 🏗️ Blackwell Workflow
+### Blackwell Workflow
 
 This repository now targets a single architecture profile: **NVIDIA Blackwell B200/B300 (SM100)**. All tooling, CUDA builds, and PyTorch examples assume CUDA 12.8, PyTorch 2.8 nightlies, and Triton 3.3. Use the helper scripts to stay aligned with that stack:
 
@@ -77,13 +80,16 @@ This repository now targets a single architecture profile: **NVIDIA Blackwell B2
 # Build CUDA samples and run sanity checks
 ./code/build_all.sh
 
-# Capture a full profiling suite for a script
-./code/profiler_scripts/comprehensive_profile.sh your_script.py
+# Profile the entire codebase with Nsight + PyTorch profiler
+python code/profiler_scripts/profile_harness.py --profile nsys --profile pytorch --output-root profiles/full_run
+
+# Reset all generated profiling artefacts
+./clean_profiles.sh
 ```
 
 For hardware details and optimisation notes, see [`code/README.md`](code/README.md).
 
-### 🔧 Latest Features
+### Latest Features
 
 **Updated for PyTorch 2.8, CUDA 12.8, and Triton 3.3:**
 
@@ -94,10 +100,11 @@ For hardware details and optimisation notes, see [`code/README.md`](code/README.
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **Perf**: Enhanced system-level analysis
 - **Architecture Optimizations**: Blackwell-specific features
+- **Unified Profiling Harness**: One command walks through every chapter with Nsight Systems/Compute + PyTorch profiler
 
 ---
 
-## 📖 Book Chapters Overview
+## Book Chapters Overview
 
 ### **Chapter 1: Introduction and AI System Overview**
 - The AI Systems Performance Engineer
@@ -241,11 +248,11 @@ For hardware details and optimisation notes, see [`code/README.md`](code/README.
 
 ---
 
-## 🛠️ Tools and Utilities
+## Tools and Utilities
 
 ### Profiling Scripts
-- `code/profiler_scripts/comprehensive_profile.sh` - Comprehensive GPU profiling
-- `code/profiler_scripts/enhanced_profiling.sh` - Enhanced profiling with Nsight
+- `code/profiler_scripts/profile_harness.py` - Unified Nsight Systems / Nsight Compute / PyTorch profiler runner
+- `code/profiler_scripts/enhanced_profiling.sh` - Convenience wrapper for individual scripts
 - `code/profiler_scripts/hta_profile.sh` - Holistic Tracing Analysis
 
 ### Performance Analysis Tools
@@ -272,7 +279,7 @@ perf report -i perf.data
 
 ---
 
-## 🎥 Community Resources
+## Community Resources
 
 ### Monthly Meetups (100,000+ Global Members, 20+ Cities)
 - **Meetup Group**: [AI Performance Engineering](https://www.meetup.com/ai-performance-engineering)
@@ -305,7 +312,7 @@ perf report -i perf.data
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for:
 - Code examples and improvements
@@ -315,7 +322,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

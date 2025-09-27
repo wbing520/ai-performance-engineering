@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to the AI Systems Performance Engineering repository! This guide will help you get started with contributing code, documentation, examples, and improvements.
 
-## 🤝 How to Contribute
+## How to Contribute
 
 We welcome contributions from the community in many forms:
 
@@ -13,7 +13,7 @@ We welcome contributions from the community in many forms:
 - **Architecture Support**: Extend Blackwell workflows or add tooling for new GPU families
 - **Testing**: Unit tests, performance benchmarks, validation scripts
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -36,7 +36,7 @@ git checkout -b feature/your-feature-name
 pip install -r code/ch1/requirements.txt
 ```
 
-## 📝 Contribution Guidelines
+## Contribution Guidelines
 
 ### Code Style
 
@@ -56,7 +56,7 @@ pip install -r code/ch1/requirements.txt
 
 The main branch targets **Blackwell B200/B300 (SM100)** exclusively. New examples should default to `ARCH ?= sm_100` and inherit the CUDA 12.8 toolchain. If you prototype support for other GPUs, keep it behind clearly documented flags or submit it as a separate branch.
 
-## 🔧 Development Workflow
+## Development Workflow
 
 ### 1. Choose Your Contribution Type
 
@@ -97,7 +97,7 @@ flake8 code/
 ./code/build_all.sh
 
 # Profile your changes
-./code/profiler_scripts/comprehensive_profile.sh
+python code/profiler_scripts/profile_harness.py --profile nsys --profile pytorch --examples ch6_add_parallel --output-root profiles/test_run
 
 # Compare with baseline
 python tools/comprehensive_profiling.py
@@ -126,7 +126,7 @@ git commit -m "Add new CUDA kernel for memory optimization
 git push origin feature/your-feature-name
 ```
 
-## 📋 Pull Request Guidelines
+## Pull Request Guidelines
 
 ### Before Submitting
 
@@ -164,7 +164,7 @@ Brief description of your changes
 Any additional context or considerations
 ```
 
-## 🏗️ Architecture Guidelines
+## Architecture Guidelines
 
 ### Adding New GPU Support
 
@@ -179,7 +179,7 @@ When adding support for new GPU architectures:
 
 If you experiment with additional architectures, document the changes clearly and avoid regressing the default Blackwell workflow. Consider maintaining separate branches for architecture-specific divergences to keep `main` lean.
 
-## 📊 Performance Contribution Guidelines
+## Performance Contribution Guidelines
 
 ### Benchmarking Standards
 
@@ -219,7 +219,7 @@ def benchmark_kernel():
     print(f"Throughput: {throughput:.2f} ops/s")
 ```
 
-## 🐛 Bug Reports
+## Bug Reports
 
 ### Reporting Issues
 
@@ -258,7 +258,7 @@ What actually happened
 Any other relevant information
 ```
 
-## 📚 Documentation Contributions
+## Documentation Contributions
 
 ### README Updates
 
@@ -276,7 +276,7 @@ When updating documentation:
 - **Returns**: Document return values
 - **Complexity**: Explain complex algorithms
 
-## 🎯 Contribution Ideas
+## Contribution Ideas
 
 ### High-Priority Areas
 
@@ -294,7 +294,7 @@ When updating documentation:
 - **Stream Management**: Better asynchronous execution
 - **Distributed Training**: Multi-GPU optimizations
 
-## 📞 Getting Help
+## Getting Help
 
 ### Community Resources
 
@@ -309,11 +309,11 @@ When updating documentation:
 - **Discussions**: For questions and ideas
 - **Email**: For private or sensitive matters
 
-## 📄 License
+## License
 
 By contributing to this project, you agree that your contributions will be licensed under the same license as the project (MIT License).
 
-## 🙏 Recognition
+## Recognition
 
 Contributors will be recognized in:
 
@@ -324,4 +324,4 @@ Contributors will be recognized in:
 
 ---
 
-Thank you for contributing to the AI Performance Engineering community! 🚀
+Thank you for contributing to the AI Performance Engineering community.

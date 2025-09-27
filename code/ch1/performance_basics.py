@@ -211,7 +211,7 @@ def benchmark_model_performance(model: nn.Module,
     
     # Warmup with enhanced profiling
     with torch.no_grad():
-        for _ in range(3):
+        for _ in range(3):  # short warmup to keep profiler sessions quick
             _ = compiled_model(dummy_input)
     
     # Benchmark with enhanced profiling

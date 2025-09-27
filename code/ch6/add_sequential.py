@@ -49,7 +49,7 @@ def get_architecture_info():
 import torch
 import time
 
-# Smaller problem size keeps the demo representative without multi-minute runtimes
+# Smaller problem size keeps profiling runs short (<1s) while demonstrating the antipattern
 N = 10000
 
 A = torch.arange(N, dtype=torch.float32, device='cuda')
