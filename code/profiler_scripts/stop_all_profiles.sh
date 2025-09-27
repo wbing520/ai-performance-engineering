@@ -1,5 +1,6 @@
 #!/bin/bash
-# Terminate active profiling jobs launched via profile_harness/master_profile.
+# Terminate active profiling jobs launched via profile_harness/master_profile and
+# any lingering Nsight or PyTorch Inductor workers.
 
 set -euo pipefail
 
@@ -35,6 +36,22 @@ if command -v pkill >/dev/null 2>&1; then
   fi
   if pkill -f master_profile.sh >/dev/null 2>&1; then
     echo "Issued pkill for master_profile.sh"
+    found=1
+  fi
+  if pkill -f 'torch/_inductor/compile_worker' >/dev/null 2>&1; then
+    echo "Issued pkill for torch/_inductor/compile_worker"
+    found=1
+  fi
+  if pkill -f '/opt/nvidia/nsight-compute' >/dev/null 2>&1; then
+    echo "Issued pkill for Nsight Compute"
+    found=1
+  fi
+  if pkill -f '/opt/nvidia/nsight-systems' >/dev/null 2>&1 || pkill -x nsys >/dev/null 2>&1; then
+    echo "Issued pkill for Nsight Systems"
+    found=1
+  fi
+  if pkill -x perf >/dev/null 2>&1; then
+    echo "Issued pkill for perf"
     found=1
   fi
 fi
