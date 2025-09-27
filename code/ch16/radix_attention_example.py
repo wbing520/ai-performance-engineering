@@ -620,8 +620,7 @@ def main():
     response2 = generate_with_radix(prompt2, model, radix)
     print(f"Response 2: {response2}")
     
-    # Run more comprehensive demos
-    simulate_multi_turn_conversation()
+    # Run benchmark demo to highlight cache reuse
     benchmark_prefix_caching()
     
     print("\n" + "=" * 50)

@@ -158,7 +158,7 @@ def run_profiler(script: Path, output_dir: Path, mode: str, script_args: Optiona
         }
         (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
 
-        if 'prof' in locals():
+        if 'prof' in locals() and getattr(prof, "profiler", None) is not None:
             trace_path = output_dir / f"chrome_trace_{mode}.json"
             prof.export_chrome_trace(str(trace_path))
 
