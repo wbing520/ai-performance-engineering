@@ -49,10 +49,12 @@ cd "$MASTER_PROFILE_DIR"
 run_profiling_tool() {
     local tool="$1"
     local tool_dir="profile_${tool}_${ARCH}"
-    
+
     echo "Running $tool profiling..."
     mkdir -p "$tool_dir"
     cd "$tool_dir"
+
+    configure_metrics_for_script "../../$SCRIPT_NAME"
     
     case "$tool" in
         "nsys")
@@ -284,3 +286,26 @@ echo "View results:"
 echo "  nsys-ui profile_nsys_${ARCH}/nsys_timeline_${ARCH}.nsys-rep"
 echo "  ncu-ui profile_ncu_${ARCH}/ncu_kernel_${ARCH}.ncu-rep"
 echo "  # Open chrome://tracing/ and load profile_pytorch_${ARCH}/chrome_trace_full.json"
+configure_metrics_for_script() {
+    unset NCU_EXTRA_METRICS NSYS_EXTRA_OPTS
+    case "$1" in
+        code/ch4/*)
+            export NCU_EXTRA_METRICS="smsp__warp_issue_stalled_mem_throttle.pct,smsp__warp_issue_stalled_barrier.pct"
+            export NSYS_EXTRA_OPTS="--trace-fork-before-exec=true"
+            ;;
+        code/ch8/*)
+            export NCU_EXTRA_METRICS="smsp__inst_executed_branch.pct,smsp__inst_executed_pred_on.pct"
+            ;;
+        code/ch9/*)
+            export NCU_EXTRA_METRICS="flop_count_hp,flop_count_sp,lts__t_sectors_pipe_lsu_mem_global_op_ld.sum,lts__t_sectors_pipe_lsu_mem_global_op_st.sum"
+            ;;
+        code/ch18/*)
+            export NCU_EXTRA_METRICS="smsp__pipe_tensor_mem_throughput.avg.pct_of_peak_sustained_elapsed,smsp__warp_issue_stalled_short_scoreboard.pct"
+            ;;
+        code/ch19/*)
+            export NCU_EXTRA_METRICS="sm__inst_executed_pipe_tensor.sum,sm__sass_average_data_bytes_per_sector_mem_shared.pct"
+            ;;
+        *)
+            ;; # defaults already set
+    esac
+}
