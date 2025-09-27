@@ -21,7 +21,7 @@ fi
 
 echo "Nsight Compute profiling for $SCRIPT_NAME (Architecture: $ARCH)"
 
-BASE_METRICS="sm__throughput.avg.pct_of_peak_sustained_elapsed,sm__warps_active.avg.pct_of_peak_sustained_active,smsp__sass_average_branch_divergence.pct,dram__throughput.avg.pct_of_peak_sustained_elapsed,lts__t_sectors.avg.pct_of_peak_sustained_elapsed,shared_load_sectors,shared_store_sectors"
+BASE_METRICS="sm__throughput.avg.pct_of_peak_sustained_elapsed,sm__warps_active.avg.pct_of_peak_sustained_active,smsp__sass_average_branch_divergence.pct,dram__throughput.avg.pct_of_peak_sustained_elapsed,lts__t_sectors.avg.pct_of_peak_sustained_elapsed"
 
 if [[ -n "${NCU_EXTRA_METRICS:-}" ]]; then
     METRIC_LIST="${BASE_METRICS},${NCU_EXTRA_METRICS}"

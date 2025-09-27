@@ -117,10 +117,14 @@ def setup_architecture_optimizations():
                 torch._inductor.config.triton.nvlink_c2c = True
 
         # Enable latest PyTorch features
-        torch._inductor.config.triton.unique_kernel_names = True
-        torch._inductor.config.triton.autotune_mode = "max-autotune"
-        torch._dynamo.config.automatic_dynamic_shapes = True
-        torch._inductor.config.triton.enable_advanced_memory_optimizations = True
+        if hasattr(torch._inductor.config.triton, "unique_kernel_names"):
+            torch._inductor.config.triton.unique_kernel_names = True
+        if hasattr(torch._inductor.config.triton, "autotune_mode"):
+            torch._inductor.config.triton.autotune_mode = "max-autotune"
+        if hasattr(torch._dynamo, "config") and hasattr(torch._dynamo.config, "automatic_dynamic_shapes"):
+            torch._dynamo.config.automatic_dynamic_shapes = True
+        if hasattr(torch._inductor.config.triton, "enable_advanced_memory_optimizations"):
+            torch._inductor.config.triton.enable_advanced_memory_optimizations = True
 
 
 def run_with_profiler(script_path, profile_mode="full"):

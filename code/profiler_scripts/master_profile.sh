@@ -6,6 +6,9 @@
 
 set -e
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+
 SCRIPT_NAME="$1"
 ARCH="${2:-auto}"
 PROFILE_TOOLS="${3:-all}"  # all, nsys, ncu, hta, perf, pytorch, comprehensive
@@ -79,28 +82,29 @@ run_profiling_tool() {
     mkdir -p "$tool_dir"
     cd "$tool_dir"
 
-    configure_metrics_for_script "../../$SCRIPT_NAME"
-    
+    configure_metrics_for_script "$SCRIPT_NAME"
+    local target_script="$REPO_ROOT/$SCRIPT_NAME"
+
     case "$tool" in
         "nsys")
-            bash ../../nsys_profile.sh "../../$SCRIPT_NAME" "$ARCH"
+            bash "$SCRIPT_DIR/nsys_profile.sh" "$target_script" "$ARCH"
             ;;
         "ncu")
-            bash ../../ncu_profile.sh "../../$SCRIPT_NAME" "$ARCH"
+            bash "$SCRIPT_DIR/ncu_profile.sh" "$target_script" "$ARCH"
             ;;
         "hta")
-            bash ../../hta_profile.sh "../../$SCRIPT_NAME" "$ARCH"
+            bash "$SCRIPT_DIR/hta_profile.sh" "$target_script" "$ARCH"
             ;;
         "perf")
-            bash ../../perf_profile.sh "../../$SCRIPT_NAME" "$ARCH"
+            bash "$SCRIPT_DIR/perf_profile.sh" "$target_script" "$ARCH"
             ;;
         "pytorch")
-            bash ../../pytorch_profile.sh "../../$SCRIPT_NAME" "$ARCH" "full"
+            bash "$SCRIPT_DIR/pytorch_profile.sh" "$target_script" "$ARCH" "full"
             ;;
         *)
-        echo "Unknown profiling tool: $tool"
-        return 1
-        ;;
+            echo "Unknown profiling tool: $tool"
+            return 1
+            ;;
     esac
 
     cd ..
@@ -112,7 +116,7 @@ if [ "$PROFILE_TOOLS" = "all" ]; then
     echo "Running all profiling tools in parallel..."
     
     # Start all profiling tools
-    for tool in nsys ncu hta pytorch comprehensive; do
+    for tool in nsys ncu hta pytorch; do
         run_profiling_tool "$tool" &
         TOOL_PIDS+=($!)
     done
