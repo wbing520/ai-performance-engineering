@@ -1,11 +1,35 @@
 #!/bin/bash
 
 # PyTorch Profiling Script
-# Uses latest PyTorch 2.9 profiler features
+# Uses the detected PyTorch profiler stack
 # Targets Blackwell B200/B300 (SM100)
-# Updated for PyTorch 2.9, CUDA 12.9, and Triton 3.4
+# Dynamically reports PyTorch / CUDA / Triton versions
 
 set -e
+
+# Detect installed PyTorch, CUDA, and Triton versions for reporting
+VERSION_DETECTION=$(python - <<'PY'
+try:
+    import torch
+    torch_version = getattr(torch, "__version__", "unknown")
+    cuda_version = getattr(torch.version, "cuda", "unknown") or "unknown"
+except Exception:
+    torch_version = "unavailable"
+    cuda_version = "unavailable"
+
+try:
+    import triton
+    triton_version = getattr(triton, "__version__", "unknown")
+except Exception:
+    triton_version = "unavailable"
+
+print(f"{torch_version} {cuda_version} {triton_version}")
+PY
+)
+
+read -r PYTORCH_VERSION_STR CUDA_VERSION_STR TRITON_VERSION_STR <<< "$VERSION_DETECTION"
+
+export PYTORCH_VERSION_STR CUDA_VERSION_STR TRITON_VERSION_STR
 
 SCRIPT_NAME="$1"
 ARCH="${2:-auto}"
@@ -27,7 +51,7 @@ fi
 echo "=== PyTorch Profiling for $SCRIPT_NAME ==="
 echo "Architecture: $ARCH"
 echo "Profile Mode: $PROFILE_MODE"
-echo "PyTorch 2.9, CUDA 12.9, Triton 3.4 Support"
+echo "Stack detected: PyTorch ${PYTORCH_VERSION_STR:-unknown}, CUDA ${CUDA_VERSION_STR:-unknown}, Triton ${TRITON_VERSION_STR:-unknown}"
 echo ""
 
 # Set environment variables for optimal PyTorch profiling
@@ -55,8 +79,7 @@ cat > "pytorch_profiler_wrapper.py" << 'EOF'
 #!/usr/bin/env python3
 """
 PyTorch Profiler Wrapper
-Uses latest PyTorch 2.9 profiler features
-Updated for PyTorch 2.9, CUDA 12.9, and Triton 3.4
+Leverages the detected PyTorch/CUDA/Triton stack for profiling.
 """
 
 import torch
@@ -67,8 +90,12 @@ import sys
 import os
 import time
 
+PYTORCH_VERSION = os.environ.get("PYTORCH_VERSION_STR", "unknown")
+CUDA_VERSION = os.environ.get("CUDA_VERSION_STR", "unknown")
+TRITON_VERSION = os.environ.get("TRITON_VERSION_STR", "unknown")
+
 def setup_architecture_optimizations():
-    """Setup architecture-specific optimizations for PyTorch 2.9."""
+    """Setup architecture-specific optimizations for the detected PyTorch build."""
     if torch.cuda.is_available():
         device_props = torch.cuda.get_device_properties(0)
         compute_capability = f"{device_props.major}.{device_props.minor}"
@@ -89,7 +116,7 @@ def setup_architecture_optimizations():
             if hasattr(torch._inductor.config.triton, "nvlink_c2c"):
                 torch._inductor.config.triton.nvlink_c2c = True
 
-        # Enable latest PyTorch 2.9 features
+        # Enable latest PyTorch features
         torch._inductor.config.triton.unique_kernel_names = True
         torch._inductor.config.triton.autotune_mode = "max-autotune"
         torch._dynamo.config.automatic_dynamic_shapes = True
@@ -184,7 +211,7 @@ def run_with_profiler(script_path, profile_mode="full"):
     
     # Print summary with enhanced analysis
     print("\n" + "="*60)
-    print("PyTorch Profiler Results (PyTorch 2.9)")
+    print(f"PyTorch Profiler Results (PyTorch {PYTORCH_VERSION})")
     print("="*60)
     
     if profile_mode == "full" or profile_mode == "flops" or profile_mode in ["blackwell"]:
@@ -205,7 +232,7 @@ def run_with_profiler(script_path, profile_mode="full"):
     
     # Save detailed results with enhanced information
     with open(f"profiler_summary_{profile_mode}.txt", "w") as f:
-        f.write("PyTorch Profiler Summary (PyTorch 2.9)\n")
+        f.write(f"PyTorch Profiler Summary (PyTorch {PYTORCH_VERSION})\n")
         f.write("="*50 + "\n")
         f.write(f"Script: {script_name}\n")
         f.write(f"Profile Mode: {profile_mode}\n")
@@ -260,71 +287,56 @@ cat > "pytorch_report_${ARCH}.md" << EOF
 - **Architecture**: $ARCH
 - **Profile Mode**: $PROFILE_MODE
 - **Timestamp**: $TIMESTAMP
-- **PyTorch**: 2.9
-- **CUDA**: 12.9
-- **Triton**: 3.4
+- **PyTorch**: ${PYTORCH_VERSION_STR:-unknown}
+- **CUDA**: ${CUDA_VERSION_STR:-unknown}
+- **Triton**: ${TRITON_VERSION_STR:-unknown}
 
 ## Architecture Details
-EOF
-
-cat >> "pytorch_report_${ARCH}.md" << EOF
 - **GPU**: Blackwell B200/B300
 - **Compute Capability**: 10.0
 - **Memory**: HBM3e
 - **Features**: TMA, NVLink-C2C, Stream-ordered Memory
 - **Optimizations**: HBM3e optimizations, Blackwell-specific kernels
-EOF
 
-cat >> "pytorch_report_${ARCH}.md" << EOF
-
-## PyTorch 2.9 Features Used
-- **torch.compile**: With max-autotune mode
-- **Dynamic Shapes**: Automatic dynamic shape support
-- **Memory Profiling**: Detailed memory allocation tracking
-- **FLOP Counting**: Operation-level floating point counting
-- **Module Analysis**: Module-level performance breakdown
-- **NVTX Integration**: Custom annotation support
-- **Enhanced Profiler**: Improved profiling capabilities
-- **Architecture Optimizations**: Blackwell-specific features
+## PyTorch Features Used
+- **torch.compile** with max-autotune mode
+- Dynamic shape support (torch._dynamo)
+- Memory and FLOP profiling instrumentation
+- Module-level attribution and NVTX annotations
+- Architecture-aware Triton optimizations
 
 ## Profiling Results
 - **Chrome Trace**: chrome_trace_${PROFILE_MODE}.json
 - **Summary**: profiler_summary_${PROFILE_MODE}.txt
 
 ## Analysis Steps
-1. Open Chrome trace: chrome://tracing/ (load chrome_trace_${PROFILE_MODE}.json)
+1. Open Chrome trace: chrome://tracing/ and load chrome_trace_${PROFILE_MODE}.json
 2. Review summary: cat profiler_summary_${PROFILE_MODE}.txt
-3. Analyze bottlenecks and optimization opportunities
+3. Inspect bottlenecks, memory usage, and module breakdowns
 
 ## Performance Recommendations
-
 - Enable torch.compile with mode="max-autotune"
-- Use Transformer Engine optimizations
-- Optimize for HBM3 memory bandwidth
-- Leverage dynamic programming features
-- Use TMA for efficient memory transfers
+- Apply Transformer Engine and HBM3 tuning where available
+- Use TMA and stream-ordered allocators for memory efficiency
+- Balance work across CUDA streams for overlap
 
-### For Blackwell B200/B300 (SM100):
-- Enable Blackwell-specific optimizations
-- Use HBM3e memory optimizations
-- Enable TMA support
-- Leverage stream-ordered memory allocation
-- Use NVLink-C2C communication
-- Enable Blackwell-specific Triton kernels
+### Blackwell B200/B300 (SM100) Tips
+- Enable Blackwell-specific Triton knobs and HBM3e optimizations
+- Use NVLink-C2C for peer-to-peer communication
+- Capture workloads with CUDA Graphs for lower launch overhead
 
-## Latest Features Used
-- **PyTorch 2.9**: Enhanced compiler, dynamic shapes, improved profiler
-- **CUDA 12.9**: Latest CUDA features, improved kernel performance
-- **Triton 3.4**: Latest Triton optimizations, architecture-specific kernels
-- **Enhanced Profiler**: Improved profiling capabilities
-- **Architecture Optimizations**: Blackwell-specific features
+## Latest Stack Summary
+- **PyTorch ${PYTORCH_VERSION_STR:-unknown}**: Enhanced compiler and profiler integrations
+- **CUDA ${CUDA_VERSION_STR:-unknown}**: Current device runtime
+- **Triton ${TRITON_VERSION_STR:-unknown}**: Kernel autotuning support
+- **Profiler Harness**: Nsight Systems/Compute + PyTorch Profiler coordination
 
 ## Next Steps
-1. Open Chrome trace: chrome://tracing/ → Load chrome_trace_${PROFILE_MODE}.json
-2. Review summary: cat profiler_summary_${PROFILE_MODE}.txt
-3. Identify performance bottlenecks
-4. Apply architecture-specific optimizations
-5. Use latest profiling tools for detailed analysis
+1. Open chrome_trace_${PROFILE_MODE}.json in chrome://tracing/
+2. Review profiler_summary_${PROFILE_MODE}.txt for key metrics
+3. Iterate on kernels with Nsight Compute and Triton autotune
+4. Validate end-to-end improvements with HTA / perf tools
+5. Update documentation with observed gains
 EOF
 
 echo "PyTorch profiling completed!"

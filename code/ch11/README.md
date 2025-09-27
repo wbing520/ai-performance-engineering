@@ -17,7 +17,7 @@ This chapter focuses on inter-kernel concurrency using CUDA streams, fine-graine
 ### CUDA Streams
 - `basic_streams.cu` - Basic CUDA streams with kernel and copy overlap
 - `stream_ordered_allocator.cu` - Stream-ordered memory allocation examples
-- `multi_stream_pipeline.cu` - Combined intra-kernel and inter-kernel pipelining
+- `warp_specialized_pipeline_multistream.cu` - Combined intra-kernel warp specialization with multi-stream pipelining
 
 ## Key Concepts
 
@@ -99,7 +99,7 @@ Combine intra-kernel and inter-kernel pipelining:
 make all                    # Build all examples
 make basic_streams          # Build basic streams example
 make stream_ordered_allocator  # Build allocation example
-make multi_stream_pipeline  # Build combined pipeline
+make warp_specialized_pipeline_multistream  # Build combined pipeline
 ```
 
 ### Execution
@@ -111,7 +111,7 @@ make multi_stream_pipeline  # Build combined pipeline
 ./stream_ordered_allocator
 
 # Multi-stream pipeline with warp specialization
-./multi_stream_pipeline
+./warp_specialized_pipeline_multistream
 ```
 
 ## Performance Analysis
@@ -144,7 +144,7 @@ nsys profile --force-overwrite=true -o streams_timeline ./basic_streams
 nsys profile --force-overwrite=true -o alloc_analysis ./stream_ordered_allocator
 
 # Combined pipeline analysis
-nsys profile --force-overwrite=true -o pipeline_analysis ./multi_stream_pipeline
+nsys profile --force-overwrite=true -o pipeline_analysis ./warp_specialized_pipeline_multistream
 ```
 
 ### Nsight Compute Analysis
@@ -156,7 +156,7 @@ ncu --section LaunchStats --section MemoryWorkloadAnalysis ./basic_streams
 ncu --section MemoryWorkloadAnalysis ./stream_ordered_allocator
 
 # Warp efficiency in multi-stream context
-ncu --section WarpStateStats ./multi_stream_pipeline
+ncu --section WarpStateStats ./warp_specialized_pipeline_multistream
 ```
 
 ### Key Timeline Patterns to Look For

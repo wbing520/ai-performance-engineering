@@ -327,7 +327,7 @@ make clean && make
 # Run examples
 ./basic_streams
 ./stream_ordered_allocator
-./multi_stream_pipeline
+./warp_specialized_pipeline_multistream
 ```
 
 **Profiling Commands**:
@@ -335,7 +335,7 @@ make clean && make
 # Profile stream examples
 nsys profile -t cuda,osrt -o basic_streams_profile ./basic_streams
 nsys profile -t cuda,osrt -o stream_alloc_profile ./stream_ordered_allocator
-nsys profile -t cuda,osrt -o multi_stream_profile ./multi_stream_pipeline
+nsys profile -t cuda,osrt -o multi_stream_profile ./warp_specialized_pipeline_multistream
 ```
 
 **Expected Output**:

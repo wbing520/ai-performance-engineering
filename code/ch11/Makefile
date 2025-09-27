@@ -8,7 +8,7 @@ NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
 
 # Targets
-TARGETS = basic_streams stream_ordered_allocator multi_stream_pipeline
+TARGETS = basic_streams stream_ordered_allocator warp_specialized_pipeline_multistream
 
 # Default target
 all: $(TARGETS)
@@ -22,7 +22,7 @@ basic_streams: basic_streams.cu
 stream_ordered_allocator: stream_ordered_allocator.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
-multi_stream_pipeline: multi_stream_pipeline.cu
+warp_specialized_pipeline_multistream: warp_specialized_pipeline_multistream.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 # Architecture-specific targets

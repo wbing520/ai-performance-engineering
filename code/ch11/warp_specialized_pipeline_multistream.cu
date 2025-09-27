@@ -1,7 +1,7 @@
 // Architecture-specific optimizations for CUDA 12.9
 // Targets Blackwell B200/B300 (sm_100)
-// multi_stream_pipeline.cu
-// Combined intra-kernel and inter-kernel pipelining example
+// warp_specialized_pipeline_multistream.cu
+// Combined intra-kernel warp specialization and multi-stream pipelining example
 
 #include <cooperative_groups.h>
 #include <cuda_runtime.h>
@@ -432,8 +432,8 @@ int main() {
     printf("- Scalable to larger workloads\n");
 
     printf("\n=== Profiling Commands ===\n");
-    printf("nsys profile --force-overwrite=true -o multi_stream_pipeline ./multi_stream_pipeline\n");
-    printf("ncu --section WarpStateStats --section LaunchStats ./multi_stream_pipeline\n");
+    printf("nsys profile --force-overwrite=true -o warp_specialized_pipeline_multistream ./warp_specialized_pipeline_multistream\n");
+    printf("ncu --section WarpStateStats --section LaunchStats ./warp_specialized_pipeline_multistream\n");
 
     // Cleanup
     cudaFreeHost(h_A);
