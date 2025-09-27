@@ -17,3 +17,6 @@ AI_PerEng_clean_draft.pdf
 AI_PerEng_clean_draft.txt
 github_repo.tar.gz
 master_profile_*/
+profile_runs/
+profile_suite.log
+*.log
