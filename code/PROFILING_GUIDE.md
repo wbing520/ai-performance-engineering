@@ -26,7 +26,7 @@ All chapter examples share a common manifest in `code/profiler_scripts/example_r
 ### Filters and configuration
 - `--examples` and `--tags` allow targeting subsets, e.g. `--tags ch14 compiler`.
 - Positional arguments to `master_profile.py` (example names or source paths) are resolved automatically and merged into the `--examples` list.
-- `--profile` accepts `nsys`, `ncu`, `pytorch`, or `all` (default). Multiple comma-separated values are supported.
+- `--profile` accepts `nsys`, `ncu`, `pytorch`, or `all` (default). Supply multiple values (e.g. `--profile nsys ncu`) to run more than one tool.
 - PyTorch runs support multiple modes via repeated `--profile-mode` flags (e.g. `--profile-mode full --profile-mode memory`).
 - `--skip-existing` reuses previous outputs, while `--dry-run` prints commands without executing.
 - `--force-build` recompiles binaries even when up-to-date; `--skip-smoke` disables the preflight run for advanced scenarios.
