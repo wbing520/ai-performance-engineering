@@ -21,15 +21,13 @@ fi
 
 echo "Nsight Systems profiling for $SCRIPT_NAME (Architecture: $ARCH)"
 
-nsys profile \
-    --force-overwrite=true \
-    -o "nsys_profile_${ARCH}_$(date +%Y%m%d_%H%M%S)" \
-    -t cuda,nvtx,osrt,cudnn,cublas \
-    -s cpu \
-    --python-sampling=true \
-    --python-sampling-frequency=1000 \
-    --cudabacktrace=true \
-    --cudabacktrace-threshold=0 \
-    --gpu-metrics-device=all \
-    --stats=true \
-    python "$SCRIPT_NAME"
+BASE_TRACE="cuda,nvtx,osrt,cublas,cudnn,nvlink"
+TRACE_OPTS=(--force-overwrite=true -o "nsys_profile_${ARCH}_$(date +%Y%m%d_%H%M%S)" -t "$BASE_TRACE" -s cpu --python-sampling=true --python-sampling-frequency=1000 --cudabacktrace=true --cudabacktrace-threshold=0 --gpu-metrics-device=all --stats=true)
+
+if [[ -n "${NSYS_EXTRA_OPTS:-}" ]]; then
+    # shellcheck disable=SC2206
+    EXTRA_OPTS=($NSYS_EXTRA_OPTS)
+    TRACE_OPTS+=(${EXTRA_OPTS[@]})
+fi
+
+nsys profile "${TRACE_OPTS[@]}" python "$SCRIPT_NAME"
