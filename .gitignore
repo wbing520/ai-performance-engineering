@@ -1,6 +1,10 @@
+perf_review_findings.md
+summary_findings.md
+code_blocks.json
 hta_traces
 profile_runs
 profiles
+chapters_text/
 build/
 *.nsys-rep
 *.ncu-rep
