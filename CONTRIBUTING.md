@@ -49,7 +49,7 @@ pip install -r code/ch1/requirements.txt
 
 - **New Examples**: Place in appropriate chapter directory (`code/chX/`)
 - **Tools**: Add to `tools/` directory
-- **Scripts**: Add to `code/profiler_scripts/` or relevant chapter
+- **Scripts**: Add to `scripts/` or the relevant chapter directory
 - **Documentation**: Update relevant README files
 
 ### Architecture Support
@@ -97,7 +97,7 @@ flake8 code/
 ./code/build_all.sh
 
 # Profile your changes
-python code/profiler_scripts/profile_harness.py --profile nsys --profile pytorch --examples ch6_add_parallel --output-root profiles/test_run
+python scripts/profile_harness.py --profile nsys --profile pytorch --examples ch6_add_parallel --output-root profiles/test_run
 
 # Compare with baseline
 python tools/comprehensive_profiling.py

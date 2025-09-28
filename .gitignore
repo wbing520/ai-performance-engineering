@@ -1,3 +1,8 @@
+hta_traces
+profile_runs
+profiles
+build/
+*.nsys-rep
 *.ncu-rep
 profiles/
 *.out

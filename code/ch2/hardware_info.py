@@ -63,7 +63,7 @@ def get_gpu_info() -> Dict[str, Any]:
         "compute_capability": compute_capability,
         "total_memory_gb": device_props.total_memory / 1e9,
         "memory_bandwidth_gbps": (memory_bandwidth_tbps * 1000) if memory_bandwidth_tbps else None,
-        "max_threads_per_block": device_props.max_threads_per_block,
+        "max_threads_per_block": getattr(device_props, 'max_threads_per_block', 1024),
         "max_threads_per_sm": device_props.max_threads_per_multi_processor,
         "num_sms": device_props.multi_processor_count,
         "warp_size": device_props.warp_size,
