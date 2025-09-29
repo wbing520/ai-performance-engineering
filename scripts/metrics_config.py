@@ -24,7 +24,6 @@ BASE_NSYS_TRACE_MODULES: List[str] = [
     "osrt",
     "cublas",
     "cudnn",
-    "nvlink",
 ]
 
 BASE_NSYS_EXTRA_ARGS: List[str] = ["--gpu-metrics-device=all"]
@@ -79,7 +78,7 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
         ]
     ),
     "ch05": _overrides_from_lists(
-        nsys_trace=["cuda", "nvtx", "osrt", "nvlink", "cublas", "cudnn"],
+        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn"],
     ),
     "ch07": _overrides_from_lists(
         ncu_metrics=[
@@ -125,7 +124,7 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
         nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn"],
     ),
     "ch13": _overrides_from_lists(
-        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn", "nvlink"],
+        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn"],
         pytorch_modes=["blackwell"],
     ),
     "ch15": _overrides_from_lists(
@@ -192,7 +191,7 @@ CONFIG_BY_EXAMPLE: Dict[str, ProfilerOverrides] = {
         pytorch_modes=["memory"],
     ),
     "ch13_fsdp": _overrides_from_lists(
-        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn", "nvlink"],
+        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn"],
         pytorch_modes=["distributed"],
     ),
     "ch13_train_deepseek_v3": _overrides_from_lists(

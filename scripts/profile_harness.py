@@ -33,6 +33,13 @@ PYTHON = sys.executable
 DEFAULT_TIMEOUT = 900  # seconds
 
 
+def log_progress(*parts: str) -> None:
+    """Emit a timestamped, flushed progress line for streaming logs."""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    message = " ".join(part for part in parts if part)
+    print(f"[{timestamp}] {message}", flush=True)
+
+
 @dataclass
 class RunResult:
     profiler: str
@@ -136,8 +143,8 @@ def execute_build_step(
     context: argparse.Namespace,
     force_build: bool,
 ) -> RunResult:
-    idx = description
-    out_dir = preparation_output_dir(session_dir, example, idx)
+    label = description
+    out_dir = preparation_output_dir(session_dir, example, label)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     stdout_path = out_dir / "stdout.log"
@@ -151,6 +158,14 @@ def execute_build_step(
 
     should_run = should_run_build_step(example, step, repo_root, force_build)
     if not should_run:
+        log_progress(
+            "build",
+            example.name,
+            label,
+            "skip",
+            step.description or "",
+            "(up-to-date)",
+        )
         return RunResult(
             profiler="build",
             example=example,
@@ -164,6 +179,7 @@ def execute_build_step(
             skip_reason="up-to-date",
         )
 
+    log_progress("build", example.name, label, "start", format_command(step.command))
     exit_code, duration = run_command(
         list(step.command),
         cwd=step.workdir,
@@ -173,6 +189,17 @@ def execute_build_step(
         stderr_path=stderr_path,
         dry_run=context.dry_run,
     )
+    if context.dry_run:
+        log_progress("build", example.name, label, "dry-run")
+    else:
+        status = "ok" if exit_code == 0 else f"fail(exit={exit_code})"
+        log_progress(
+            "build",
+            example.name,
+            label,
+            status,
+            f"duration={duration:.2f}s",
+        )
 
     return RunResult(
         profiler="build",
@@ -248,6 +275,12 @@ def run_smoke_test(
 
     timeout = smoke.timeout_seconds or min(example.timeout_seconds or DEFAULT_TIMEOUT, 300)
 
+    log_progress(
+        "smoke",
+        example.name,
+        "start",
+        format_command(smoke.command),
+    )
     exit_code, duration = run_command(
         list(smoke.command),
         cwd=smoke.workdir,
@@ -257,6 +290,11 @@ def run_smoke_test(
         stderr_path=stderr_path,
         dry_run=context.dry_run,
     )
+    if context.dry_run:
+        log_progress("smoke", example.name, "dry-run")
+    else:
+        status = "ok" if exit_code == 0 else f"fail(exit={exit_code})"
+        log_progress("smoke", example.name, status, f"duration={duration:.2f}s")
 
     return RunResult(
         profiler="smoke",
@@ -509,7 +547,6 @@ def run_nsys(
         "--python-sampling=true",
         "--python-sampling-frequency=1000",
         "--cudabacktrace=true",
-        "--cudabacktrace-threshold=0",
         "--stats=true",
     ]
     nsys_extra = unique_preserve([*BASE_NSYS_EXTRA_ARGS, *overrides.nsys_extra_args])
@@ -519,6 +556,7 @@ def run_nsys(
     stdout_path = out_dir / "stdout.log"
     stderr_path = out_dir / "stderr.log"
 
+    log_progress("profile", "nsys", example.name, "start", format_command(command))
     exit_code, duration = run_command(
         command,
         cwd=example.resolved_workdir(REPO_ROOT),
@@ -529,6 +567,18 @@ def run_nsys(
         dry_run=context.dry_run,
     )
     (out_dir / "command.json").write_text(json.dumps({"command": command}, indent=2))
+
+    if context.dry_run:
+        log_progress("profile", "nsys", example.name, "dry-run")
+    else:
+        status = "ok" if exit_code == 0 else f"fail(exit={exit_code})"
+        log_progress(
+            "profile",
+            "nsys",
+            example.name,
+            status,
+            f"duration={duration:.2f}s",
+        )
 
     return RunResult(
         profiler="nsys",
@@ -571,6 +621,7 @@ def run_ncu(
     stdout_path = out_dir / "stdout.log"
     stderr_path = out_dir / "stderr.log"
 
+    log_progress("profile", "ncu", example.name, "start", format_command(command))
     exit_code, duration = run_command(
         command,
         cwd=example.resolved_workdir(REPO_ROOT),
@@ -581,6 +632,18 @@ def run_ncu(
         dry_run=context.dry_run,
     )
     (out_dir / "command.json").write_text(json.dumps({"command": command}, indent=2))
+
+    if context.dry_run:
+        log_progress("profile", "ncu", example.name, "dry-run")
+    else:
+        status = "ok" if exit_code == 0 else f"fail(exit={exit_code})"
+        log_progress(
+            "profile",
+            "ncu",
+            example.name,
+            status,
+            f"duration={duration:.2f}s",
+        )
 
     return RunResult(
         profiler="ncu",
@@ -624,6 +687,13 @@ def run_pytorch_profiler(
         stdout_path = out_dir / "stdout.log"
         stderr_path = out_dir / "stderr.log"
 
+        log_progress(
+            "profile",
+            f"pytorch_{mode}",
+            example.name,
+            "start",
+            format_command(command),
+        )
         exit_code, duration = run_command(
             command,
             cwd=example.resolved_workdir(REPO_ROOT),
@@ -634,6 +704,18 @@ def run_pytorch_profiler(
             dry_run=context.dry_run,
         )
         (out_dir / "command.json").write_text(json.dumps({"command": command}, indent=2))
+
+        if context.dry_run:
+            log_progress("profile", f"pytorch_{mode}", example.name, "dry-run")
+        else:
+            status = "ok" if exit_code == 0 else f"fail(exit={exit_code})"
+            log_progress(
+                "profile",
+                f"pytorch_{mode}",
+                example.name,
+                status,
+                f"duration={duration:.2f}s",
+            )
 
         results.append(
             RunResult(
@@ -695,7 +777,10 @@ def main() -> None:
 
     import torch  # local import so command listing works without CUDA
 
-    for example in selected:
+    total_examples = len(selected)
+
+    for index, example in enumerate(selected, start=1):
+        log_progress("example", f"{index}/{total_examples}", example.name, "start")
         timeout = example.timeout_seconds or DEFAULT_TIMEOUT
         overrides = resolve_overrides(example)
 
@@ -703,6 +788,7 @@ def main() -> None:
         all_results.extend(build_results)
         if not build_ok:
             print(f"[skip] {example.name} -> build failed")
+            log_progress("example", f"{index}/{total_examples}", example.name, "build-failed")
             continue
 
         if args.skip_smoke:
@@ -727,6 +813,7 @@ def main() -> None:
             all_results.append(smoke_result)
             if not smoke_result.skipped and smoke_result.exit_code != 0:
                 print(f"[skip] {example.name} -> smoke test failed")
+                log_progress("example", f"{index}/{total_examples}", example.name, "smoke-failed")
                 continue
 
         for profiler in profilers:
@@ -742,6 +829,13 @@ def main() -> None:
                 for mode in requested_modes:
                     out_dir = profiler_output_dir(session_dir, f"pytorch_{mode}", example)
                     if maybe_skip_output(out_dir, args.skip_existing):
+                        log_progress(
+                            "profile",
+                            f"pytorch_{mode}",
+                            example.name,
+                            "skip",
+                            "existing-output",
+                        )
                         all_results.append(
                             RunResult(
                                 profiler=f"pytorch_{mode}",
@@ -764,6 +858,7 @@ def main() -> None:
                 reason = check_preconditions(example, "pytorch")
                 if reason:
                     print(f"[skip] {example.name} (pytorch) -> {reason}")
+                    log_progress("profile", "pytorch", example.name, "skip", reason)
                     for mode in modes_to_run:
                         out_dir = profiler_output_dir(session_dir, f"pytorch_{mode}", example)
                         all_results.append(
@@ -788,6 +883,7 @@ def main() -> None:
 
             out_dir = profiler_output_dir(session_dir, profiler, example)
             if maybe_skip_output(out_dir, args.skip_existing):
+                log_progress("profile", profiler, example.name, "skip", "existing-output")
                 all_results.append(
                     RunResult(
                         profiler=profiler,
@@ -807,6 +903,7 @@ def main() -> None:
             reason = check_preconditions(example, profiler)
             if reason:
                 print(f"[skip] {example.name} ({profiler}) -> {reason}")
+                log_progress("profile", profiler, example.name, "skip", reason)
                 all_results.append(
                     RunResult(
                         profiler=profiler,
@@ -832,7 +929,10 @@ def main() -> None:
             else:
                 raise AssertionError(f"Unknown profiler {profiler}")
 
+        log_progress("example", f"{index}/{total_examples}", example.name, "complete")
+
     summarize(all_results, session_dir)
+    log_progress("session", str(session_dir), "summary-written")
 
     failed = [r for r in all_results if not r.skipped and r.exit_code != 0]
     if failed:

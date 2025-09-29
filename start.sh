@@ -73,20 +73,4 @@ fi
 } > "$LOG_FILE"
 
 cd "$REPO_ROOT"
-nohup "${CMD[@]}" >> "$LOG_FILE" 2>&1 &
-PID=$!
-
-echo "$PID" > "$PID_FILE"
-ln -sf "$(basename "$LOG_FILE")" "$LATEST_LOG"
-ln -sf "$(basename "$PID_FILE")" "$LATEST_PID"
-
-progress 2 "$TOTAL_STEPS" "Session directories ready"
-
-progress 3 "$TOTAL_STEPS" "Harness launched (PID $PID). Tailing logs"
-
-echo "Started profiling harness (PID $PID)."
-echo "Log output : $LOG_FILE"
-echo "PID record : $PID_FILE"
-
-echo "Tailing log (Ctrl+C to stop tail; harness keeps running)..."
-tail -n +1 -f "$LOG_FILE"
+"${CMD[@]}"
