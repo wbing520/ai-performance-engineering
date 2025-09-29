@@ -580,7 +580,7 @@ def run_nsys(
             f"duration={duration:.2f}s",
         )
 
-    return RunResult(
+    result = RunResult(
         profiler="nsys",
         example=example,
         command=command,
@@ -592,6 +592,9 @@ def run_nsys(
         skipped=context.dry_run,
         skip_reason="dry-run" if context.dry_run else None,
     )
+    if not context.dry_run:
+        write_status(out_dir, exit_code=exit_code, duration=duration)
+    return result
 
 
 def run_ncu(
@@ -616,12 +619,7 @@ def run_ncu(
     metrics = unique_preserve([*BASE_NCU_METRICS, *overrides.ncu_metrics])
     if metrics:
         command.extend(["--metrics", ",".join(metrics)])
-        command.extend([
-            "--replay-mode",
-            "kernel",
-            "--set-full-metrics",
-            "true",
-        ])
+        command.extend(["--replay-mode", "kernel"])
     command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
@@ -651,7 +649,7 @@ def run_ncu(
             f"duration={duration:.2f}s",
         )
 
-    return RunResult(
+    result = RunResult(
         profiler="ncu",
         example=example,
         command=command,
@@ -663,6 +661,9 @@ def run_ncu(
         skipped=context.dry_run,
         skip_reason="dry-run" if context.dry_run else None,
     )
+    if not context.dry_run:
+        write_status(out_dir, exit_code=exit_code, duration=duration)
+    return result
 
 
 def run_pytorch_profiler(
@@ -737,11 +738,14 @@ def run_pytorch_profiler(
                 skip_reason="dry-run" if context.dry_run else None,
             )
         )
+        if not context.dry_run:
+            write_status(out_dir, exit_code=exit_code, duration=duration)
     return results
 
 
 def summarize(results: List[RunResult], session_dir: Path) -> None:
     summary = []
+    failures: List[RunResult] = []
     for result in results:
         summary.append(
             {
@@ -756,16 +760,55 @@ def summarize(results: List[RunResult], session_dir: Path) -> None:
                 "skip_reason": result.skip_reason,
             }
         )
+        if not result.skipped and result.exit_code != 0:
+            failures.append(result)
     (session_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     try:
         latest_summary = REPO_ROOT / "profile_runs" / "harness" / "latest_summary.json"
+        latest_failures = REPO_ROOT / "profile_runs" / "harness" / "latest_failures.txt"
         latest_summary.write_text(json.dumps(summary, indent=2))
+        if failures:
+            latest_failures.write_text(
+                "\n".join(
+                    f"{item.example.name} [{item.profiler}] (exit={item.exit_code})"
+                    for item in failures
+                )
+                + "\n"
+            )
+        else:
+            latest_failures.write_text("All tasks succeeded.\n")
     except Exception:
         pass
 
 
 def maybe_skip_output(out_dir: Path, skip_existing: bool) -> bool:
-    return skip_existing and out_dir.exists()
+    if not skip_existing:
+        return False
+    summary = out_dir / "command.json"
+    if not out_dir.exists() or not summary.exists():
+        return False
+    try:
+        data = json.loads(summary.read_text())
+    except Exception:
+        return False
+    status_path = out_dir / "status.json"
+    if not status_path.exists():
+        return False
+    try:
+        status = json.loads(status_path.read_text())
+    except Exception:
+        return False
+    return status.get("exit_code", 1) == 0
+
+
+def write_status(out_dir: Path, *, exit_code: int, duration: float) -> None:
+    status_path = out_dir / "status.json"
+    payload = {
+        "exit_code": exit_code,
+        "duration_seconds": duration,
+        "completed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    status_path.write_text(json.dumps(payload, indent=2))
 
 
 def main() -> None:
@@ -943,6 +986,18 @@ def main() -> None:
         log_progress("example", f"{index}/{total_examples}", example.name, "complete")
 
     summarize(all_results, session_dir)
+    failures = [r for r in all_results if not r.skipped and r.exit_code != 0]
+    failure_list = REPO_ROOT / "profile_runs" / "harness" / "latest_failures.txt"
+    if failures:
+            failure_list.write_text(
+                "\n".join(
+                    f"{item.example.name} [{item.profiler}] (exit={item.exit_code})"
+                    for item in failures
+                )
+                + "\n"
+            )
+    else:
+        failure_list.write_text("All tasks succeeded.\n")
     log_progress("session", str(session_dir), "summary-written")
 
     failed = [r for r in all_results if not r.skipped and r.exit_code != 0]

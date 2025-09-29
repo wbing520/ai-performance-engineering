@@ -75,6 +75,40 @@ echo ""
 echo "🔧 Installing CUDA 12.9 toolchain..."
 apt install -y cuda-toolkit-12-9
 
+# Install CUDA sanitizers and debugging tools (compute-sanitizer, cuda-memcheck, etc.)
+echo ""
+echo "🛡️  Installing CUDA sanitizers and debugging tools..."
+if apt install -y cuda-command-line-tools-12-9; then
+    echo "✅ CUDA command-line tools 12.9 installed (compute-sanitizer, cuda-gdb, cuda-memcheck)"
+else
+    echo "⚠️  Could not install cuda-command-line-tools-12-9, trying fallback packages..."
+    if apt install -y cuda-command-line-tools; then
+        echo "✅ CUDA command-line tools (generic) installed"
+    else
+        echo "⚠️  cuda-command-line-tools package unavailable. Trying NVIDIA CUDA toolkit..."
+        if apt install -y nvidia-cuda-toolkit; then
+            echo "✅ NVIDIA CUDA toolkit installed (includes cuda-memcheck)"
+        else
+            echo "❌ Could not install CUDA command-line tools. compute-sanitizer may be unavailable."
+        fi
+    fi
+fi
+
+# Ensure compute-sanitizer is present; install sanitizer package directly if needed
+if ! command -v compute-sanitizer &> /dev/null; then
+    echo "⚠️  compute-sanitizer not found after command-line tools install. Installing cuda-sanitizer package..."
+    if apt install -y cuda-sanitizer-12-9; then
+        echo "✅ cuda-sanitizer-12-9 installed"
+    else
+        echo "⚠️  Could not install cuda-sanitizer-12-9, attempting generic cuda-sanitizer package..."
+        if apt install -y cuda-sanitizer; then
+            echo "✅ cuda-sanitizer package installed"
+        else
+            echo "❌ compute-sanitizer installation failed; please install manually."
+        fi
+    fi
+fi
+
 # Install latest NVIDIA Nsight Systems and Compute
 echo ""
 echo "🔍 Installing latest NVIDIA Nsight Systems and Compute..."
@@ -146,6 +180,7 @@ apt install -y \
     linux-tools-common \
     linux-tools-generic \
     linux-tools-$(uname -r) \
+    gdb \
     perf-tools-unstable \
     infiniband-diags \
     perftest \
@@ -267,6 +302,18 @@ if command -v ncu &> /dev/null; then
 else
     echo "❌ Nsight Compute not found"
 fi
+
+# Check CUDA sanitizers and memcheck tools
+echo ""
+echo "Checking CUDA sanitizers..."
+sanitizer_tools=("compute-sanitizer" "cuda-memcheck")
+for tool in "${sanitizer_tools[@]}"; do
+    if command -v "$tool" &> /dev/null; then
+        echo "✅ $tool: installed"
+    else
+        echo "❌ $tool: not found"
+    fi
+done
 
 # Check system tools
 echo ""
