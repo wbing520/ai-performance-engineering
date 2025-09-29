@@ -1,138 +1,168 @@
-// double_buffered_pipeline.cu
-// Corrected double-buffered GEMM kernel using CUDA Pipeline API best practices
+// double_buffered_pipeline.cu -- GEMM with CUDA Pipeline API (correct overlap).
 
-#include <cstdio>
 #include <cuda/pipeline>
 #include <cooperative_groups.h>
+#include <cuda_runtime.h>
+
+#include <cstdio>
+#include <random>
+#include <vector>
 
 namespace cg = cooperative_groups;
 
-#ifndef CUDA_CHECK
-#define CUDA_CHECK(expr)                                                          \
-  do {                                                                            \
-    cudaError_t _err = (expr);                                                    \
-    if (_err != cudaSuccess) {                                                    \
-      fprintf(stderr, "CUDA error %s:%d: %s\n", __FILE__, __LINE__,             \
-              cudaGetErrorString(_err));                                         \
-      exit(EXIT_FAILURE);                                                        \
-    }                                                                             \
+#define CUDA_CHECK(call)                                                     \
+  do {                                                                       \
+    cudaError_t status = (call);                                             \
+    if (status != cudaSuccess) {                                             \
+      std::fprintf(stderr, "CUDA error %s:%d: %s\n", __FILE__, __LINE__,     \
+                    cudaGetErrorString(status));                            \
+      std::exit(EXIT_FAILURE);                                               \
+    }                                                                        \
   } while (0)
-#endif
 
-constexpr int TILE_SIZE = 64; // Fits comfortably within SMEM limits
-constexpr int TILE_ELEMS = TILE_SIZE * TILE_SIZE;
-constexpr int TILE_BYTES = TILE_ELEMS * sizeof(float);
+constexpr int TILE = 32;  // 32x32 tile keeps shared memory under 48 KB for 2-stage pipeline
+constexpr int TILE_ELEMS = TILE * TILE;
+constexpr int STAGES = 2;
 
-__device__ float computeTile(const float* A_sub, const float* B_sub, int tx, int ty) {
-  float sum = 0.0f;
-#pragma unroll
-  for (int k = 0; k < TILE_SIZE; ++k) {
-    sum += A_sub[ty * TILE_SIZE + k] * B_sub[k * TILE_SIZE + tx];
+__device__ void load_tile(cuda::pipeline<cuda::thread_scope_block>& pipe,
+                          cg::thread_block block,
+                          float* tile_buffer,
+                          const float* global,
+                          int lda,
+                          int tile_row,
+                          int tile_col,
+                          int rows,
+                          int cols) {
+  int linear = block.thread_rank();
+  int stride = block.size();
+
+  for (int offset = linear; offset < TILE_ELEMS; offset += stride) {
+    int local_row = offset / TILE;
+    int local_col = offset % TILE;
+    int g_row = tile_row + local_row;
+    int g_col = tile_col + local_col;
+
+    if (g_row < rows && g_col < cols) {
+      CUDA_CHECK(cuda::memcpy_async(block,
+                                    &tile_buffer[offset],
+                                    &global[g_row * lda + g_col],
+                                    sizeof(float),
+                                    pipe));
+    } else {
+      tile_buffer[offset] = 0.0f;
+    }
   }
-  return sum;
+  pipe.producer_commit();
 }
 
-__global__ void gemm_tiled_pipeline(const float* __restrict__ A_global,
-                                    const float* __restrict__ B_global,
-                                    float* __restrict__ C_global,
-                                    int M, int N, int K) {
-  cg::thread_block cta = cg::this_thread_block();
+__global__ void gemm_pipeline_kernel(const float* __restrict__ A,
+                                     const float* __restrict__ B,
+                                     float* __restrict__ C,
+                                     int M, int N, int K) {
+  cg::thread_block block = cg::this_thread_block();
+  extern __shared__ float shared[];
+  float* A_tiles[STAGES] = {shared, shared + TILE_ELEMS};
+  float* B_tiles[STAGES] = {shared + 2 * TILE_ELEMS, shared + 3 * TILE_ELEMS};
 
-  extern __shared__ float shared_mem[];
-  float* A_buf[2] = {shared_mem, shared_mem + TILE_ELEMS};
-  float* B_buf[2] = {A_buf[1] + TILE_ELEMS, A_buf[1] + 2 * TILE_ELEMS};
+  __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, STAGES> pipe_state;
+  auto pipe = cuda::make_pipeline(block, &pipe_state);
 
-  __shared__ cuda::pipeline_shared_state<cuda::thread_scope_block, 2> state;
-  auto pipe = cuda::make_pipeline(cta, &state);
-
-  int tx = threadIdx.x;
-  int ty = threadIdx.y;
-
-  int block_row = blockIdx.y * TILE_SIZE;
-  int block_col = blockIdx.x * TILE_SIZE;
+  int row_tile = blockIdx.y * TILE;
+  int col_tile = blockIdx.x * TILE;
+  int thread_row = threadIdx.y;
+  int thread_col = threadIdx.x;
 
   float accum = 0.0f;
+  int num_tiles = (K + TILE - 1) / TILE;
 
-  int numTiles = (K + TILE_SIZE - 1) / TILE_SIZE;
+  pipe.producer_acquire();
+  load_tile(pipe, block, A_tiles[0], A, K, row_tile, 0, M, K);
+  load_tile(pipe, block, B_tiles[0], B, N, 0, col_tile, K, N);
 
-  // Stage 0: synchronously populate the first tile buffers
-  {
-    int aRow = block_row + ty;
-    int aCol = tx;
-    float aval = 0.0f;
-    if (aRow < M && aCol < K) {
-      aval = A_global[aRow * K + aCol];
-    }
-    A_buf[0][ty * TILE_SIZE + tx] = aval;
+  for (int tile = 0; tile < num_tiles; ++tile) {
+    cuda::pipeline_consumer_wait_prior<1>(pipe);
+    block.sync();
 
-    int bRow = ty;
-    int bCol = block_col + tx;
-    float bval = 0.0f;
-    if (bRow < K && bCol < N) {
-      bval = B_global[bRow * N + bCol];
-    }
-    B_buf[0][ty * TILE_SIZE + tx] = bval;
-  }
+    int curr = tile % STAGES;
+    int tile_k = min(TILE, K - tile * TILE);
 
-  cg::sync(cta);
-
-  int curr = 0;
-  int next = 1;
-
-  for (int tile = 0; tile < numTiles; ++tile) {
-    if (tile + 1 < numTiles) {
-      pipe.producer_acquire();
-
-      int kTile = (tile + 1) * TILE_SIZE;
-
-      int aRow = block_row + ty;
-      int aCol = kTile + tx;
-      float aval = 0.0f;
-      if (aRow < M && aCol < K) {
-        aval = A_global[aRow * K + aCol];
+    if (row_tile + thread_row < M && col_tile + thread_col < N) {
+      for (int k = 0; k < tile_k; ++k) {
+        float a = A_tiles[curr][thread_row * TILE + k];
+        float b = B_tiles[curr][k * TILE + thread_col];
+        accum += a * b;
       }
-      A_buf[next][ty * TILE_SIZE + tx] = aval;
-
-      int bRow = kTile + ty;
-      int bCol = block_col + tx;
-      float bval = 0.0f;
-      if (bRow < K && bCol < N) {
-        bval = B_global[bRow * N + bCol];
-      }
-      B_buf[next][ty * TILE_SIZE + tx] = bval;
-
-      pipe.producer_commit();
     }
-
-    pipe.consumer_wait();
-
-    accum += computeTile(A_buf[curr] + ty * TILE_SIZE,
-                         B_buf[curr],
-                         tx, ty);
 
     pipe.consumer_release();
 
-    curr = next;
-    next = 1 - curr;
+    int next = (tile + 1) % STAGES;
+    if (tile + 1 < num_tiles) {
+      pipe.producer_acquire();
+      int k_base = (tile + 1) * TILE;
+      load_tile(pipe, block, A_tiles[next], A, K, row_tile, k_base, M, K);
+      load_tile(pipe, block, B_tiles[next], B, N, k_base, col_tile, K, N);
+    }
   }
 
-  int cRow = block_row + ty;
-  int cCol = block_col + tx;
-  if (cRow < M && cCol < N) {
-    C_global[cRow * N + cCol] = accum;
+  if (row_tile + thread_row < M && col_tile + thread_col < N) {
+    C[(row_tile + thread_row) * N + (col_tile + thread_col)] = accum;
   }
 }
 
-void launch_gemm(const float* d_A,
-                 const float* d_B,
-                 float* d_C,
-                 int M, int N, int K,
-                 cudaStream_t stream = 0) {
-  dim3 block(TILE_SIZE, TILE_SIZE);
-  dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE,
-            (M + TILE_SIZE - 1) / TILE_SIZE);
-  size_t sharedBytes = 4 * TILE_BYTES; // two buffers for A and B
-
-  gemm_tiled_pipeline<<<grid, block, sharedBytes, stream>>>(d_A, d_B, d_C, M, N, K);
+void gemm_pipeline(const float* d_A, const float* d_B, float* d_C,
+                   int M, int N, int K, cudaStream_t stream = 0) {
+  dim3 block(TILE, TILE);
+  dim3 grid((N + TILE - 1) / TILE, (M + TILE - 1) / TILE);
+  size_t shared_bytes = 4 * TILE_ELEMS * sizeof(float);
+  gemm_pipeline_kernel<<<grid, block, shared_bytes, stream>>>(d_A, d_B, d_C, M, N, K);
   CUDA_CHECK(cudaGetLastError());
+}
+
+int main() {
+  constexpr int M = 256;
+  constexpr int N = 256;
+  constexpr int K = 256;
+
+  std::vector<float> h_A(M * K);
+  std::vector<float> h_B(K * N);
+  std::mt19937 rng(42);
+  std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+  for (auto& v : h_A) v = dist(rng);
+  for (auto& v : h_B) v = dist(rng);
+
+  float *d_A = nullptr, *d_B = nullptr, *d_C = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_A, h_A.size() * sizeof(float)));
+  CUDA_CHECK(cudaMalloc(&d_B, h_B.size() * sizeof(float)));
+  CUDA_CHECK(cudaMalloc(&d_C, M * N * sizeof(float)));
+  CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), h_A.size() * sizeof(float), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), h_B.size() * sizeof(float), cudaMemcpyHostToDevice));
+
+  gemm_pipeline(d_A, d_B, d_C, M, N, K);
+  CUDA_CHECK(cudaDeviceSynchronize());
+
+  std::vector<float> h_C(M * N);
+  CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, h_C.size() * sizeof(float), cudaMemcpyDeviceToHost));
+
+  std::vector<float> reference(M * N, 0.0f);
+  for (int m = 0; m < M; ++m) {
+    for (int n = 0; n < N; ++n) {
+      double sum = 0.0;
+      for (int k = 0; k < K; ++k) {
+        sum += static_cast<double>(h_A[m * K + k]) * h_B[k * N + n];
+      }
+      reference[m * N + n] = static_cast<float>(sum);
+    }
+  }
+
+  double max_err = 0.0;
+  for (size_t i = 0; i < h_C.size(); ++i) {
+    max_err = std::max(max_err, std::abs(static_cast<double>(h_C[i]) - reference[i]));
+  }
+  std::printf("Max error: %.6e\n", max_err);
+
+  CUDA_CHECK(cudaFree(d_A));
+  CUDA_CHECK(cudaFree(d_B));
+  CUDA_CHECK(cudaFree(d_C));
+  return 0;
 }

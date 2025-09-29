@@ -3,9 +3,23 @@
 #include <cuda_runtime.h>
 #include <cstdio>
 
+#define CUDA_CHECK(call)                                                     \
+  do {                                                                       \
+    cudaError_t status = (call);                                             \
+    if (status != cudaSuccess) {                                             \
+      std::fprintf(stderr, "CUDA error %s:%d: %s\n", __FILE__, __LINE__,     \
+                    cudaGetErrorString(status));                            \
+      std::exit(EXIT_FAILURE);                                               \
+    }                                                                        \
+  } while (0)
+
+struct alignas(16) Float4 { float x, y, z, w; };
+
 constexpr int N = 1 << 20;
 
-__global__ void copyVectorized(const float4* in, float4* out, int n_vec) {
+__global__ void copyVectorized(const Float4* __restrict__ in,
+                               Float4* __restrict__ out,
+                               int n_vec) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n_vec) {
     out[idx] = in[idx];
@@ -13,32 +27,34 @@ __global__ void copyVectorized(const float4* in, float4* out, int n_vec) {
 }
 
 int main() {
-  float *h_in, *h_out;
-  cudaMallocHost(&h_in, N * sizeof(float));
-  cudaMallocHost(&h_out, N * sizeof(float));
+  static_assert(sizeof(Float4) == 16, "Float4 must be 16 bytes");
+  Float4* h_in = nullptr;
+  Float4* h_out = nullptr;
+  CUDA_CHECK(cudaMallocHost(&h_in, N * sizeof(float)));
+  CUDA_CHECK(cudaMallocHost(&h_out, N * sizeof(float)));
   for (int i = 0; i < N; ++i) {
-    h_in[i] = static_cast<float>(i);
+    reinterpret_cast<float*>(h_in)[i] = static_cast<float>(i);
   }
 
-  float *d_in_raw, *d_out_raw;
-  cudaMalloc(&d_in_raw, N * sizeof(float));
-  cudaMalloc(&d_out_raw, N * sizeof(float));
-  cudaMemcpy(d_in_raw, h_in, N * sizeof(float), cudaMemcpyHostToDevice);
+  Float4* d_in = nullptr;
+  Float4* d_out = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_in, N * sizeof(float)));
+  CUDA_CHECK(cudaMalloc(&d_out, N * sizeof(float)));
+  CUDA_CHECK(cudaMemcpy(d_in, h_in, N * sizeof(float), cudaMemcpyHostToDevice));
 
   int n_vec = N / 4;
   dim3 block(256);
   dim3 grid((n_vec + block.x - 1) / block.x);
-  copyVectorized<<<grid, block>>>(reinterpret_cast<float4*>(d_in_raw),
-                                  reinterpret_cast<float4*>(d_out_raw),
-                                  n_vec);
-  cudaDeviceSynchronize();
+  copyVectorized<<<grid, block>>>(d_in, d_out, n_vec);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
 
-  cudaMemcpy(h_out, d_out_raw, N * sizeof(float), cudaMemcpyDeviceToHost);
-  printf("out[0]=%.1f\n", h_out[0]);
+  CUDA_CHECK(cudaMemcpy(h_out, d_out, N * sizeof(float), cudaMemcpyDeviceToHost));
+  std::printf("out[0]=%.1f out[last]=%.1f\n", h_out[0], h_out[N - 1]);
 
-  cudaFree(d_in_raw);
-  cudaFree(d_out_raw);
-  cudaFreeHost(h_in);
-  cudaFreeHost(h_out);
+  CUDA_CHECK(cudaFree(d_in));
+  CUDA_CHECK(cudaFree(d_out));
+  CUDA_CHECK(cudaFreeHost(h_in));
+  CUDA_CHECK(cudaFreeHost(h_out));
   return 0;
 }
