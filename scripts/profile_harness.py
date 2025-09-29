@@ -616,6 +616,12 @@ def run_ncu(
     metrics = unique_preserve([*BASE_NCU_METRICS, *overrides.ncu_metrics])
     if metrics:
         command.extend(["--metrics", ",".join(metrics)])
+        command.extend([
+            "--replay-mode",
+            "kernel",
+            "--set-full-metrics",
+            "true",
+        ])
     command.extend(target_command)
 
     stdout_path = out_dir / "stdout.log"
@@ -751,6 +757,11 @@ def summarize(results: List[RunResult], session_dir: Path) -> None:
             }
         )
     (session_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+    try:
+        latest_summary = REPO_ROOT / "profile_runs" / "harness" / "latest_summary.json"
+        latest_summary.write_text(json.dumps(summary, indent=2))
+    except Exception:
+        pass
 
 
 def maybe_skip_output(out_dir: Path, skip_existing: bool) -> bool:

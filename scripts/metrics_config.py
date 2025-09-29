@@ -26,7 +26,7 @@ BASE_NSYS_TRACE_MODULES: List[str] = [
     "cudnn",
 ]
 
-BASE_NSYS_EXTRA_ARGS: List[str] = ["--gpu-metrics-device=all"]
+BASE_NSYS_EXTRA_ARGS: List[str] = []
 
 
 @dataclass

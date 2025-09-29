@@ -29,7 +29,7 @@ HARNESS="$REPO_ROOT/scripts/profile_harness.py"
 SESSION_ROOT="$REPO_ROOT/profile_runs/harness"
 mkdir -p "$SESSION_ROOT"
 
-TOTAL_STEPS=5
+TOTAL_STEPS=6
 
 PYTHON_BIN=${PYTHON:-}
 if [[ -z "$PYTHON_BIN" ]]; then
@@ -99,17 +99,30 @@ Stop the harness with:
 
 EOF
 
-progress 5 "$TOTAL_STEPS" "Streaming log output (Ctrl+C to stop viewing)"
-echo "--- Live harness log (Ctrl+C to stop tailing; harness keeps running) ---"
+progress 5 "$TOTAL_STEPS" "Streaming live log and summary (Ctrl+C to stop)"
+echo "--- Live harness log (press Ctrl+C to stop tailing; harness keeps running) ---"
 
-tail -n +1 -f "$LOG_FILE" &
+tail --pid="$HARNESS_PID" -n +1 -f "$LOG_FILE" &
 TAIL_PID=$!
 
-cleanup() {
-  if kill -0 "$TAIL_PID" >/dev/null 2>&1; then
-    kill "$TAIL_PID" >/dev/null 2>&1 || true;
-  fi
-}
+SUMMARY_JSON="$SESSION_ROOT/latest_summary.json"
 
-trap cleanup EXIT INT TERM
-wait "$TAIL_PID" || true
+trap 'kill "$TAIL_PID" >/dev/null 2>&1 || true; exit 0' INT TERM
+
+while kill -0 "$HARNESS_PID" >/dev/null 2>&1; do
+  sleep 5
+  if [[ -f "$SUMMARY_JSON" ]]; then
+    success=$(jq '[.[] | select(.exit_code == 0 or .skipped == true)] | length' "$SUMMARY_JSON" 2>/dev/null)
+    total=$(jq 'length' "$SUMMARY_JSON" 2>/dev/null)
+    if [[ -n "$total" && "$total" -gt 0 ]]; then
+      printf '\rProgress: %d/%d tasks succeeded or skipped' "$success" "$total"
+    fi
+  fi
+done
+
+kill "$TAIL_PID" >/dev/null 2>&1 || true
+
+echo
+echo "Harness process $HARNESS_PID exited. Check log for details."
+
+progress 6 "$TOTAL_STEPS" "Harness completed"
