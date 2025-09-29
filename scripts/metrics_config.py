@@ -114,8 +114,8 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
     ),
     "ch11": _overrides_from_lists(
         ncu_metrics=[
-            "smsp__shared_load_sectors.sum",
-            "smsp__shared_store_sectors.sum",
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
             "sm__throughput.avg.pct_of_peak_sustained_elapsed",
             "sm__warps_active.avg.pct_of_peak_sustained_active",
         ]
@@ -127,6 +127,32 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
     "ch13": _overrides_from_lists(
         nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn", "nvlink"],
         pytorch_modes=["blackwell"],
+    ),
+    "ch15": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__time_duration.avg",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        ]
+    ),
+    "ch16": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        ],
+        nsys_extra_args=["--gpu-metrics-device=all"],
+    ),
+    "ch17": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
+            "gpu__time_duration.avg",
+        ]
     ),
     "ch18": _overrides_from_lists(
         ncu_metrics=[
@@ -144,9 +170,121 @@ CONFIG_BY_TAG: Dict[str, ProfilerOverrides] = {
             "sm__warps_active.avg.pct_of_peak_sustained_active",
         ]
     ),
+    "ch20": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__warps_active.avg.pct_of_peak_sustained_active",
+        ]
+    ),
 }
 
-CONFIG_BY_EXAMPLE: Dict[str, ProfilerOverrides] = {}
+CONFIG_BY_EXAMPLE: Dict[str, ProfilerOverrides] = {
+    "ch13_memory_profiling": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_average_branch_targets_threads_uniform.pct",
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+        ],
+        pytorch_modes=["memory"],
+    ),
+    "ch13_fsdp": _overrides_from_lists(
+        nsys_trace=["cuda", "nvtx", "osrt", "cublas", "cudnn", "nvlink"],
+        pytorch_modes=["distributed"],
+    ),
+    "ch13_train_deepseek_v3": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        ],
+        pytorch_modes=["blackwell"],
+    ),
+    "ch14_torch_compiler_examples": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__sass_average_branch_targets_threads_uniform.pct",
+        ],
+        pytorch_modes=["torch_compile"],
+    ),
+    "ch14_triton_examples": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
+        ],
+    ),
+    "ch15_disaggregated_inference": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__time_duration.avg",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        ],
+    ),
+    "ch16_inference_profiling": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+        ],
+        nsys_extra_args=["--gpu-metrics-device=all"],
+        pytorch_modes=["profiling"],
+    ),
+    "ch17_dynamic_routing": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
+            "gpu__time_duration.avg",
+        ],
+    ),
+    "ch17_early_rejection": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__time_duration.avg",
+        ],
+    ),
+    "ch18_flexdecoding": _overrides_from_lists(
+        ncu_metrics=[
+            "lts__throughput.avg.pct_of_peak_sustained_elapsed",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+        ],
+    ),
+    "ch19_adaptive_parallelism": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_data_bytes_mem_shared_op_ld.sum",
+            "sm__sass_data_bytes_mem_shared_op_st.sum",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__warps_active.avg.pct_of_peak_sustained_active",
+        ],
+    ),
+    "ch19_token_precision_switching": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed",
+        ],
+    ),
+    "ch20_ai_kernel_generator": _overrides_from_lists(
+        ncu_metrics=[
+            "sm__sass_thread_inst_executed_op_fp32_pred_on.sum",
+            "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
+            "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+            "sm__warps_active.avg.pct_of_peak_sustained_active",
+        ],
+    ),
+}
 
 
 def resolve_overrides(example: "Example") -> ProfilerOverrides:
