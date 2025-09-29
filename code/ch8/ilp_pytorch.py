@@ -1,352 +1,165 @@
-import torch
-import os
+"""Instruction-level parallelism (ILP) illustrations in PyTorch.
 
-def get_architecture():
-    """Detect and return the current GPU architecture."""
-    if not torch.cuda.is_available():
-        return "cpu"
-    
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+The goal is to show how grouping independent work, fusing kernels, and using
+mixed precision improves throughput on recent CUDA GPUs.
+"""
 
-def get_architecture_info():
-    """Get detailed architecture information."""
-    arch = get_architecture()
-    if arch == "hopper":
-        return
-    elif arch == "blackwell":
-        return {
-            "name": "Blackwell B200/B300",
-            "compute_capability": "10.0",
-            "sm_version": "sm_100",
-            "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "5th Gen",
-            "features": ["HBM3e", "TMA", "NVLink-C2C"]
-        }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-import torch
+from __future__ import annotations
+
 import time
+import torch
 
-def basic_ilp_concepts():
-    """
-    Demonstrate instruction-level parallelism concepts in PyTorch.
-    """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    # Create test data
-    N = 1000000
-    a = torch.randn(N, device=device)
-    b = torch.randn(N, device=device)
-    c = torch.randn(N, device=device)
-    d = torch.randn(N, device=device)
-    
-    print("=== Basic ILP Concepts in PyTorch ===")
-    print(f"Tensor size: {N}")
-    
-    # Poor ILP: dependent operations
-    def dependent_operations(a, b, c, d):
-        x = a * a
-        y = x + b  # depends on x
-        z = y * c  # depends on y
-        w = z + d  # depends on z
-        return w
-    
-    # Better ILP: independent operations
-    def independent_operations(a, b, c, d):
-        x1 = a * a  # independent
-        x2 = b * b  # independent
-        x3 = c * c  # independent
-        x4 = d * d  # independent
-        
-        # Now combine the results
-        result = x1 + x2 + x3 + x4
-        return result
-    
-    # Time dependent operations
-    start = time.time()
-    with torch.cuda.nvtx.range("dependent_ops"):
-        for _ in range(100):
-            result_dep = dependent_operations(a, b, c, d)
-    torch.cuda.synchronize()
-    dep_time = time.time() - start
-    
-    # Time independent operations
-    start = time.time()
-    with torch.cuda.nvtx.range("independent_ops"):
-        for _ in range(100):
-            result_indep = independent_operations(a, b, c, d)
-    torch.cuda.synchronize()
-    indep_time = time.time() - start
-    
-    print(f"Dependent operations time: {dep_time*1000:.3f}ms")
-    print(f"Independent operations time: {indep_time*1000:.3f}ms")
-    print(f"ILP improvement: {dep_time/indep_time:.2f}x")
-    
-    return result_dep, result_indep
 
-def tensor_fusion_ilp():
-    """
-    Show how tensor fusion creates opportunities for ILP.
-    """
-    device = torch.device('cuda')
-    
-    # Multiple small operations vs fused operations
-    x = torch.randn(1000000, device=device)
-    
-    print("\n=== Tensor Fusion and ILP ===")
-    
-    # Unfused operations
-    def unfused_computation(x):
-        y1 = torch.sin(x)
-        y2 = torch.cos(x)
-        y3 = torch.exp(x * 0.1)
-        y4 = torch.log(torch.abs(x) + 1)
-        return y1 + y2 + y3 + y4
-    
-    # Fused operations using torch.compile
-    @torch.compile(fullgraph=True)
-    def fused_computation(x):
-        y1 = torch.sin(x)
-        y2 = torch.cos(x)
-        y3 = torch.exp(x * 0.1)
-        y4 = torch.log(torch.abs(x) + 1)
-        return y1 + y2 + y3 + y4
-    
-    # Warm up compiled version
-    _ = fused_computation(x)
-    
-    # Time unfused version
-    start = time.time()
-    with torch.cuda.nvtx.range("unfused_computation"):
-        for _ in range(50):
-            result_unfused = unfused_computation(x)
-    torch.cuda.synchronize()
-    unfused_time = time.time() - start
-    
-    # Time fused version
-    start = time.time()
-    with torch.cuda.nvtx.range("fused_computation"):
-        for _ in range(50):
-            result_fused = fused_computation(x)
-    torch.cuda.synchronize()
-    fused_time = time.time() - start
-    
-    print(f"Unfused computation time: {unfused_time*1000:.3f}ms")
-    print(f"Fused computation time: {fused_time*1000:.3f}ms")
-    print(f"Fusion speedup: {unfused_time/fused_time:.2f}x")
-    
-    # Verify results
-    diff = torch.abs(result_unfused - result_fused).max().item()
-    print(f"Max difference: {diff:.2e}")
-    
-    return result_unfused, result_fused
-
-def matrix_operations_ilp():
-    """
-    Demonstrate ILP in matrix operations.
-    """
-    device = torch.device('cuda')
-    
-    # Create matrices
-    A = torch.randn(1024, 1024, device=device)
-    B = torch.randn(1024, 1024, device=device)
-    C = torch.randn(1024, 1024, device=device)
-    D = torch.randn(1024, 1024, device=device)
-    
-    print("\n=== Matrix Operations ILP ===")
-    
-    # Sequential matrix operations
-    def sequential_matrix_ops(A, B, C, D):
-        result1 = torch.mm(A, B)
-        result2 = torch.mm(C, D)
-        return result1 + result2
-    
-    # Try to overlap matrix operations (PyTorch may optimize this automatically)
-    def overlapped_matrix_ops(A, B, C, D):
-        # Instead of complex splitting, let's do the operations in a way that might allow for better ILP
-        # by using torch.cuda.amp.autocast() for mixed precision or other optimizations
-        
-        # Compute the operations in a way that might allow for better parallelism
-        result1 = torch.mm(A, B)
-        result2 = torch.mm(C, D)
-        
-        # Add some additional operations that might be independent
-        result1 = result1 + torch.mm(A.t(), B.t())
-        result2 = result2 + torch.mm(C.t(), D.t())
-        
-        return result1 + result2
-    
-    # Time sequential operations
-    start = time.time()
-    with torch.cuda.nvtx.range("sequential_matrix"):
-        for _ in range(20):
-            result_seq = sequential_matrix_ops(A, B, C, D)
-    torch.cuda.synchronize()
-    seq_time = time.time() - start
-    
-    # Time overlapped operations
-    start = time.time()
-    with torch.cuda.nvtx.range("overlapped_matrix"):
-        for _ in range(20):
-            result_overlap = overlapped_matrix_ops(A, B, C, D)
-    torch.cuda.synchronize()
-    overlap_time = time.time() - start
-    
-    print(f"Sequential matrix ops time: {seq_time*1000:.3f}ms")
-    print(f"Overlapped matrix ops time: {overlap_time*1000:.3f}ms")
-    print(f"Overlap improvement: {seq_time/overlap_time:.2f}x")
-    
-    # Verify results are close (may have small numerical differences due to different computation order)
-    diff = torch.abs(result_seq - result_overlap).max().item()
-    print(f"Max difference: {diff:.2e}")
-    
-    return result_seq, result_overlap
-
-def mixed_precision_ilp():
-    """
-    Show how mixed precision can affect ILP and throughput.
-    """
-    device = torch.device('cuda')
-    
-    # Create test data
-    A_fp32 = torch.randn(2048, 2048, device=device, dtype=torch.float32)
-    B_fp32 = torch.randn(2048, 2048, device=device, dtype=torch.float32)
-    
-    A_fp16 = A_fp32.half()
-    B_fp16 = B_fp32.half()
-    
-    print("\n=== Mixed Precision and ILP ===")
-    print(f"Matrix size: {A_fp32.shape}")
-    
-    # FP32 operations
-    start = time.time()
-    with torch.cuda.nvtx.range("fp32_matmul"):
-        for _ in range(10):
-            result_fp32 = torch.mm(A_fp32, B_fp32)
-    torch.cuda.synchronize()
-    fp32_time = time.time() - start
-    
-    # FP16 operations
-    start = time.time()
-    with torch.cuda.nvtx.range("fp16_matmul"):
-        for _ in range(10):
-            result_fp16 = torch.mm(A_fp16, B_fp16)
-    torch.cuda.synchronize()
-    fp16_time = time.time() - start
-    
-    # Mixed precision with automatic casting
-    with torch.autocast(device_type='cuda', dtype=torch.float16):
-        start = time.time()
-        with torch.cuda.nvtx.range("autocast_matmul"):
-            for _ in range(10):
-                result_autocast = torch.mm(A_fp32, B_fp32)
-        torch.cuda.synchronize()
-        autocast_time = time.time() - start
-    
-    print(f"FP32 matrix multiply time: {fp32_time*1000:.3f}ms")
-    print(f"FP16 matrix multiply time: {fp16_time*1000:.3f}ms")
-    print(f"Autocast matrix multiply time: {autocast_time*1000:.3f}ms")
-    print(f"FP16 speedup: {fp32_time/fp16_time:.2f}x")
-    print(f"Autocast speedup: {fp32_time/autocast_time:.2f}x")
-    
-    return result_fp32, result_fp16, result_autocast
-
-def custom_kernel_ilp():
-    """
-    Example of how custom kernels can expose more ILP.
-    This is conceptual - would require actual CUDA kernel implementation.
-    """
-    device = torch.device('cuda')
-    
-    print("\n=== Custom Kernel ILP (Conceptual) ===")
-    print("Custom CUDA kernels can expose more ILP by:")
-    print("1. Unrolling loops manually")
-    print("2. Using multiple accumulators")
-    print("3. Interleaving independent operations")
-    print("4. Using warp-level primitives")
-    
-    # Simulate what a custom kernel might achieve
-    data = torch.randn(1000000, device=device)
-    
-    # Standard PyTorch reduction
-    start = time.time()
-    with torch.cuda.nvtx.range("standard_reduction"):
-        for _ in range(100):
-            result_standard = torch.sum(data)
-    torch.cuda.synchronize()
-    standard_time = time.time() - start
-    
-    # Simulate optimized reduction with chunking
-    def chunked_reduction(data, chunk_size=4):
-        # Reshape for vectorized operations
-        if len(data) % chunk_size != 0:
-            pad_size = chunk_size - (len(data) % chunk_size)
-            data = torch.cat([data, torch.zeros(pad_size, device=data.device)])
-        
-        reshaped = data.view(-1, chunk_size)
-        chunk_sums = torch.sum(reshaped, dim=1)
-        return torch.sum(chunk_sums)
-    
-    start = time.time()
-    with torch.cuda.nvtx.range("chunked_reduction"):
-        for _ in range(100):
-            result_chunked = chunked_reduction(data)
-    torch.cuda.synchronize()
-    chunked_time = time.time() - start
-    
-    print(f"Standard reduction time: {standard_time*1000:.3f}ms")
-    print(f"Chunked reduction time: {chunked_time*1000:.3f}ms")
-    print(f"Chunking effect: {standard_time/chunked_time:.2f}x")
-    
-    diff = torch.abs(result_standard - result_chunked).item()
-    print(f"Result difference: {diff:.2e}")
-    
-    return result_standard, result_chunked
-
-def main():
-    """
-    Main function demonstrating ILP concepts in PyTorch.
-    """
+def _ensure_cuda() -> bool:
     if not torch.cuda.is_available():
-        print("CUDA not available, skipping GPU examples")
+        print("CUDA not available; skipping demos.")
+        return False
+    return True
+
+
+def _sync() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+
+def _benchmark(label: str, fn, iters: int = 10) -> float:
+    _sync()
+    start = time.perf_counter()
+    for _ in range(iters):
+        fn()
+    _sync()
+    elapsed_ms = (time.perf_counter() - start) * 1_000 / iters
+    print(f"{label:<30}: {elapsed_ms:7.3f} ms")
+    return elapsed_ms
+
+
+def basic_ilp_demo() -> None:
+    """Compare dependent vs. independent elementwise ops."""
+    if not _ensure_cuda():
         return
-    
-    print("=== PyTorch Instruction-Level Parallelism Examples ===")
-    print(f"Using device: {torch.cuda.get_device_name()}")
-    
-    # Run examples
-    basic_ilp_concepts()
-    tensor_fusion_ilp()
-    matrix_operations_ilp()
+
+    device = torch.device("cuda")
+    n = 1_000_000
+    a, b, c, d = [torch.randn(n, device=device) for _ in range(4)]
+
+    def dependent():
+        x = a * a
+        y = x + b
+        z = y * c
+        return z + d
+
+    def independent():
+        acc = (a * a) + (b * b)
+        acc += (c * c) + (d * d)
+        return acc
+
+    print("\n=== Elementwise ILP ===")
+    dep = _benchmark("Dependent chain", dependent)
+    indep = _benchmark("Independent accumulators", independent)
+    print(f"Speedup (dependent / independent): {dep / indep:5.2f}x")
+
+
+def fusion_with_torch_compile() -> None:
+    """Show how torch.compile can fuse chained elementwise work."""
+    if not _ensure_cuda():
+        return
+    if not hasattr(torch, "compile"):
+        print("torch.compile unavailable; skipping fusion demo.")
+        return
+
+    device = torch.device("cuda")
+    x = torch.randn(1_000_000, device=device)
+
+    def unfused(inp):
+        y1 = torch.sin(inp)
+        y2 = torch.cos(inp)
+        y3 = torch.exp(inp * 0.1)
+        y4 = torch.log(torch.abs(inp) + 1)
+        return y1 + y2 + y3 + y4
+
+    compiled = torch.compile(unfused, mode="reduce-overhead", fullgraph=True)
+    compiled(x)  # warm-up
+
+    print("\n=== Kernel fusion with torch.compile ===")
+    unfused_ms = _benchmark("Eager", lambda: unfused(x))
+    fused_ms = _benchmark("torch.compile", lambda: compiled(x))
+    speedup = unfused_ms / fused_ms if fused_ms else float("inf")
+    print(f"Fusion speedup: {speedup:5.2f}x")
+
+
+def mixed_precision_ilp() -> None:
+    """Demonstrate FP32 vs FP16 throughput advantages."""
+    if not _ensure_cuda():
+        return
+
+    device = torch.device("cuda")
+    m = 2048
+    a_fp32 = torch.randn(m, m, device=device, dtype=torch.float32)
+    b_fp32 = torch.randn(m, m, device=device, dtype=torch.float32)
+    a_fp16 = a_fp32.to(torch.float16)
+    b_fp16 = b_fp32.to(torch.float16)
+
+    print("\n=== Mixed precision matmul throughput ===")
+    fp32_ms = _benchmark("torch.mm FP32", lambda: torch.mm(a_fp32, b_fp32), iters=5)
+    fp16_ms = _benchmark("torch.mm FP16", lambda: torch.mm(a_fp16, b_fp16), iters=5)
+
+    def autocast_mm():
+        with torch.autocast(device_type="cuda", dtype=torch.float16):
+            return torch.mm(a_fp32, b_fp32)
+
+    autocast_ms = _benchmark("Autocast FP16", autocast_mm, iters=5)
+    print(f"FP16 speedup:   {fp32_ms / fp16_ms:5.2f}x")
+    print(f"Autocast speedup: {fp32_ms / autocast_ms:5.2f}x")
+
+
+def reduction_ilp() -> None:
+    """Highlight chunked reductions (multiple accumulators)."""
+    if not _ensure_cuda():
+        return
+
+    device = torch.device("cuda")
+    data = torch.randn(1_000_000, device=device)
+
+    print("\n=== Reduction ILP ===")
+
+    def standard_sum():
+        return data.sum()
+
+    def chunked_sum(chunk: int = 4):
+        length = data.numel()
+        pad = (-length) % chunk
+        if pad:
+            padded = torch.nn.functional.pad(data, (0, pad))
+        else:
+            padded = data
+        reshaped = padded.view(-1, chunk)
+        partial = reshaped.sum(dim=1)
+        return partial.sum()
+
+    standard_ms = _benchmark("torch.sum", standard_sum)
+    chunked_ms = _benchmark("Chunked sum", chunked_sum)
+    print(f"Chunking speedup: {standard_ms / chunked_ms:5.2f}x")
+
+
+def main() -> None:
+    if not torch.cuda.is_available():
+        print("CUDA not available; ILP demos require a GPU")
+        return
+
+    print("=== PyTorch ILP demonstrations ===")
+    print(f"Device: {torch.cuda.get_device_name()}\n")
+
+    basic_ilp_demo()
+    fusion_with_torch_compile()
     mixed_precision_ilp()
-    custom_kernel_ilp()
-    
-    print("\n=== Key Takeaways ===")
-    print("1. Independent operations can execute in parallel")
-    print("2. torch.compile fuses operations for better ILP")
-    print("3. Mixed precision (FP16) can increase effective throughput")
-    print("4. Custom kernels offer the most control over ILP")
-    print("5. PyTorch automatically optimizes many operations")
-    
-    print("\n=== Profiling Commands ===")
-    print("To analyze ILP with Nsight Compute:")
-    print("ncu --metrics smsp__issue_efficiency.avg,smsp__inst_executed.avg.per_cycle python ilp_pytorch.py")
+    reduction_ilp()
+
+    print("\nTakeaways:")
+    print("- Expose independent math to keep the GPU issue pipeline full.")
+    print("- torch.compile can fuse long chains of pointwise ops.")
+    print("- FP16/Autocast increases math throughput on Tensor Core GPUs.")
+    print("- Chunked reductions mimic manual ILP (multiple accumulators).")
+
 
 if __name__ == "__main__":
     main()

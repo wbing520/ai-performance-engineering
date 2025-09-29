@@ -1,554 +1,247 @@
-#!/usr/bin/env python3
-"""
-flexdecoding_example.py
-Chapter 18: FlexDecoding for Autoregressive Inference
+"""FlexDecoding showcase aligned with PyTorch 2.9 (CUDA 12.9)."""
 
-Implementation demonstrating PyTorch's FlexDecoding capabilities for
-efficient autoregressive inference with flexible attention patterns.
+from __future__ import annotations
 
-Based on Chapter 18 content about FlexDecoding optimizations.
-"""
+import math
+import time
+from dataclasses import dataclass
+from typing import Iterable, List, Optional
 
 import torch
 import torch.nn.functional as F
-import math
-import time
-from typing import Optional, Tuple, Callable
-import numpy as np
 
-# Try to import flex_attention - available in PyTorch 2.5.0+
 try:
-    from torch.nn.attention import flex_attention as flex_attention_module
-    flex_attention = flex_attention_module.flex_attention
-    FLEX_ATTENTION_AVAILABLE = True
-    print("✓ FlexAttention is available - using experimental flex_attention API")
-except (ImportError, AttributeError) as e:
-    FLEX_ATTENTION_AVAILABLE = False
-    print("⚠ FlexAttention not available in this PyTorch build (requires PyTorch 2.9 nightly with cu129)")
-    print("  - FlexAttention was introduced in PyTorch 2.5.0")
-    print("  - Falling back to scaled_dot_product_attention with torch.compile")
-    flex_attention = None
+    from torch.nn.attention import flex_attention
+    HAS_FLEX = True
+except (ImportError, AttributeError):
+    HAS_FLEX = False
 
-class FlexDecodingAttention(torch.nn.Module):
-    """
-    FlexDecoding implementation using PyTorch's flex_attention when available.
-    Demonstrates efficient autoregressive inference with custom attention patterns.
-    """
-    
-    def __init__(self, dim: int, num_heads: int, max_seq_len: int = 512):
+
+def _device() -> torch.device:
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def _sync() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+
+def _benchmark(label: str, fn, iters: int) -> float:
+    _sync()
+    start = time.perf_counter()
+    for _ in range(iters):
+        fn()
+    _sync()
+    elapsed = (time.perf_counter() - start) * 1_000 / iters
+    print(f"{label:<28}: {elapsed:7.3f} ms")
+    return elapsed
+
+
+def _score_mod_causal(offset: torch.Tensor):
+    def score_mod(score, _b, _h, q_idx, kv_idx):
+        q = q_idx + offset
+        return torch.where(q >= kv_idx, score, torch.neg(torch.inf_like(score)))
+
+    return score_mod
+
+
+@dataclass
+class FlexDecodingConfig:
+    dim: int = 256
+    heads: int = 4
+    max_seq_len: int = 1024
+    window: int = 128
+
+
+class FlexDecodingModule(torch.nn.Module):
+    def __init__(self, cfg: FlexDecodingConfig):
         super().__init__()
-        self.dim = dim
-        self.num_heads = num_heads
-        self.head_dim = dim // num_heads
-        self.max_seq_len = max_seq_len
-        self.scale = 1.0 / math.sqrt(self.head_dim)
-        
-        # Linear projections
-        self.q_proj = torch.nn.Linear(dim, dim, bias=False)
-        self.k_proj = torch.nn.Linear(dim, dim, bias=False)
-        self.v_proj = torch.nn.Linear(dim, dim, bias=False)
-        self.o_proj = torch.nn.Linear(dim, dim, bias=False)
-        
-        # KV cache for autoregressive generation - will be initialized dynamically
-        self.register_buffer("k_cache", torch.zeros(1, max_seq_len, num_heads, self.head_dim))
-        self.register_buffer("v_cache", torch.zeros(1, max_seq_len, num_heads, self.head_dim))
-        
-        # Compiled kernels for different phases
-        self._prefill_fn = None
-        self._decode_fn = None
-        
-        # Offset for decoding (for flex_attention)
-        self.register_buffer("offset", torch.tensor(0, dtype=torch.long))
-        
-    def _get_causal_mask_fn(self):
-        """Create causal mask function for autoregressive attention."""
-        def causal_mask(batch, head, q_idx, kv_idx):
-            return q_idx >= kv_idx
-        return causal_mask
-    
-    def _get_causal_score_mod_fn(self):
-        """Create causal score modification function for flex_attention."""
-        def causal_score_mod(score, b, h, q_idx, kv_idx):
-            # Apply offset for decoding phase
-            adjusted_q_idx = q_idx + self.offset
-            return torch.where(adjusted_q_idx >= kv_idx, score, -float("inf"))
-        return causal_score_mod
-    
-    def _get_local_attention_fn(self, window_size: int = 128):
-        """Create local attention mask with sliding window."""
-        def local_mask(batch, head, q_idx, kv_idx):
-            return (q_idx >= kv_idx) and (q_idx - kv_idx <= window_size)
-        return local_mask
-    
-    def _get_block_sparse_fn(self, block_size: int = 64):
-        """Create block-sparse attention pattern."""
-        def block_sparse_mask(batch, head, q_idx, kv_idx):
-            q_block = q_idx // block_size
-            kv_block = kv_idx // block_size
-            
-            # Allow attention within blocks and to previous blocks
-            return (q_idx >= kv_idx) and (
-                (q_block == kv_block) or  # Same block
-                (kv_block % 2 == 0)       # Even blocks (strided pattern)
-            )
-        return block_sparse_mask
-    
-    def compile_kernels(self, pattern: str = "causal"):
-        """
-        Compile specialized kernels for prefill and decode phases.
-        This is the key FlexDecoding optimization from Chapter 18.
-        """
-        print(f"Compiling FlexDecoding kernels for {pattern} pattern...")
-        
-        # Get device
-        device = next(self.parameters()).device if list(self.parameters()) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        
-        # Create sample tensors for compilation - flex_attention expects [batch, num_heads, seq_len, head_dim]
-        seq_len = 128
-        q_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
-        k_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
-        v_prefill = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
-        
-        q_decode = torch.randn(1, self.num_heads, 1, self.head_dim, device=device)  # Single token
-        k_decode = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
-        v_decode = torch.randn(1, self.num_heads, seq_len, self.head_dim, device=device)
-        
-        if FLEX_ATTENTION_AVAILABLE:
-            # Use flex_attention with score_mod for causal attention
-            print("  Using FlexAttention with score_mod...")
-            
-            # Get the appropriate score_mod function
-            if pattern == "causal":
-                score_mod = self._get_causal_score_mod_fn()
-            elif pattern == "local":
-                # For local attention, we'd need a different score_mod
-                score_mod = self._get_causal_score_mod_fn()  # Simplified for now
-            else:
-                score_mod = self._get_causal_score_mod_fn()
-            
-            # Compile prefill kernel with flex_attention
-            print("  Compiling prefill kernel with FlexAttention...")
-            self._prefill_fn = torch.compile(
-                lambda q, k, v: flex_attention(q, k, v, score_mod=score_mod),
-                mode="max-autotune"
-            )
-            
-            # Warmup compilation with sample data
-            with torch.no_grad():
-                _ = self._prefill_fn(q_prefill, k_prefill, v_prefill)
-            
-            # Compile decode kernel with flex_attention
-            print("  Compiling decode kernel with FlexAttention...")
-            self._decode_fn = torch.compile(
-                lambda q, k, v: flex_attention(q, k, v, score_mod=score_mod),
-                mode="max-autotune"
-            )
-            
-            # Warmup compilation
-            with torch.no_grad():
-                _ = self._decode_fn(q_decode, k_decode, v_decode)
-                
+        assert cfg.dim % cfg.heads == 0
+        self.cfg = cfg
+        self.head_dim = cfg.dim // cfg.heads
+
+        self.q_proj = torch.nn.Linear(cfg.dim, cfg.dim, bias=False)
+        self.k_proj = torch.nn.Linear(cfg.dim, cfg.dim, bias=False)
+        self.v_proj = torch.nn.Linear(cfg.dim, cfg.dim, bias=False)
+        self.o_proj = torch.nn.Linear(cfg.dim, cfg.dim, bias=False)
+
+        self.register_buffer("k_cache", torch.zeros(1, cfg.max_seq_len, cfg.heads, self.head_dim))
+        self.register_buffer("v_cache", torch.zeros(1, cfg.max_seq_len, cfg.heads, self.head_dim))
+        self.register_buffer("offset", torch.zeros(1, dtype=torch.long))
+
+        self.prefill_impl = None
+        self.decode_impl = None
+
+    def _compile(self, pattern: str = "causal") -> None:
+        device = next(self.parameters()).device
+        head_dim = self.head_dim
+        heads = self.cfg.heads
+
+        q_prefill = torch.randn(1, heads, 256, head_dim, device=device)
+        kv_prefill = torch.randn_like(q_prefill)
+        q_decode = torch.randn(1, heads, 1, head_dim, device=device)
+
+        if HAS_FLEX:
+            score_mod = _score_mod_causal(self.offset)
+
+            def prefill(q, k, v):
+                return flex_attention.flex_attention(q, k, v, score_mod=score_mod)
+
+            def decode(q, k, v):
+                return flex_attention.flex_attention(q, k, v, score_mod=score_mod)
+
+            self.prefill_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
+            self.decode_impl = torch.compile(decode, mode="max-autotune", fullgraph=True)
+
+            self.prefill_impl(q_prefill, kv_prefill, kv_prefill)
+            self.decode_impl(q_decode, kv_prefill, kv_prefill)
         else:
-            # Fallback to standard attention with torch.compile
-            print("  Using standard attention with torch.compile...")
-            
-            # For standard attention, we need [batch, seq_len, num_heads, head_dim]
-            q_prefill_std = q_prefill.transpose(1, 2)  # [batch, seq_len, num_heads, head_dim]
-            k_prefill_std = k_prefill.transpose(1, 2)
-            v_prefill_std = v_prefill.transpose(1, 2)
-            q_decode_std = q_decode.transpose(1, 2)
-            k_decode_std = k_decode.transpose(1, 2)
-            v_decode_std = v_decode.transpose(1, 2)
-            
-            # Compile prefill kernel (Q_len >> KV_len scenario)
-            print("  Compiling prefill kernel...")
-            self._prefill_fn = torch.compile(
-                lambda q, k, v: F.scaled_dot_product_attention(q, k, v, is_causal=True),
-                mode="max-autotune"
-            )
-            
-            # Warmup compilation with sample data
-            with torch.no_grad():
-                _ = self._prefill_fn(q_prefill_std, k_prefill_std, v_prefill_std)
-            
-            # Compile decode kernel (Q_len = 1 scenario) 
-            print("  Compiling decode kernel...")
-            self._decode_fn = torch.compile(
-                lambda q, k, v: F.scaled_dot_product_attention(q, k, v, is_causal=True),
-                mode="max-autotune"
-            )
-            
-            # Warmup compilation
-            with torch.no_grad():
-                _ = self._decode_fn(q_decode_std, k_decode_std, v_decode_std)
-        
-        print("  Kernel compilation complete!")
-    
-    def prefill(self, x: torch.Tensor, past_kv_len: int = 0) -> torch.Tensor:
-        """
-        Prefill phase: Process entire prompt sequence.
-        Uses compiled prefill kernel optimized for long sequences.
-        """
-        batch_size, seq_len, _ = x.shape
-        
-        # Resize KV cache if needed for this batch size
-        if self.k_cache.shape[0] != batch_size:
-            self.k_cache = torch.zeros(batch_size, self.max_seq_len, self.num_heads, self.head_dim, 
-                                     device=self.k_cache.device, dtype=self.k_cache.dtype)
-            self.v_cache = torch.zeros(batch_size, self.max_seq_len, self.num_heads, self.head_dim,
-                                     device=self.v_cache.device, dtype=self.v_cache.dtype)
-        
-        # Project to Q, K, V
-        q = self.q_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim)
-        k = self.k_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim) 
-        v = self.v_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim)
-        
-        # Update KV cache
-        self.k_cache[:, past_kv_len:past_kv_len + seq_len] = k
-        self.v_cache[:, past_kv_len:past_kv_len + seq_len] = v
-        
-        # Use compiled prefill kernel
-        if self._prefill_fn is not None:
-            if FLEX_ATTENTION_AVAILABLE:
-                # flex_attention expects [batch, num_heads, seq_len, head_dim]
-                q_flex = q.transpose(1, 2)  # [batch, num_heads, seq_len, head_dim]
-                k_flex = k.transpose(1, 2)
-                v_flex = v.transpose(1, 2)
-                attn_out = self._prefill_fn(q_flex, k_flex, v_flex)
-                # Convert back to [batch, seq_len, num_heads, head_dim]
-                attn_out = attn_out.transpose(1, 2)
-            else:
-                attn_out = self._prefill_fn(q, k, v)
+            def prefill(q, k, v):
+                return F.scaled_dot_product_attention(q, k, v, is_causal=True)
+
+            self.prefill_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
+            self.decode_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
+
+            q_prefill_eager = q_prefill.transpose(1, 2)
+            kv_prefill_eager = kv_prefill.transpose(1, 2)
+            self.prefill_impl(q_prefill_eager, kv_prefill_eager, kv_prefill_eager)
+            self.decode_impl(q_prefill_eager[:, :1], kv_prefill_eager, kv_prefill_eager)
+
+    def ensure_compiled(self) -> None:
+        if self.prefill_impl is None or self.decode_impl is None:
+            self._compile()
+
+    def clear_cache(self, batch: int) -> None:
+        if self.k_cache.shape[0] != batch:
+            device = self.k_cache.device
+            self.k_cache = torch.zeros(batch, self.cfg.max_seq_len, self.cfg.heads, self.head_dim, device=device)
+            self.v_cache = self.k_cache.clone()
         else:
-            # Fallback to standard attention
-            if FLEX_ATTENTION_AVAILABLE:
-                score_mod = self._get_causal_score_mod_fn()
-                q_flex = q.transpose(1, 2)
-                k_flex = k.transpose(1, 2)
-                v_flex = v.transpose(1, 2)
-                attn_out = flex_attention(q_flex, k_flex, v_flex, score_mod=score_mod)
-                attn_out = attn_out.transpose(1, 2)
-            else:
-                attn_out = F.scaled_dot_product_attention(q, k, v, is_causal=True)
-        
-        # Project output
-        attn_out = attn_out.reshape(batch_size, seq_len, self.dim)
-        return self.o_proj(attn_out)
-    
-    def decode_step(self, x: torch.Tensor, position: int) -> torch.Tensor:
-        """
-        Decode phase: Process single token attending to full KV cache.
-        Uses compiled decode kernel optimized for Q_len=1 case.
-        """
-        batch_size, _, _ = x.shape  # x should be [batch, 1, dim]
-        
-        # Update offset for flex_attention
+            self.k_cache.zero_()
+            self.v_cache.zero_()
+
+    def prefill(self, tokens: torch.Tensor, past: int = 0) -> torch.Tensor:
+        batch, seqlen, _ = tokens.shape
+        device = tokens.device
+        self.ensure_compiled()
+
+        q = self.q_proj(tokens).view(batch, seqlen, self.cfg.heads, self.head_dim)
+        k = self.k_proj(tokens).view(batch, seqlen, self.cfg.heads, self.head_dim)
+        v = self.v_proj(tokens).view(batch, seqlen, self.cfg.heads, self.head_dim)
+
+        self.k_cache[:, past:past + seqlen] = k
+        self.v_cache[:, past:past + seqlen] = v
+
+        if HAS_FLEX:
+            out = self.prefill_impl(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)).transpose(1, 2)
+        else:
+            out = self.prefill_impl(q, k, v)
+        return self.o_proj(out.reshape(batch, seqlen, self.cfg.dim))
+
+    def decode(self, token: torch.Tensor, position: int) -> torch.Tensor:
+        batch, _, _ = token.shape
+        device = token.device
+        self.ensure_compiled()
+
+        q = self.q_proj(token).view(batch, 1, self.cfg.heads, self.head_dim)
+        k = self.k_proj(token).view(batch, 1, self.cfg.heads, self.head_dim)
+        v = self.v_proj(token).view(batch, 1, self.cfg.heads, self.head_dim)
+
+        self.k_cache[:, position:position + 1] = k
+        self.v_cache[:, position:position + 1] = v
+        past_k = self.k_cache[:, :position + 1]
+        past_v = self.v_cache[:, :position + 1]
+
         self.offset.fill_(position)
-        
-        # Resize KV cache if needed for this batch size
-        if self.k_cache.shape[0] != batch_size:
-            self.k_cache = torch.zeros(batch_size, self.max_seq_len, self.num_heads, self.head_dim,
-                                     device=self.k_cache.device, dtype=self.k_cache.dtype)
-            self.v_cache = torch.zeros(batch_size, self.max_seq_len, self.num_heads, self.head_dim,
-                                     device=self.v_cache.device, dtype=self.v_cache.dtype)
-        
-        # Project single token to Q, K, V
-        q = self.q_proj(x).view(batch_size, 1, self.num_heads, self.head_dim)
-        k = self.k_proj(x).view(batch_size, 1, self.num_heads, self.head_dim)
-        v = self.v_proj(x).view(batch_size, 1, self.num_heads, self.head_dim)
-        
-        # Update KV cache at current position
-        self.k_cache[:, position:position+1] = k
-        self.v_cache[:, position:position+1] = v
-        
-        # Get relevant KV from cache (up to current position)
-        k_past = self.k_cache[:, :position+1]
-        v_past = self.v_cache[:, :position+1]
-        
-        # Use compiled decode kernel (FlashDecoding optimization)
-        if self._decode_fn is not None:
-            if FLEX_ATTENTION_AVAILABLE:
-                # flex_attention expects [batch, num_heads, seq_len, head_dim]
-                q_flex = q.transpose(1, 2)  # [batch, num_heads, 1, head_dim]
-                k_flex = k_past.transpose(1, 2)  # [batch, num_heads, position+1, head_dim]
-                v_flex = v_past.transpose(1, 2)
-                attn_out = self._decode_fn(q_flex, k_flex, v_flex)
-                # Convert back to [batch, 1, num_heads, head_dim]
-                attn_out = attn_out.transpose(1, 2)
-            else:
-                attn_out = self._decode_fn(q, k_past, v_past)
+
+        if HAS_FLEX:
+            out = self.decode_impl(q.transpose(1, 2), past_k.transpose(1, 2), past_v.transpose(1, 2)).transpose(1, 2)
         else:
-            # Fallback
-            if FLEX_ATTENTION_AVAILABLE:
-                score_mod = self._get_causal_score_mod_fn()
-                q_flex = q.transpose(1, 2)
-                k_flex = k_past.transpose(1, 2)
-                v_flex = v_past.transpose(1, 2)
-                attn_out = flex_attention(q_flex, k_flex, v_flex, score_mod=score_mod)
-                attn_out = attn_out.transpose(1, 2)
-            else:
-                attn_out = F.scaled_dot_product_attention(q, k_past, v_past, is_causal=True)
-        
-        # Project output - flex_attention returns [batch, seq_len, num_heads, head_dim]
-        # We need to reshape it to [batch, seq_len, dim]
-        if len(attn_out.shape) == 4:
-            # If it's [batch, seq_len, num_heads, head_dim], take only the last token
-            attn_out = attn_out[:, -1:, :, :]  # Take only the last token
-            attn_out = attn_out.reshape(batch_size, 1, self.dim)
-        else:
-            # If it's already in the right format, just ensure the shape
-            attn_out = attn_out.reshape(batch_size, 1, -1)
-        
-        return self.o_proj(attn_out)
-    
-    def clear_cache(self):
-        """Clear KV cache for new sequence."""
-        self.k_cache.zero_()
-        self.v_cache.zero_()
+            out = self.decode_impl(q, past_k, past_v)
+        return self.o_proj(out.reshape(batch, 1, self.cfg.dim))
 
-class NestedJaggedTensorDemo:
-    """
-    Demonstrate nested jagged tensor support mentioned in Chapter 18.
-    Handles variable-length sequences efficiently.
-    """
-    
-    @staticmethod
-    def create_jagged_tensor(sequences: list, max_len: Optional[int] = None):
-        """Create jagged tensor from variable-length sequences."""
-        if max_len is None:
-            max_len = max(len(seq) for seq in sequences)
-        
-        batch_size = len(sequences)
-        dim = sequences[0].shape[-1] if len(sequences) > 0 else 256
-        
-        # Create padded tensor and offsets
-        padded = torch.zeros(batch_size, max_len, dim)
-        offsets = torch.zeros(batch_size + 1, dtype=torch.long)
-        
-        total_tokens = 0
-        for i, seq in enumerate(sequences):
-            seq_len = min(len(seq), max_len)
-            # Ensure the sequence is on the same device as the padded tensor
-            if hasattr(seq, 'device'):
-                seq = seq.to(padded.device)
-            padded[i, :seq_len] = seq[:seq_len]
-            offsets[i + 1] = total_tokens + seq_len
-            total_tokens += seq_len
-        
-        return padded, offsets
-    
-    @staticmethod
-    def batch_inference_jagged(model: FlexDecodingAttention, 
-                              sequences: list) -> list:
-        """
-        Efficient batched inference for variable-length sequences.
-        Demonstrates Chapter 18's jagged tensor optimization.
-        """
-        device = next(model.parameters()).device
-        padded_input, offsets = NestedJaggedTensorDemo.create_jagged_tensor(sequences)
-        padded_input = padded_input.to(device)
-        batch_size = len(sequences)
-        
-        # Process each sequence length separately for efficiency
-        outputs = []
-        
-        for i in range(batch_size):
-            seq_len = len(sequences[i])
-            seq_input = padded_input[i:i+1, :seq_len]  # [1, seq_len, dim]
-            
-            # Prefill phase
-            model.clear_cache()
-            prefill_out = model.prefill(seq_input)
-            
-            # Decode phase - generate a few tokens
-            last_token = prefill_out[:, -1:, :]  # [1, 1, dim]
-            generated = [last_token]
-            
-            for step in range(3):  # Generate 3 tokens
-                decode_out = model.decode_step(last_token, seq_len + step)
-                generated.append(decode_out)
-                last_token = decode_out
-            
-            outputs.append(torch.cat(generated, dim=1))
-        
-        return outputs
 
-def benchmark_flexdecoding():
-    """
-    Benchmark FlexDecoding vs standard attention.
-    Demonstrates the performance benefits from Chapter 18.
-    """
-    print("\n=== FlexDecoding Benchmark ===")
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Running on: {device}")
-    
-    # Model parameters
-    dim = 256
-    num_heads = 4
-    max_seq_len = 1024
-    batch_size = 4
-    
-    # Create models
-    flex_model = FlexDecodingAttention(dim, num_heads, max_seq_len).to(device)
-    
-    # Test different attention patterns
-    patterns = ["causal", "local", "block_sparse"]
-    
-    for pattern in patterns:
-        print(f"\n--- Testing {pattern} pattern ---")
-        
-        # Compile kernels
-        flex_model.compile_kernels(pattern)
-        
-        # Create test data
-        seq_len = 256
-        x = torch.randn(batch_size, seq_len, dim, device=device)
-        
-        # Benchmark prefill phase
-        torch.cuda.synchronize()
-        start_time = time.time()
-        
-        for _ in range(3):
-            with torch.no_grad():
-                _ = flex_model.prefill(x)
+def jagged_batch(model: FlexDecodingModule, sequences: Iterable[torch.Tensor]) -> List[torch.Tensor]:
+    outputs: List[torch.Tensor] = []
+    for seq in sequences:
+        model.clear_cache(seq.shape[0])
+        pref = model.prefill(seq)
+        cur = pref[:, -1:, :]
+        tokens = [cur]
+        for step in range(3):
+            nxt = model.decode(cur, seq.shape[1] + step)
+            tokens.append(nxt)
+            cur = nxt
+        outputs.append(torch.cat(tokens, dim=1))
+    return outputs
 
-        torch.cuda.synchronize()
-        prefill_time = (time.time() - start_time) / 3
-        
-        # Benchmark decode phase
-        single_token = torch.randn(batch_size, 1, dim, device=device)
-        
-        torch.cuda.synchronize()
-        start_time = time.time()
-        
-        for step in range(20):
-            with torch.no_grad():
-                _ = flex_model.decode_step(single_token, seq_len + step)
 
-        torch.cuda.synchronize()
-        decode_time = (time.time() - start_time) / 20
-        
-        print(f"  Prefill time: {prefill_time*1000:.2f} ms")
-        print(f"  Decode time: {decode_time*1000:.2f} ms")
-        print(f"  Tokens/sec (decode): {batch_size / decode_time:.1f}")
-        
-        # Clear cache for next pattern
-        flex_model.clear_cache()
+def benchmark(model: FlexDecodingModule) -> None:
+    device = _device()
+    torch.manual_seed(0)
 
-def demonstrate_paged_attention_integration():
-    """
-    Demonstrate PagedAttention integration mentioned in Chapter 18.
-    Shows how to scatter logical KV blocks to physical memory layout.
-    """
-    print("\n=== PagedAttention Integration Demo ===")
-    
-    # Parameters
-    batch_size = 2
-    num_heads = 4
-    head_dim = 32
-    block_size = 8  # Tokens per page
-    num_blocks = 16
-    
-    # Simulate logical KV blocks (what the model sees)
-    logical_k = torch.randn(batch_size, num_blocks * block_size, num_heads, head_dim)
-    logical_v = torch.randn(batch_size, num_blocks * block_size, num_heads, head_dim)
-    
-    # Physical memory layout (how it's actually stored)
-    physical_k = torch.zeros(num_blocks, block_size, num_heads, head_dim)
-    physical_v = torch.zeros(num_blocks, block_size, num_heads, head_dim)
-    
-    # Block mapping table (which logical blocks map to which physical blocks)
-    block_table = torch.randint(0, num_blocks, (batch_size, num_blocks))
-    
-    def scatter_to_physical(logical_kv, physical_kv, block_table, batch_idx):
-        """Scatter logical KV blocks to physical memory layout."""
-        seq_len = logical_kv.shape[1]
-        blocks_in_seq = seq_len // block_size
-        
-        for logical_block_idx in range(blocks_in_seq):
-            # Get physical block index from table
-            physical_block_idx = block_table[batch_idx, logical_block_idx]
-            
-            # Copy logical block to physical location
-            logical_start = logical_block_idx * block_size
-            logical_end = logical_start + block_size
-            
-            physical_kv[physical_block_idx] = logical_kv[batch_idx, logical_start:logical_end]
-    
-    # Demonstrate scattering for one batch
-    print("Scattering logical KV blocks to physical memory...")
-    scatter_to_physical(logical_k, physical_k, block_table, 0)
-    scatter_to_physical(logical_v, physical_v, block_table, 0)
-    
-    print(f"Logical shape: {logical_k.shape}")
-    print(f"Physical shape: {physical_k.shape}")
-    print(f"Block table shape: {block_table.shape}")
-    print("PagedAttention allows efficient sharing of KV blocks between sequences")
+    batch = 4
+    seq_len = 256
+    tokens = torch.randn(batch, seq_len, model.cfg.dim, device=device)
+    model.ensure_compiled()
 
-def main():
-    """Main demonstration of FlexDecoding capabilities."""
-    print("Chapter 18: FlexDecoding for Autoregressive Inference")
-    print("=" * 55)
-    
-    # Check PyTorch version and capabilities
-    print(f"PyTorch version: {torch.__version__}")
-    print(f"CUDA available: {torch.cuda.is_available()}")
-    
+    print("\nPrefill vs decode timings")
+    _benchmark("Prefill", lambda: model.prefill(tokens), iters=3)
+    single = torch.randn(batch, 1, model.cfg.dim, device=device)
+    _benchmark("Decode", lambda: model.decode(single, seq_len), iters=20)
+
+
+def paged_attention_demo() -> None:
+    print("\nPagedAttention-style block mapping")
+    batch, heads, head_dim = 2, 4, 32
+    block, blocks = 8, 16
+    logical = torch.randn(batch, blocks * block, heads, head_dim)
+    physical = torch.zeros(blocks, block, heads, head_dim)
+    table = torch.randint(0, blocks, (batch, blocks))
+    for b in range(batch):
+        for blk in range(blocks):
+            src = logical[b, blk * block : (blk + 1) * block]
+            dst = table[b, blk]
+            physical[dst].copy_(src)
+    print(f"Logical {logical.shape} -> Physical {physical.shape}")
+
+
+def main() -> None:
+    device = _device()
+    print("FlexDecoding example (PyTorch 2.9 / CUDA 12.9)")
+    print(f"Device: {device}")
     if torch.cuda.is_available():
-        print(f"CUDA device: {torch.cuda.get_device_name()}")
-    
-    # Demonstrate basic FlexDecoding
-    print("\n=== Basic FlexDecoding Demo ===")
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = FlexDecodingAttention(256, 4, 512).to(device)
-    
-    # Compile kernels
-    model.compile_kernels("causal")
-    
-    # Test prefill
-    prompt = torch.randn(1, 32, 256, device=device)
-    print("Running prefill phase...")
-    output = model.prefill(prompt)
-    print(f"Prefill output shape: {output.shape}")
-    
-    # Test decode steps
-    print("Running decode steps...")
-    for step in range(3):
-        token = torch.randn(1, 1, 256, device=device)
-        output = model.decode_step(token, 32 + step)
-        print(f"Decode step {step + 1} output shape: {output.shape}")
-    
-    # Demonstrate jagged tensor support
-    print("\n=== Jagged Tensor Demo ===")
+        print(f"GPU: {torch.cuda.get_device_name()}")
+
+    cfg = FlexDecodingConfig()
+    model = FlexDecodingModule(cfg).to(device)
+    model.ensure_compiled()
+
+    prompt = torch.randn(1, 32, cfg.dim, device=device)
+    print("\nPrefill output shape", model.prefill(prompt).shape)
+    token = torch.randn(1, 1, cfg.dim, device=device)
+    print("Decode output shape", model.decode(token, 32).shape)
+
     sequences = [
-        torch.randn(16, 256),   # Short sequence keeping runtime low
-        torch.randn(32, 256),   # Medium sequence  
-        torch.randn(64, 256),   # Long sequence
+        torch.randn(1, 16, cfg.dim, device=device),
+        torch.randn(1, 32, cfg.dim, device=device),
+        torch.randn(1, 64, cfg.dim, device=device),
     ]
-    
-    jagged_demo = NestedJaggedTensorDemo()
-    outputs = jagged_demo.batch_inference_jagged(model, sequences)
-    
-    print(f"Processed {len(sequences)} variable-length sequences")
-    for i, out in enumerate(outputs):
-        print(f"  Sequence {i + 1}: input {sequences[i].shape[0]} -> output {out.shape[1]} tokens")
-    
-    # Run benchmarks
+    outs = jagged_batch(model, sequences)
+    for idx, out in enumerate(outs):
+        print(f"Sequence {idx}: {out.shape[1]} tokens emitted")
+
     if torch.cuda.is_available():
-        benchmark_flexdecoding()
-    
-    # Demonstrate PagedAttention integration
-    demonstrate_paged_attention_integration()
-    
-    print(f"\n=== Key FlexDecoding Benefits ===")
-    print("- JIT-compiled kernels for arbitrary attention patterns")
-    print("- Separate optimization for prefill vs decode phases")
-    print("- Support for variable-length sequences (jagged tensors)")
-    print("- Integration with PagedAttention for memory efficiency")
-    print("- No custom CUDA required - pure PyTorch solution")
-    print("- Near-optimal performance for complex sparsity patterns")
+        benchmark(model)
+
+    paged_attention_demo()
+
+    print("\nKey takeaways:")
+    print("- torch.compile can specialize prefill vs decode paths.")
+    print("- FlexAttention (when available) supplies custom score mods.")
+    print("- Jagged batches illustrate variable sequence handling.")
+    print("- Block remapping mirrors PagedAttention KV packing.")
+
 
 if __name__ == "__main__":
     main()

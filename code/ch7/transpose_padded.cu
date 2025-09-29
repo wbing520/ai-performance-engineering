@@ -1,59 +1,49 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Targets Blackwell B200/B300 (sm_100)
+// transpose_padded.cu -- tiled transpose with padding for Chapter 7.
+
 #include <cuda_runtime.h>
-#include <cooperative_groups.h>
+#include <cstdio>
 
-namespace cg = cooperative_groups;
+constexpr int WIDTH = 1024;
+constexpr int TILE = 32;
 
-#define TILE_DIM 32
-#define PAD 1 // padding columns to avoid bank conflicts
-
-__global__ void transposePadded(const float *idata, float *odata, int width) {
-    // Each row is TILE_DIM+1 elements to shift bank mapping
-    __shared__ float tile[TILE_DIM][TILE_DIM + PAD];
-    cg::thread_block block = cg::this_thread_block();
-    
-    int x = blockIdx.x * TILE_DIM + threadIdx.x;
-    int y = blockIdx.y * TILE_DIM + threadIdx.y;
-    
-    tile[threadIdx.x][threadIdx.y] = idata[y * width + x];
-    
-    block.sync();
-    
-    odata[x * width + y] = tile[threadIdx.y][threadIdx.x];
+__global__ void transpose_padded(const float* in, float* out, int width) {
+  __shared__ float tile[TILE][TILE + 1];
+  int x = blockIdx.x * TILE + threadIdx.x;
+  int y = blockIdx.y * TILE + threadIdx.y;
+  if (x < width && y < width) {
+    tile[threadIdx.y][threadIdx.x] = in[y * width + x];
+  }
+  __syncthreads();
+  int trans_x = blockIdx.y * TILE + threadIdx.x;
+  int trans_y = blockIdx.x * TILE + threadIdx.y;
+  if (trans_x < width && trans_y < width) {
+    out[trans_y * width + trans_x] = tile[threadIdx.x][threadIdx.y];
+  }
 }
 
 int main() {
-    const int N = 1024;
-    size_t size = N * N * sizeof(float);
-    
-    float *h_idata = (float*)malloc(size);
-    float *h_odata = (float*)malloc(size);
-    
-    // Initialize input data
-    for (int i = 0; i < N * N; ++i) {
-        h_idata[i] = static_cast<float>(i);
-    }
-    
-    float *d_idata, *d_odata;
-    cudaMalloc(&d_idata, size);
-    cudaMalloc(&d_odata, size);
-    
-    cudaMemcpy(d_idata, h_idata, size, cudaMemcpyHostToDevice);
-    
-    dim3 block(TILE_DIM, TILE_DIM);
-    dim3 grid(N / TILE_DIM, N / TILE_DIM);
-    
-    transposePadded<<<grid, block>>>(d_idata, d_odata, N);
-    cudaDeviceSynchronize();
-    
-    // Copy result back and verify (optional)
-    cudaMemcpy(h_odata, d_odata, size, cudaMemcpyDeviceToHost);
-    
-    cudaFree(d_idata);
-    cudaFree(d_odata);
-    free(h_idata);
-    free(h_odata);
-    
-    return 0;
+  size_t bytes = WIDTH * WIDTH * sizeof(float);
+  float *h_in, *h_out;
+  cudaMallocHost(&h_in, bytes);
+  cudaMallocHost(&h_out, bytes);
+  for (int i = 0; i < WIDTH * WIDTH; ++i) h_in[i] = static_cast<float>(i);
+
+  float *d_in, *d_out;
+  cudaMalloc(&d_in, bytes);
+  cudaMalloc(&d_out, bytes);
+  cudaMemcpy(d_in, h_in, bytes, cudaMemcpyHostToDevice);
+
+  dim3 block(TILE, TILE);
+  dim3 grid((WIDTH + TILE - 1) / TILE, (WIDTH + TILE - 1) / TILE);
+  transpose_padded<<<grid, block>>>(d_in, d_out, WIDTH);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_out, d_out, bytes, cudaMemcpyDeviceToHost);
+  printf("out[0]=%.1f\n", h_out[0]);
+
+  cudaFree(d_in);
+  cudaFree(d_out);
+  cudaFreeHost(h_in);
+  cudaFreeHost(h_out);
+  return 0;
 }

@@ -1,59 +1,41 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Targets Blackwell B200/B300 (sm_100)
+// transpose_naive.cu -- naive matrix transpose for Chapter 7.
+
 #include <cuda_runtime.h>
-#include <cooperative_groups.h>
+#include <cstdio>
 
-namespace cg = cooperative_groups;
+constexpr int WIDTH = 1024;
 
-#define TILE_DIM 32
-
-__global__ void transposeNaive(const float *idata, float *odata, int width) {
-    __shared__ float tile[TILE_DIM][TILE_DIM];
-    cg::thread_block block = cg::this_thread_block();
-    
-    int x = blockIdx.x * TILE_DIM + threadIdx.x;
-    int y = blockIdx.y * TILE_DIM + threadIdx.y;
-    
-    // Write input element into shared memory (coalesced write)
-    tile[threadIdx.x][threadIdx.y] = idata[y * width + x];
-    
-    block.sync();
-    
-    // Read from shared memory with transposed indices
-    // This is a classic case of all threads in a warp
-    // hitting the same bank causing a bank conflict
-    // (It's also not coalesced)
-    odata[x * width + y] = tile[threadIdx.y][threadIdx.x];
+__global__ void transpose_naive(const float* in, float* out, int width) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+  if (x < width && y < width) {
+    out[y * width + x] = in[x * width + y];
+  }
 }
 
 int main() {
-    const int N = 1024;
-    size_t size = N * N * sizeof(float);
-    
-    float *h_idata = (float*)malloc(size);
-    float *h_odata = (float*)malloc(size);
-    
-    // Initialize input data
-    for (int i = 0; i < N * N; ++i) {
-        h_idata[i] = static_cast<float>(i);
-    }
-    
-    float *d_idata, *d_odata;
-    cudaMalloc(&d_idata, size);
-    cudaMalloc(&d_odata, size);
-    
-    cudaMemcpy(d_idata, h_idata, size, cudaMemcpyHostToDevice);
-    
-    dim3 block(TILE_DIM, TILE_DIM);
-    dim3 grid(N / TILE_DIM, N / TILE_DIM);
-    
-    transposeNaive<<<grid, block>>>(d_idata, d_odata, N);
-    cudaDeviceSynchronize();
-    
-    cudaFree(d_idata);
-    cudaFree(d_odata);
-    free(h_idata);
-    free(h_odata);
-    
-    return 0;
+  size_t bytes = WIDTH * WIDTH * sizeof(float);
+  float *h_in, *h_out;
+  cudaMallocHost(&h_in, bytes);
+  cudaMallocHost(&h_out, bytes);
+  for (int i = 0; i < WIDTH * WIDTH; ++i) h_in[i] = static_cast<float>(i);
+
+  float *d_in, *d_out;
+  cudaMalloc(&d_in, bytes);
+  cudaMalloc(&d_out, bytes);
+  cudaMemcpy(d_in, h_in, bytes, cudaMemcpyHostToDevice);
+
+  dim3 block(32, 32);
+  dim3 grid((WIDTH + block.x - 1) / block.x, (WIDTH + block.y - 1) / block.y);
+  transpose_naive<<<grid, block>>>(d_in, d_out, WIDTH);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_out, d_out, bytes, cudaMemcpyDeviceToHost);
+  printf("out[0]=%.1f\n", h_out[0]);
+
+  cudaFree(d_in);
+  cudaFree(d_out);
+  cudaFreeHost(h_in);
+  cudaFreeHost(h_out);
+  return 0;
 }

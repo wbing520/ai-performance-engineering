@@ -1,258 +1,144 @@
+"""GPU occupancy heuristics with PyTorch (CUDA 12.9 / PyTorch 2.9).
+
+The focus is on sizing work to keep SMs busy, batching small ops, fusing chains,
+and choosing tensor layouts that map to efficient kernels.
+"""
+
+from __future__ import annotations
+
+import time
 import torch
-import os
 
-def get_architecture():
-    """Detect and return the current GPU architecture."""
+
+def _need_cuda() -> bool:
     if not torch.cuda.is_available():
-        return "cpu"
-    
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    elif compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
+        print("CUDA not available; occupancy demos require a GPU.")
+        return False
+    return True
 
-def get_architecture_info():
-    """Get detailed architecture information."""
-    arch = get_architecture()
-    if arch == "hopper":
+
+def _sync() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+
+def _benchmark(label: str, fn, iters: int) -> float:
+    _sync()
+    start = time.perf_counter()
+    for _ in range(iters):
+        fn()
+    _sync()
+    elapsed_ms = (time.perf_counter() - start) * 1_000 / iters
+    print(f"{label:<32}: {elapsed_ms:7.3f} ms")
+    return elapsed_ms
+
+
+def matmul_size_demo() -> None:
+    if not _need_cuda():
         return
-    elif arch == "blackwell":
-        return {
-            "name": "Blackwell B200/B300",
-            "compute_capability": "10.0",
-            "sm_version": "sm_100",
-            "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "5th Gen",
-            "features": ["HBM3e", "TMA", "NVLink-C2C"]
-        }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-import torch
-import torch.utils.cpp_extension
 
-def analyze_tensor_operations():
-    """
-    Analyze how PyTorch tensor operations relate to GPU occupancy.
-    """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    # Small tensors - may not fully utilize GPU
-    small_a = torch.randn(100, 100, device=device)
-    small_b = torch.randn(100, 100, device=device)
-    
-    # Large tensors - better GPU utilization
-    large_a = torch.randn(4096, 4096, device=device)
-    large_b = torch.randn(4096, 4096, device=device)
-    
-    print("=== GPU Occupancy Considerations in PyTorch ===")
-    print(f"Small tensor size: {small_a.shape}")
-    print(f"Large tensor size: {large_a.shape}")
-    
-    # Time operations to see the difference
-    import time
-    
-    # Small tensor operations
-    start = time.time()
-    with torch.cuda.nvtx.range("small_matmul"):
-        for _ in range(100):
-            small_c = torch.mm(small_a, small_b)
-    torch.cuda.synchronize()
-    small_time = time.time() - start
-    
-    # Large tensor operations (fewer iterations to avoid long runtime)
-    start = time.time()
-    with torch.cuda.nvtx.range("large_matmul"):
-        for _ in range(10):
-            large_c = torch.mm(large_a, large_b)
-    torch.cuda.synchronize()
-    large_time = time.time() - start
-    
-    print(f"\nSmall tensor ops (100x): {small_time:.4f}s")
-    print(f"Large tensor ops (10x): {large_time:.4f}s")
-    print(f"Avg small op time: {small_time/100*1000:.3f}ms")
-    print(f"Avg large op time: {large_time/10*1000:.3f}ms")
-    
-    return small_c, large_c
+    device = torch.device("cuda")
+    small = (128, 128)
+    large = (4096, 4096)
+    a_small = torch.randn(*small, device=device)
+    b_small = torch.randn(*small, device=device)
+    a_large = torch.randn(*large, device=device)
+    b_large = torch.randn(*large, device=device)
 
-def batching_for_occupancy():
-    """
-    Demonstrate how batching improves GPU utilization.
-    """
-    device = torch.device('cuda')
-    
-    # Individual small operations vs batched operations
-    individual_tensors = [torch.randn(256, 256, device=device) for _ in range(16)]
-    batched_tensor = torch.stack(individual_tensors, dim=0)  # Shape: [16, 256, 256]
-    
-    print("\n=== Batching for Better Occupancy ===")
-    print(f"Individual tensor shape: {individual_tensors[0].shape}")
-    print(f"Batched tensor shape: {batched_tensor.shape}")
-    
-    import time
-    
-    # Individual operations
-    start = time.time()
-    with torch.cuda.nvtx.range("individual_ops"):
-        individual_results = []
-        for tensor in individual_tensors:
-            result = torch.relu(tensor)
-            result = torch.sigmoid(result)
-            individual_results.append(result)
-    torch.cuda.synchronize()
-    individual_time = time.time() - start
-    
-    # Batched operations
-    start = time.time()
-    with torch.cuda.nvtx.range("batched_ops"):
-        batched_result = torch.relu(batched_tensor)
-        batched_result = torch.sigmoid(batched_result)
-    torch.cuda.synchronize()
-    batched_time = time.time() - start
-    
-    print(f"Individual operations time: {individual_time*1000:.3f}ms")
-    print(f"Batched operations time: {batched_time*1000:.3f}ms")
-    print(f"Batching speedup: {individual_time/batched_time:.2f}x")
-    
-    return individual_results, batched_result
+    print("\n=== Matrix size and occupancy ===")
+    _benchmark("mm 128x128", lambda: torch.mm(a_small, b_small), iters=200)
+    _benchmark("mm 4096x4096", lambda: torch.mm(a_large, b_large), iters=5)
 
-def torch_compile_occupancy():
-    """
-    Demonstrate how torch.compile can improve occupancy through fusion.
-    """
-    device = torch.device('cuda')
-    
-    @torch.compile(fullgraph=True, mode="max-autotune")
-    def fused_operations(x):
-        """Compile and fuse multiple operations."""
-        x = torch.relu(x)
-        x = x * 2.0
-        x = torch.sigmoid(x)
-        x = x + 1.0
-        return x
-    
-    def unfused_operations(x):
-        """Individual operations without fusion."""
-        x = torch.relu(x)
-        x = x * 2.0
-        x = torch.sigmoid(x)
-        x = x + 1.0
-        return x
-    
-    print("\n=== Torch Compile for Better Occupancy ===")
-    
-    # Create test data
-    x = torch.randn(1024, 1024, device=device)
-    
-    import time
-    
-    # Warm up
-    _ = fused_operations(x)
-    _ = unfused_operations(x)
-    
-    # Time unfused operations
-    start = time.time()
-    with torch.cuda.nvtx.range("unfused_ops"):
-        for _ in range(50):
-            result_unfused = unfused_operations(x)
-    torch.cuda.synchronize()
-    unfused_time = time.time() - start
-    
-    # Time fused operations
-    start = time.time()
-    with torch.cuda.nvtx.range("fused_ops"):
-        for _ in range(50):
-            result_fused = fused_operations(x)
-    torch.cuda.synchronize()
-    fused_time = time.time() - start
-    
-    print(f"Unfused operations time: {unfused_time*1000:.3f}ms")
-    print(f"Fused operations time: {fused_time*1000:.3f}ms")
-    print(f"Fusion speedup: {unfused_time/fused_time:.2f}x")
-    
-    # Verify results are the same
-    diff = torch.abs(result_unfused - result_fused).max().item()
-    print(f"Max difference between fused/unfused: {diff:.2e}")
-    
-    return result_unfused, result_fused
 
-def memory_layout_occupancy():
-    """
-    Show how memory layout affects occupancy.
-    """
-    device = torch.device('cuda')
-    
-    # Create tensors with different memory layouts
-    channels_last = torch.randn(32, 128, 64, 64, device=device).to(memory_format=torch.channels_last)
-    channels_first = torch.randn(32, 128, 64, 64, device=device)
-    
-    print("\n=== Memory Layout and Occupancy ===")
-    print(f"Channels last contiguous: {channels_last.is_contiguous(memory_format=torch.channels_last)}")
-    print(f"Channels first contiguous: {channels_first.is_contiguous()}")
-    
-    # Simple convolution operation
-    conv = torch.nn.Conv2d(128, 256, 3, padding=1).cuda()
-    
-    import time
-    
-    # Channels last
-    start = time.time()
-    with torch.cuda.nvtx.range("channels_last_conv"):
-        for _ in range(20):
-            result_cl = conv(channels_last)
-    torch.cuda.synchronize()
-    cl_time = time.time() - start
-    
-    # Channels first
-    start = time.time()
-    with torch.cuda.nvtx.range("channels_first_conv"):
-        for _ in range(20):
-            result_cf = conv(channels_first)
-    torch.cuda.synchronize()
-    cf_time = time.time() - start
-    
-    print(f"Channels last conv time: {cl_time*1000:.3f}ms")
-    print(f"Channels first conv time: {cf_time*1000:.3f}ms")
-    print(f"Channels last speedup: {cf_time/cl_time:.2f}x")
-    
-    return result_cl, result_cf
+def batching_demo() -> None:
+    if not _need_cuda():
+        return
 
-def main():
-    """
-    Main function demonstrating PyTorch occupancy considerations.
-    """
+    device = torch.device("cuda")
+    tensors = [torch.randn(256, 256, device=device) for _ in range(32)]
+    batched = torch.stack(tensors, dim=0)
+
+    print("\n=== Batching small pointwise ops ===")
+
+    def individual():
+        out = []
+        for t in tensors:
+            y = torch.nn.functional.relu(t)
+            y = torch.nn.functional.silu(y)
+            out.append(y)
+        return out
+
+    def batched_op():
+        y = torch.nn.functional.relu(batched)
+        return torch.nn.functional.silu(y)
+
+    indiv_ms = _benchmark("Individual 32x", individual, iters=5)
+    batch_ms = _benchmark("Batched (N=32)", batched_op, iters=5)
+    print(f"Speedup (individual / batched): {indiv_ms / batch_ms:5.2f}x")
+
+
+def compile_fusion_demo() -> None:
+    if not _need_cuda():
+        return
+    if not hasattr(torch, "compile"):
+        print("torch.compile not available; skipping fusion demo.")
+        return
+
+    device = torch.device("cuda")
+    x = torch.randn(2048, 2048, device=device)
+
+    def eager(inp):
+        out = torch.nn.functional.relu(inp)
+        out = out * 2.0
+        out = torch.nn.functional.gelu(out)
+        return out + 1.0
+
+    compiled = torch.compile(eager, mode="reduce-overhead", fullgraph=True)
+    compiled(x)  # warm-up
+
+    print("\n=== torch.compile for occupancy (kernel fusion) ===")
+    eager_ms = _benchmark("Eager", lambda: eager(x), iters=10)
+    compiled_ms = _benchmark("Compiled", lambda: compiled(x), iters=10)
+    print(f"Speedup (eager / compiled): {eager_ms / compiled_ms:5.2f}x")
+
+
+def layout_demo() -> None:
+    if not _need_cuda():
+        return
+
+    device = torch.device("cuda")
+    conv = torch.nn.Conv2d(128, 256, kernel_size=3, padding=1).to(device)
+
+    nchw = torch.randn(32, 128, 64, 64, device=device)
+    nhwc = nchw.to(memory_format=torch.channels_last)
+
+    print("\n=== Memory layout impact (channels-last) ===")
+    print(f"NCHW contiguous: {nchw.is_contiguous()}")
+    print(f"NHWC contiguous (channels_last): {nhwc.is_contiguous(memory_format=torch.channels_last)}")
+
+    _benchmark("Conv2d NCHW", lambda: conv(nchw), iters=20)
+    _benchmark("Conv2d NHWC", lambda: conv(nhwc), iters=20)
+
+
+def main() -> None:
     if not torch.cuda.is_available():
-        print("CUDA not available, skipping GPU occupancy examples")
+        print("CUDA not available; nothing to demonstrate")
         return
-    
-    print("=== PyTorch GPU Occupancy Optimization Examples ===")
-    print(f"Using device: {torch.cuda.get_device_name()}")
-    print(f"Device memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
-    
-    # Run examples
-    analyze_tensor_operations()
-    batching_for_occupancy()
-    torch_compile_occupancy()
-    memory_layout_occupancy()
-    
-    print("\n=== Profiling Commands ===")
-    print("To profile these examples with Nsight Systems:")
-    print("nsys profile --trace=cuda,nvtx python occupancy_pytorch.py")
-    
-    print("\nTo see occupancy in PyTorch Profiler:")
-    print("Use torch.profiler.profile() with activities=[torch.profiler.ProfilerActivity.CUDA]")
+
+    props = torch.cuda.get_device_properties(0)
+    print("=== PyTorch occupancy heuristics ===")
+    print(f"Device: {torch.cuda.get_device_name()}")
+    print(f"SM count: {props.multi_processor_count}, total memory: {props.total_memory / 1e9:.1f} GB")
+
+    matmul_size_demo()
+    batching_demo()
+    compile_fusion_demo()
+    layout_demo()
+
+    print("\nSuggested profiling commands:")
+    print("- ncu --metrics sm__warps_active.avg.pct_of_peak_sustained_active python occupancy_pytorch.py")
+    print("- torch.profiler.profile(..., activities=[ProfilerActivity.CUDA])")
+
 
 if __name__ == "__main__":
     main()

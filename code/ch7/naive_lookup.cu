@@ -1,44 +1,51 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Targets Blackwell B200/B300 (sm_100)
+// naive_lookup.cu -- naive scattered memory access example.
+
 #include <cuda_runtime.h>
+#include <cstdio>
 
-#define T 1024
+constexpr int N = 1 << 20;
 
-__global__ void naiveLookup(const float* table, float* out, int N) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (idx < N) {
-        // __ldg not used here, each access goes to
-        // global memory without using read-only cache
-        int t = idx % T;
-        out[idx] = table[t];
-    }
+__global__ void lookupNaive(const float* table, const int* indices, float* out, int n) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx < n) {
+    out[idx] = table[indices[idx]];
+  }
 }
 
 int main() {
-    const int N = 1 << 20;
-    
-    float* h_table = nullptr;
-    float* h_out = nullptr;
-    cudaMallocHost(&h_table, T * sizeof(float));
-    cudaMallocHost(&h_out, N * sizeof(float));
-    
-    for (int i = 0; i < T; ++i) h_table[i] = float(i);
-    
-    float *d_table, *d_out;
-    cudaMalloc(&d_table, T * sizeof(float));
-    cudaMalloc(&d_out, N * sizeof(float));
-    
-    cudaMemcpy(d_table, h_table, T * sizeof(float), cudaMemcpyHostToDevice);
-    
-    dim3 block(256), grid((N + 255) / 256);
-    naiveLookup<<<grid, block>>>(d_table, d_out, N);
-    cudaDeviceSynchronize();
-    
-    cudaFree(d_table);
-    cudaFree(d_out);
-    cudaFreeHost(h_table);
-    cudaFreeHost(h_out);
-    
-    return 0;
+  float *h_table, *h_out;
+  int *h_indices;
+  cudaMallocHost(&h_table, N * sizeof(float));
+  cudaMallocHost(&h_out, N * sizeof(float));
+  cudaMallocHost(&h_indices, N * sizeof(int));
+
+  for (int i = 0; i < N; ++i) {
+    h_table[i] = static_cast<float>(i);
+    h_indices[i] = (i * 3) % N;
+  }
+
+  float *d_table, *d_out;
+  int *d_indices;
+  cudaMalloc(&d_table, N * sizeof(float));
+  cudaMalloc(&d_indices, N * sizeof(int));
+  cudaMalloc(&d_out, N * sizeof(float));
+
+  cudaMemcpy(d_table, h_table, N * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_indices, h_indices, N * sizeof(int), cudaMemcpyHostToDevice);
+
+  dim3 block(256);
+  dim3 grid((N + block.x - 1) / block.x);
+  lookupNaive<<<grid, block>>>(d_table, d_indices, d_out, N);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_out, d_out, N * sizeof(float), cudaMemcpyDeviceToHost);
+  printf("out[0]=%.1f\n", h_out[0]);
+
+  cudaFree(d_table);
+  cudaFree(d_indices);
+  cudaFree(d_out);
+  cudaFreeHost(h_table);
+  cudaFreeHost(h_indices);
+  cudaFreeHost(h_out);
+  return 0;
 }

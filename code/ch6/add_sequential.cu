@@ -1,96 +1,49 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Targets Blackwell B200/B300 (sm_100)
-// addSequential.cu
-// Sequential vector addition example (poor performance)
+// add_sequential.cu
+// Naive sequential CUDA example for Chapter 6 (illustrates poor GPU utilization).
 
 #include <cuda_runtime.h>
-#include <stdio.h>
+#include <cstdio>
 
-const int N = 1'000'000;
+constexpr int N = 1'000'000;
 
-// Single thread does all N additions
-__global__ void addSequential(const float* A, const float* B, float* C, int N) {
-    if (blockIdx.x == 0 && threadIdx.x == 0) {
-        for (int i = 0; i < N; ++i) {
-            C[i] = A[i] + B[i];
-        }
+__global__ void addSequential(const float* A, const float* B, float* C, int n) {
+  if (blockIdx.x == 0 && threadIdx.x == 0) {
+    for (int i = 0; i < n; ++i) {
+      C[i] = A[i] + B[i];
     }
+  }
 }
 
 int main() {
-    // Allocate and initialize host
-    float* h_A = nullptr;
-    float* h_B = nullptr;
-    float* h_C = nullptr;
-    cudaMallocHost(&h_A, N * sizeof(float));
-    cudaMallocHost(&h_B, N * sizeof(float));
-    cudaMallocHost(&h_C, N * sizeof(float));
-    
-    for (int i = 0; i < N; ++i) {
-        h_A[i] = float(i);
-        h_B[i] = float(i * 2);
-    }
-    
-    // Allocate device
-    float *d_A, *d_B, *d_C;
-    cudaMalloc(&d_A, N * sizeof(float));
-    cudaMalloc(&d_B, N * sizeof(float));
-    cudaMalloc(&d_C, N * sizeof(float));
-    
-    // Copy inputs to device
-    cudaMemcpy(d_A, h_A, N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, h_B, N * sizeof(float), cudaMemcpyHostToDevice);
-    
-    // Time the kernel
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    
-    cudaEventRecord(start);
-    
-    // Launch: one thread
-    addSequential<<<1,1>>>(d_A, d_B, d_C, N);
-    
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    
-    // Ensure completion before exit
-    cudaDeviceSynchronize();
-    
-    // Copy results back to host
-    cudaMemcpy(h_C, d_C, N * sizeof(float), cudaMemcpyDeviceToHost);
-    
-    printf("Sequential kernel time: %.2f ms\n", milliseconds);
-    printf("Result: C[0] = %.1f, C[N-1] = %.1f\n", h_C[0], h_C[N-1]);
-    
-    // Cleanup
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
-    cudaFreeHost(h_A);
-    cudaFreeHost(h_B);
-    cudaFreeHost(h_C);
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-    
-    return 0;
-}
+  float *h_A, *h_B, *h_C;
+  cudaMallocHost(&h_A, N * sizeof(float));
+  cudaMallocHost(&h_B, N * sizeof(float));
+  cudaMallocHost(&h_C, N * sizeof(float));
 
-// CUDA 12.9 Stream-ordered Memory Allocation Example
-__global__ void stream_ordered_memory_example() {
-    // Example of stream-ordered memory allocation
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your kernel code here
-}
+  for (int i = 0; i < N; ++i) {
+    h_A[i] = static_cast<float>(i);
+    h_B[i] = static_cast<float>(2 * i);
+  }
 
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
-__global__ void tma_example() {
-    // Example of TMA usage for Blackwell B200/B300
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your TMA code here
+  float *d_A, *d_B, *d_C;
+  cudaMalloc(&d_A, N * sizeof(float));
+  cudaMalloc(&d_B, N * sizeof(float));
+  cudaMalloc(&d_C, N * sizeof(float));
+
+  cudaMemcpy(d_A, h_A, N * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, h_B, N * sizeof(float), cudaMemcpyHostToDevice);
+
+  addSequential<<<1, 1>>>(d_A, d_B, d_C, N);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_C, d_C, N * sizeof(float), cudaMemcpyDeviceToHost);
+  printf("C[0]=%.1f, C[N-1]=%.1f\n", h_C[0], h_C[N - 1]);
+
+  cudaFree(d_A);
+  cudaFree(d_B);
+  cudaFree(d_C);
+  cudaFreeHost(h_A);
+  cudaFreeHost(h_B);
+  cudaFreeHost(h_C);
+  return 0;
 }

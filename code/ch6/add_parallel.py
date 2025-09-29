@@ -1,80 +1,26 @@
-import torch.profiler as profiler
-from torch.profiler import profile, record_function, ProfilerActivity, schedule
-import torch.cuda.nvtx as nvtx
-import torch
-import os
+"""Vectorized PyTorch addition (correct GPU utilization)."""
 
-def get_architecture():
-    """Detect and return the current GPU architecture."""
-    if not torch.cuda.is_available():
-        return "cpu"
-    
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    
-    # Architecture detection
-    if compute_capability == "9.0":
-        return "hopper"  # H100/H200
-    if compute_capability == "10.0":
-        return "blackwell"  # B200/B300
-    else:
-        return "other"
-
-def get_architecture_info():
-    """Get detailed architecture information."""
-    arch = get_architecture()
-    if arch == "hopper":
-        return
-    elif arch == "blackwell":
-        return {
-            "name": "Blackwell B200/B300",
-            "compute_capability": "10.0",
-            "sm_version": "sm_100",
-            "memory_bandwidth": "8.0 TB/s",
-            "tensor_cores": "5th Gen",
-            "features": ["HBM3e", "TMA", "NVLink-C2C"]
-        }
-    else:
-        return {
-            "name": "Other",
-            "compute_capability": "Unknown",
-            "sm_version": "Unknown",
-            "memory_bandwidth": "Unknown",
-            "tensor_cores": "Unknown",
-            "features": []
-        }
-# add_parallel.py
-# Proper PyTorch code using vectorized operations
-
-import torch
 import time
+import torch
 
 N = 1_000_000
-A = torch.arange(N, dtype=torch.float32, device='cuda')
-B = 2 * A
 
-torch.cuda.synchronize()
+def main() -> None:
+    if not torch.cuda.is_available():
+        raise SystemExit("CUDA is required for this example")
 
-start_time = time.time()
+    device = torch.device("cuda")
+    A = torch.arange(N, dtype=torch.float32, device=device)
+    B = 2 * A
 
-# Proper parallel approach using vectorized operation
-# Launches a single GPU kernel that adds all elements in parallel
-C = A + B
+    torch.cuda.synchronize()
+    start = time.time()
+    C = A + B
+    torch.cuda.synchronize()
 
-torch.cuda.synchronize()
-elapsed_time = (time.time() - start_time) * 1000
+    elapsed_ms = (time.time() - start) * 1_000
+    print(f"Vectorized PyTorch add took {elapsed_ms:.2f} ms")
+    print(f"Result: C[0]={C[0].item():.1f}, C[-1]={C[-1].item():.1f}")
 
-print(f"Parallel PyTorch time: {elapsed_time:.2f} ms")
-print(f"Result: C[0] = {C[0]}, C[N-1] = {C[N-1]}")
-
-# Architecture-specific information
-if torch.cuda.is_available():
-    device_props = torch.cuda.get_device_properties(0)
-    compute_capability = f"{device_props.major}.{device_props.minor}"
-    print(f"GPU: {device_props.name}")
-    print(f"Compute Capability: {compute_capability}")
-    
-    if compute_capability == "10.0":  # Blackwell B200/B300
-        print("Architecture: Blackwell B200/B300")
-    else:
-        print(f"Architecture: Other (Compute Capability {compute_capability})")
+if __name__ == "__main__":
+    main()

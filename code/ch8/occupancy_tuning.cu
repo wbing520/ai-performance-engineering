@@ -1,111 +1,41 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Targets Blackwell B200/B300 (sm_100)
+// occupancy_tuning.cu -- simple __launch_bounds__ illustration.
+
 #include <cuda_runtime.h>
-#include <iostream>
+#include <cstdio>
 
-// Example kernel with __launch_bounds__ to guide occupancy
-__global__ __launch_bounds__(256, 8)
-void optimizedKernel(const float* input, float* output, int N) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (idx < N) {
-        // Some computation work
-        float val = input[idx];
-        val = val * val + val * 2.0f + 1.0f;
-        output[idx] = sqrtf(val);
-    }
-}
+constexpr int N = 1 << 20;
 
-// Standard kernel without launch bounds for comparison
-__global__ void standardKernel(const float* input, float* output, int N) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (idx < N) {
-        // Same computation work
-        float val = input[idx];
-        val = val * val + val * 2.0f + 1.0f;
-        output[idx] = sqrtf(val);
-    }
+__global__ __launch_bounds__(256, 4)
+void kernel(const float* in, float* out, int n) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx < n) {
+    float val = in[idx];
+    out[idx] = sqrtf(val * val + 1.0f);
+  }
 }
 
 int main() {
-    const int N = 1 << 20;  // 1M elements
-    const size_t bytes = N * sizeof(float);
-    
-    // Allocate host memory
-    float* h_input = nullptr;
-    float* h_output = nullptr;
-    cudaMallocHost(&h_input, bytes);
-    cudaMallocHost(&h_output, bytes);
-    
-    // Initialize input
-    for (int i = 0; i < N; ++i) {
-        h_input[i] = static_cast<float>(i % 1000);
-    }
-    
-    // Allocate device memory
-    float* d_input = nullptr;
-    float* d_output = nullptr;
-    cudaMalloc(&d_input, bytes);
-    cudaMalloc(&d_output, bytes);
-    
-    // Copy to device
-    cudaMemcpy(d_input, h_input, bytes, cudaMemcpyHostToDevice);
-    
-    // Launch configuration guided by __launch_bounds__
-    // We promised max 256 threads per block and min 8 blocks per SM
-    dim3 blockSize(256);
-    dim3 gridSize((N + blockSize.x - 1) / blockSize.x);
-    
-    // Time the optimized kernel
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    
-    cudaEventRecord(start);
-    optimizedKernel<<<gridSize, blockSize>>>(d_input, d_output, N);
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    
-    float optimizedTime;
-    cudaEventElapsedTime(&optimizedTime, start, stop);
-    
-    // Time the standard kernel for comparison
-    cudaEventRecord(start);
-    standardKernel<<<gridSize, blockSize>>>(d_input, d_output, N);
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    
-    float standardTime;
-    cudaEventElapsedTime(&standardTime, start, stop);
-    
-    printf("Optimized kernel time: %.3f ms\n", optimizedTime);
-    printf("Standard kernel time: %.3f ms\n", standardTime);
-    printf("Speedup: %.2fx\n", standardTime / optimizedTime);
-    
-    // Cleanup
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFreeHost(h_input);
-    cudaFreeHost(h_output);
-    
-    return 0;
-}
+  float *h_in, *h_out;
+  cudaMallocHost(&h_in, N * sizeof(float));
+  cudaMallocHost(&h_out, N * sizeof(float));
+  for (int i = 0; i < N; ++i) h_in[i] = static_cast<float>(i);
 
-// CUDA 12.9 Stream-ordered Memory Allocation Example
-__global__ void stream_ordered_memory_example() {
-    // Example of stream-ordered memory allocation
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your kernel code here
-}
+  float *d_in, *d_out;
+  cudaMalloc(&d_in, N * sizeof(float));
+  cudaMalloc(&d_out, N * sizeof(float));
+  cudaMemcpy(d_in, h_in, N * sizeof(float), cudaMemcpyHostToDevice);
 
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
-__global__ void tma_example() {
-    // Example of TMA usage for Blackwell B200/B300
-    // This is a placeholder for actual implementation
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    // Your TMA code here
+  dim3 block(256);
+  dim3 grid((N + block.x - 1) / block.x);
+  kernel<<<grid, block>>>(d_in, d_out, N);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_out, d_out, N * sizeof(float), cudaMemcpyDeviceToHost);
+  printf("out[0]=%.1f\n", h_out[0]);
+
+  cudaFree(d_in);
+  cudaFree(d_out);
+  cudaFreeHost(h_in);
+  cudaFreeHost(h_out);
+  return 0;
 }

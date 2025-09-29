@@ -1,76 +1,93 @@
-# after_overlap_ddp.py
+"""torch.distributed example illustrating DDP's communication/computation overlap.
+
+This version aligns with Chapter 4 guidance:
+- Environment-based init (MASTER_ADDR/PORT).
+- Each rank generates its own synthetic data (no large tensors passed through spawn).
+- Multiprocessing start method guarded.
+- Clean group teardown.
+"""
+
+from __future__ import annotations
+
+import os
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torch.nn as nn
+import torch.optim as optim
+
+
+def init_process(rank: int, world_size: int) -> None:
+    if "MASTER_ADDR" not in os.environ:
+        os.environ["MASTER_ADDR"] = "127.0.0.1"
+    if "MASTER_PORT" not in os.environ:
+        os.environ["MASTER_PORT"] = "29502"
+    backend = "nccl" if torch.cuda.is_available() else "gloo"
+    dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
+
 
 class MultiLayerNet(nn.Module):
-    def __init__(self, size):
+    def __init__(self, size: int) -> None:
         super().__init__()
         self.fc1 = nn.Linear(size, size)
         self.fc2 = nn.Linear(size, size)
         self.fc3 = nn.Linear(size, 1)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         return self.fc3(x)
 
-def train_ddp(rank, world_size, data, target):
-    # Check if we have enough GPUs for distributed training
-    if torch.cuda.device_count() < world_size:
-        print(f"Warning: Only {torch.cuda.device_count()} GPU(s) available, but {world_size} requested.", flush=True)
-        print("Falling back to single-GPU training.", flush=True)
-        # Single GPU training
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = MultiLayerNet(data.size(1)).to(device)
-        optimizer = optim.SGD(model.parameters(), lr=0.01)
-        
-        # Move data to device
-        data = data.to(device)
-        target = target.to(device)
-        
-        # Forward pass
-        output = model(data)
-        loss = nn.functional.mse_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        
-        print(f"Single-GPU training completed. Loss: {loss.item():.4f}", flush=True)
-        return
-    
-    # Multi-GPU distributed training
-    dist.init_process_group("nccl", init_method="tcp://127.0.0.1:34568",
-                           world_size=world_size, rank=rank)
-    
-    torch.cuda.set_device(rank)
-    model = MultiLayerNet(data.size(1)).cuda(rank)
-    ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=[rank])
+
+def synthetic_batch(feature_dim: int, batch_size: int) -> tuple[torch.Tensor, torch.Tensor]:
+    gen = torch.Generator().manual_seed(0)
+    data = torch.randn(batch_size, feature_dim, generator=gen)
+    target = torch.randn(batch_size, 1, generator=gen)
+    return data, target
+
+
+def train_ddp(rank: int, world_size: int, feature_dim: int = 1024, batch_size: int = 128) -> None:
+    init_process(rank, world_size)
+
+    device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+    torch.cuda.set_device(device)
+
+    model = MultiLayerNet(feature_dim).to(device)
+
+    ddp_model = nn.parallel.DistributedDataParallel(
+        model,
+        device_ids=[device] if device.type == "cuda" else None,
+        gradient_as_bucket_view=True,  # larger buckets help overlap
+    )
+
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.01)
-    
-    # Move data to device
-    data = data.cuda(rank)
-    target = target.cuda(rank)
-    
+
+    data, target = synthetic_batch(feature_dim, batch_size)
+    data = data.to(device, non_blocking=True)
+    target = target.to(device, non_blocking=True)
+
     output = ddp_model(data)
     loss = nn.functional.mse_loss(output, target)
-    loss.backward()  # DDP hooks will schedule gradient all-reduce in background
+    loss.backward()  # DDP schedules gradient all-reduce in the background
     optimizer.step()
-    
-    dist.destroy_process_group()
+
+    if dist.is_initialized():
+        dist.destroy_process_group()
+
+    if rank == 0:
+        print(f"DDP loss: {loss.item():.4f}", flush=True)
+
+
+def main() -> None:
+    world_size = min(2, torch.cuda.device_count() or 1)
+    mp.set_start_method("spawn", force=True)
+
+    if world_size > 1:
+        mp.spawn(train_ddp, args=(world_size,), nprocs=world_size, join=True)
+    else:
+        print("Only one GPU present; running DDP demo with world_size=1")
+        train_ddp(0, 1)
+
 
 if __name__ == "__main__":
-    print(f"Starting DDP training with {torch.cuda.device_count()} GPU(s)", flush=True)
-    world_size = min(2, torch.cuda.device_count())
-    inp = torch.randn(128, 1024)
-    tgt = torch.randn(128, 1)
-    
-    if world_size == 1:
-        # Single GPU training
-        print("Running single-GPU training", flush=True)
-        train_ddp(0, 1, inp, tgt)
-    else:
-        # Multi-GPU training
-        print("Running multi-GPU training", flush=True)
-        mp.spawn(train_ddp, args=(world_size, inp, tgt), nprocs=world_size)
+    main()

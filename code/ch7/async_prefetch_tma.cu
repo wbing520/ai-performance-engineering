@@ -1,99 +1,51 @@
-// Architecture-specific optimizations for CUDA 12.9
-// Simplified version for Blackwell B200/B300 (sm_100)
+// async_prefetch_tma.cu -- simplified tiled streaming example (no TMA).
+
 #include <cuda_runtime.h>
-#include <cooperative_groups.h>
-#include <iostream>
+#include <cstdio>
 
-namespace cg = cooperative_groups;
+constexpr int TILE_SIZE = 1024;
 
-#define TILE_SIZE 1024 // example tile size
+__global__ void kernel(const float* data, float* out, int tiles) {
+  extern __shared__ float smem[];
+  const int tid = threadIdx.x;
 
-// User-provided compute function operating on a shared-memory tile
-__device__ void processTile(const float* tile) {
-    // Simulate some computation on the tile
-    // In practice, this would be your actual computation
-    cg::thread_block block = cg::this_thread_block();
-    block.sync();
-    
-    // Example computation: sum reduction
-    __shared__ float sum;
-    if (threadIdx.x == 0) sum = 0.0f;
-    block.sync();
-    
-    for (int i = threadIdx.x; i < TILE_SIZE; i += blockDim.x) {
-        atomicAdd(&sum, tile[i]);
+  for (int t = 0; t < tiles; ++t) {
+    const float* tile = data + t * TILE_SIZE;
+    for (int i = tid; i < TILE_SIZE; i += blockDim.x) {
+      smem[i] = tile[i];
     }
-    block.sync();
-}
+    __syncthreads();
 
-__global__ void kernelWithAsyncCopy(const float* __restrict__ global_ptr,
-                                   int nTiles) {
-    // Two ping-pong buffers in shared memory
-    __shared__ float tile0[TILE_SIZE];
-    __shared__ float tile1[TILE_SIZE];
-    float* tiles[2] = { tile0, tile1 };
-
-    cg::thread_block block = cg::this_thread_block();
-    
-    int tileIdx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // Process tiles in a simple loop (simplified version without TMA)
-    for (int t = 0; t < nTiles; ++t) {
-        // Copy tile data to shared memory
-        int offset = t * TILE_SIZE;
-        for (int i = threadIdx.x; i < TILE_SIZE; i += blockDim.x) {
-            if (offset + i < nTiles * TILE_SIZE) {
-                tiles[t % 2][i] = global_ptr[offset + i];
-            }
-        }
-        block.sync();
-        
-        // Process the tile
-        processTile(tiles[t % 2]);
-        block.sync();
+    for (int i = tid; i < TILE_SIZE; i += blockDim.x) {
+      out[t * TILE_SIZE + i] = smem[i] * 2.0f;
     }
+    __syncthreads();
+  }
 }
 
 int main() {
-    const int nTiles = 64;
-    const size_t totalElements = nTiles * TILE_SIZE;
-    const size_t bytes = totalElements * sizeof(float);
-    
-    // Allocate and initialize host memory
-    float* h_data = nullptr;
-    cudaMallocHost(&h_data, bytes);
-    
-    for (size_t i = 0; i < totalElements; ++i) {
-        h_data[i] = static_cast<float>(i % 1000);
-    }
-    
-    // Allocate device memory
-    float* d_data = nullptr;
-    cudaMalloc(&d_data, bytes);
-    
-    // Copy data to device
-    cudaMemcpy(d_data, h_data, bytes, cudaMemcpyHostToDevice);
-    
-    // Launch kernel with simplified async copy
-    // Use enough threads to fill a block but not exceed shared memory limits
-    dim3 block(256);
-    dim3 grid(1); // Single block for this example
-    
-    kernelWithAsyncCopy<<<grid, block>>>(d_data, nTiles);
-    cudaDeviceSynchronize();
-    
-    // Check for errors
-    cudaError_t error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        printf("CUDA error: %s\n", cudaGetErrorString(error));
-    } else {
-        printf("Simplified async copy kernel completed successfully\n");
-        printf("Note: TMA features are available on Blackwell GPUs\n");
-    }
-    
-    // Cleanup
-    cudaFree(d_data);
-    cudaFreeHost(h_data);
-    
-    return 0;
+  constexpr int tiles = 64;
+  constexpr int total = tiles * TILE_SIZE;
+
+  float *h_in, *h_out;
+  cudaMallocHost(&h_in, total * sizeof(float));
+  cudaMallocHost(&h_out, total * sizeof(float));
+  for (int i = 0; i < total; ++i) h_in[i] = static_cast<float>(i);
+
+  float *d_in, *d_out;
+  cudaMalloc(&d_in, total * sizeof(float));
+  cudaMalloc(&d_out, total * sizeof(float));
+  cudaMemcpy(d_in, h_in, total * sizeof(float), cudaMemcpyHostToDevice);
+
+  kernel<<<1, 256, TILE_SIZE * sizeof(float)>>>(d_in, d_out, tiles);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy(h_out, d_out, total * sizeof(float), cudaMemcpyDeviceToHost);
+  printf("out[0]=%.1f\n", h_out[0]);
+
+  cudaFree(d_in);
+  cudaFree(d_out);
+  cudaFreeHost(h_in);
+  cudaFreeHost(h_out);
+  return 0;
 }
