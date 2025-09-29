@@ -1,4 +1,49 @@
 #!/usr/bin/env bash
+# Stop the active profiling harness run created by start.sh.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SESSION_ROOT="$REPO_ROOT/profile_runs/harness"
+PID_FILE="$SESSION_ROOT/latest.pid"
+LOG_FILE="$SESSION_ROOT/latest.log"
+
+if [[ ! -f "$PID_FILE" ]]; then
+  echo "No PID file found at $PID_FILE. Nothing to stop." >&2
+  exit 1
+fi
+
+PID=$(cat "$PID_FILE")
+
+if ! kill -0 "$PID" >/dev/null 2>&1; then
+  echo "Process $PID not running. Removing PID file." >&2
+  rm -f "$PID_FILE"
+  exit 0
+fi
+
+echo "Stopping profiling harness (pid $PID)..."
+kill "$PID"
+
+timeout=30
+while kill -0 "$PID" >/dev/null 2>&1 && (( timeout > 0 )); do
+  sleep 1
+  timeout=$(( timeout - 1 ))
+done
+
+if kill -0 "$PID" >/dev/null 2>&1; then
+  echo "Process did not exit after 30s, sending SIGKILL" >&2
+  kill -9 "$PID" || true
+fi
+
+rm -f "$PID_FILE"
+
+echo "Harness stopped."
+
+if [[ -f "$LOG_FILE" ]]; then
+  echo "Last log lines:"
+  tail -n 20 "$LOG_FILE"
+fi
+#!/usr/bin/env bash
 # Stop active profiling harness sessions along with lingering Nsight/perf workers.
 
 set -euo pipefail

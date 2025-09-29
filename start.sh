@@ -29,7 +29,7 @@ HARNESS="$REPO_ROOT/scripts/profile_harness.py"
 SESSION_ROOT="$REPO_ROOT/profile_runs/harness"
 mkdir -p "$SESSION_ROOT"
 
-TOTAL_STEPS=3
+TOTAL_STEPS=5
 
 PYTHON_BIN=${PYTHON:-}
 if [[ -z "$PYTHON_BIN" ]]; then
@@ -72,5 +72,44 @@ fi
   echo "PID file   : $PID_FILE"
 } > "$LOG_FILE"
 
+ln -sf "$(basename "$LOG_FILE")" "$LATEST_LOG"
+progress 2 "$TOTAL_STEPS" "Logging to: $LOG_FILE"
+
 cd "$REPO_ROOT"
-"${CMD[@]}"
+progress 3 "$TOTAL_STEPS" "Launching profiling harness"
+
+nohup "${CMD[@]}" >> "$LOG_FILE" 2>&1 &
+HARNESS_PID=$!
+echo "$HARNESS_PID" > "$PID_FILE"
+ln -sf "$(basename "$PID_FILE")" "$LATEST_PID"
+
+progress 4 "$TOTAL_STEPS" "Harness running (pid $HARNESS_PID)"
+
+cat <<EOF
+
+Profiling harness is running in the background.
+  PID : $HARNESS_PID
+  Log : $LOG_FILE
+
+View live progress with:
+  tail -f "$LATEST_LOG"
+
+Stop the harness with:
+  kill $HARNESS_PID
+
+EOF
+
+progress 5 "$TOTAL_STEPS" "Streaming log output (Ctrl+C to stop viewing)"
+echo "--- Live harness log (Ctrl+C to stop tailing; harness keeps running) ---"
+
+tail -n +1 -f "$LOG_FILE" &
+TAIL_PID=$!
+
+cleanup() {
+  if kill -0 "$TAIL_PID" >/dev/null 2>&1; then
+    kill "$TAIL_PID" >/dev/null 2>&1 || true;
+  fi
+}
+
+trap cleanup EXIT INT TERM
+wait "$TAIL_PID" || true
