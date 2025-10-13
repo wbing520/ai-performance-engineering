@@ -3,9 +3,10 @@
 ARCH ?= sm_100
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 13.0
 NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
+NVCC_FLAGS += --threads=0
 
 # Find all CUDA source files
 CUDA_SOURCES = $(wildcard *.cu)
@@ -32,21 +33,21 @@ profile-nsys: all
 	@echo "Nsight Systems timeline profiling..."
 	@for exe in $(CUDA_TARGETS); do \
 		echo "Profiling $$exe..."; \
-		nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o nsys_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
+		nsys profile --force-overwrite=true --trace=cuda,nvtx,osrt,python --capture-range=nvtx -o nsys_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
 	done
 
 profile-ncu: all
 	@echo "Nsight Compute kernel profiling..."
 	@for exe in $(CUDA_TARGETS); do \
 		echo "Profiling $$exe..."; \
-		ncu --metrics achieved_occupancy,warp_execution_efficiency -o ncu_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
+		ncu --section=SpeedOfLight --metrics breakdown:gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed,sm__throughput.avg.pct_of_peak_sustained_elapsed,gpu__time_duration.avg --target-processes all -o ncu_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
 	done
 
 profile-hta: all
 	@echo "HTA (Holistic Tracing Analysis) profiling..."
 	@for exe in $(CUDA_TARGETS); do \
 		echo "Profiling $$exe..."; \
-		nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o hta_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
+		nsys profile --force-overwrite=true --trace=cuda,nvtx,osrt,python --capture-range=nvtx -o hta_profile_$$exe_$(ARCH) ./$$exe 2>/dev/null || echo "Profiling $$exe failed"; \
 	done
 
 profile-perf: all
@@ -61,9 +62,9 @@ profile-all: all
 	@echo "Comprehensive profiling with all tools..."
 	@for exe in $(CUDA_TARGETS); do \
 		echo "1. Nsight Systems timeline..."; \
-		nsys profile --force-overwrite=true -t cuda,nvtx,osrt -o comprehensive_timeline_$$exe_$(ARCH) ./$$exe 2>/dev/null || true; \
+		nsys profile --force-overwrite=true --trace=cuda,nvtx,osrt,python --capture-range=nvtx -o comprehensive_timeline_$$exe_$(ARCH) ./$$exe 2>/dev/null || true; \
 		echo "2. Nsight Compute kernel analysis..."; \
-		ncu --metrics achieved_occupancy,warp_execution_efficiency -o comprehensive_kernel_$$exe_$(ARCH) ./$$exe 2>/dev/null || true; \
+		ncu --section=SpeedOfLight --metrics breakdown:gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed,sm__throughput.avg.pct_of_peak_sustained_elapsed,gpu__time_duration.avg --target-processes all -o comprehensive_kernel_$$exe_$(ARCH) ./$$exe 2>/dev/null || true; \
 		echo "3. Perf system-level analysis..."; \
 		perf record -g -o perf.data_$(ARCH)_$$exe ./$$exe || true; \
 		perf report -i perf.data_$(ARCH)_$$exe || true; \

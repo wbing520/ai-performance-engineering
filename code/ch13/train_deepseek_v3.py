@@ -37,7 +37,7 @@ def main() -> None:
     labels = batch["input_ids"].clone()
 
     scaler = torch.cuda.amp.GradScaler(enabled=device.type == "cuda")
-    autocast_ctx = torch.cuda.amp.autocast(device_type="cuda") if device.type == "cuda" else nullcontext()
+    autocast_ctx = torch.autocast(device_type="cuda") if device.type == "cuda" else nullcontext()
 
     model.train()
     for _ in range(WARMUP):

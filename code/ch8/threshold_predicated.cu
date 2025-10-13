@@ -5,11 +5,16 @@
 
 constexpr int N = 1 << 20;
 
-__global__ void threshold_predicated(const float* x, float* y, float threshold, int n) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    float val = x[idx];
-    y[idx] = (val > threshold) ? val : 0.0f;
+__global__ void threshold_predicated(const float* __restrict__ X,
+                                     float* __restrict__ Y,
+                                     float threshold,
+                                     int N) {
+  const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = blockDim.x * gridDim.x;
+  for (int i = idx; i < N; i += stride) {
+    const float x = X[i];
+    // Branch-free select keeps the kernel truly predicated on the data-dependent threshold check.
+    Y[i] = (x > threshold) ? x : 0.0f;
   }
 }
 

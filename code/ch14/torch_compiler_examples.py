@@ -47,7 +47,7 @@ def benchmark_compile(mode: str = "default", amp: bool = True, use_fused: bool =
     compiled = torch.compile(model, **compile_kwargs)
 
     scaler = torch.cuda.amp.GradScaler(enabled=amp and device.type == "cuda")
-    autocast_cm = torch.cuda.amp.autocast(device_type="cuda") if amp and device.type == "cuda" else nullcontext()
+    autocast_cm = torch.autocast(device_type="cuda") if amp and device.type == "cuda" else nullcontext()
 
     with torch.no_grad():
         for _ in range(3):

@@ -3,7 +3,7 @@
 ARCH ?= sm_100
 
 # CUDA configuration
-CUDA_VERSION = 12.9
+CUDA_VERSION = 13.0
 NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
 

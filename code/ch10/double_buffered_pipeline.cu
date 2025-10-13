@@ -1,4 +1,4 @@
-// Architecture-specific optimizations for CUDA 12.9
+// Architecture-specific optimizations for CUDA 13.x
 // Targets Blackwell B200/B300 (sm_100)
 // double_buffered_pipeline.cu
 // Two-stage double-buffering example using the CUDA C++ Pipeline API
@@ -62,72 +62,48 @@ __global__ void gemm_tiled_pipeline(
     // 7) How many tiles along K
     int numTiles = K / TILE_SIZE; // assume divisible
 
-    // 8) **Initial synchronous load of tile 0** into buffer 0
-    {
+    auto load_tile_async = [&](int tile_idx, int buf_idx) {
         int aRow = block_row + ty;
-        int aCol = 0 * TILE_SIZE + tx;
+        int aCol = tile_idx * TILE_SIZE + tx;
         if (aRow < M && aCol < K) {
-            A_buf[0][ty * TILE_SIZE + tx] = A_global[aRow * K + aCol];
+            cuda::memcpy_async(cta,
+                               A_buf[buf_idx] + ty * TILE_SIZE + tx,
+                               &A_global[aRow * K + aCol],
+                               sizeof(float),
+                               pipe);
         } else {
-            A_buf[0][ty * TILE_SIZE + tx] = 0.0f;
+            A_buf[buf_idx][ty * TILE_SIZE + tx] = 0.0f;
         }
 
-        int bRow = 0 * TILE_SIZE + ty;
+        int bRow = tile_idx * TILE_SIZE + ty;
         int bCol = block_col + tx;
         if (bRow < K && bCol < N) {
-            B_buf[0][ty * TILE_SIZE + tx] = B_global[bRow * N + bCol];
+            cuda::memcpy_async(cta,
+                               B_buf[buf_idx] + ty * TILE_SIZE + tx,
+                               &B_global[bRow * N + bCol],
+                               sizeof(float),
+                               pipe);
         } else {
-            B_buf[0][ty * TILE_SIZE + tx] = 0.0f;
+            B_buf[buf_idx][ty * TILE_SIZE + tx] = 0.0f;
         }
-    }
-    cg::sync(cta);
+    };
 
-    // 9) Double-buffered loop with true 2-stage overlap
+    // Preload tile 0 into buffer 0 via the pipeline
+    pipe.producer_acquire();
+    load_tile_async(0, 0);
+    pipe.producer_commit();
+
     int curr = 0, next = 1;
     for (int tile = 0; tile < numTiles; ++tile) {
-        // ---- Stage 0: prefetch tile+1 into buffer[next] ----
-        if (tile + 1 < numTiles) {
-            pipe.producer_acquire();
-
-            // A next-tile
-            int aRow = block_row + ty;
-            int aCol = (tile + 1) * TILE_SIZE + tx;
-            if (aRow < M && aCol < K) {
-                cuda::memcpy_async(
-                    cta,
-                    A_buf[next] + ty * TILE_SIZE + tx,
-                    &A_global[aRow * K + aCol],
-                    sizeof(float),
-                    pipe
-                );
-            }
-
-            // B next-tile
-            int bRow = (tile + 1) * TILE_SIZE + ty;
-            int bCol = block_col + tx;
-            if (bRow < K && bCol < N) {
-                cuda::memcpy_async(
-                    cta,
-                    B_buf[next] + ty * TILE_SIZE + tx,
-                    &B_global[bRow * N + bCol],
-                    sizeof(float),
-                    pipe
-                );
-            }
-
-            pipe.producer_commit();
-        }
-
-        // ---- Stage 1: compute on buffer[curr] ----
-        pipe.consumer_wait();
-        accum += computeTile(
-            A_buf[curr],
-            B_buf[curr],
-            tx, ty
-        );
+        cuda::pipeline_consumer_wait_prior<1>(pipe);
+        accum += computeTile(A_buf[curr], B_buf[curr], tx, ty);
         pipe.consumer_release();
 
-        // ---- Swap buffers for next iteration ----
+        if (tile + 1 < numTiles) {
+            pipe.producer_acquire();
+            load_tile_async(tile + 1, next);
+            pipe.producer_commit();
+        }
         curr = next;
         next = 1 - curr;
     }

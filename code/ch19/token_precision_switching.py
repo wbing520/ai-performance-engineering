@@ -6,6 +6,7 @@ import logging
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor
+import contextlib
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Tuple
@@ -21,7 +22,6 @@ try:
     HQQ_AVAILABLE = True
 except Exception:
     HQQ_AVAILABLE = False
-
 
 class PrecisionLevel(Enum):
     FP32 = "fp32"
@@ -110,10 +110,146 @@ class TokenPrecisionController:
         return tokens, stats
 
 
+#
+# ===== BEGIN dynamic_precision_inference =====
+# ----------------------------
+# Optional global toggles (B200 best practices)
+# ----------------------------
+# BF16 is the default mixed-precision for Blackwell; TF32 allowed for matmul when relevant.
+torch.backends.cuda.matmul.allow_tf32 = True
+# If you compile models elsewhere, keep it outside this loop; don't pay compile cost per-step.
+
+# ----------------------------
+# Safe Transformer Engine (TE) FP8 autocast import
+# ----------------------------
+try:
+    # TE is only effective if your model actually uses TE-enabled layers (e.g., Linear, LayerNorm wrappers).
+    from transformer_engine.pytorch import fp8_autocast as _te_fp8_autocast  # type: ignore
+    _TE_AVAILABLE = True
+except Exception:
+    _TE_AVAILABLE = False
+    # No-op stand-in so the code runs without TE installed. It never changes numerical behavior.
+    class _NullCtx(contextlib.ContextDecorator):
+        def __init__(self, **_): pass
+        def __enter__(self): return self
+        def __exit__(self, *exc): return False
+    def _te_fp8_autocast(**_):
+        return _NullCtx()
+
+# ----------------------------
+# Helper: choose the precision context *for this step* safely
+# ----------------------------
+def _precision_context_cuda(use_fp8: bool, prefer_bfloat16: bool, enable_fp8: bool):
+    """
+    Enter exactly one precision context. If FP8 isn't enabled or TE is missing/unused, fall back to AMP (BF16/FP16).
+    """
+    if use_fp8 and enable_fp8 and _TE_AVAILABLE:
+        # Note: fp8_autocast affects only TE-enabled modules. Non-TE modules run at their native dtypes.
+        return _te_fp8_autocast(enabled=True)
+    amp_dtype = torch.bfloat16 if prefer_bfloat16 else torch.float16
+    return torch.autocast(device_type="cuda", dtype=amp_dtype)
+
+def _precision_context(device: torch.device, use_fp8: bool, prefer_bfloat16: bool, enable_fp8: bool):
+    return _precision_context_cuda(use_fp8, prefer_bfloat16, enable_fp8) if device.type == "cuda" else contextlib.nullcontext()
+
+# ----------------------------
+# Main decode loop with smoothed, hysteretic precision switching
+# ----------------------------
+@torch.no_grad()
+def decode_with_dynamic_precision(
+    model,
+    tokens: torch.Tensor,
+    max_steps: int,
+    *,
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    prefer_bfloat16: bool = True,        # B200: prefer BF16 over FP16 for AMP
+    enable_fp8: bool = True,             # Set True to allow FP8 when TE present & stable confidence
+    enter_fp8_threshold: float = 6.0,    # hysteresis upper bound (logit margin average)
+    exit_fp8_threshold: float = 3.0,     # hysteresis lower bound (avoid flapping)
+    reeval_interval: int = 8,            # compute/inspect confidence every N steps to avoid per-step sync
+    topk_dim: int = -1,                  # last dimension holds vocabulary logits
+    eos_id: int | None = None,
+):
+    """
+    Autoregressive decode loop that *smoothly* switches between AMP (BF16/FP16) and FP8 (TE) without
+    per-step host sync. Works even when TE is not installed; in that case, runs AMP only.
+
+    - Confidence signal: mean(top1 - top2) logits margin across the batch.
+    - Smoothing: EMA + interval re-evaluation to minimize CPU-GPU sync pressure.
+    - Hysteresis: separate enter/exit thresholds to avoid precision flapping.
+    """
+    assert exit_fp8_threshold <= enter_fp8_threshold, "Hysteresis requires exit <= enter threshold"
+
+    model.eval()
+    tokens = tokens.to(device, non_blocking=True)
+
+    # Internal state
+    use_fp8: bool = False  # start in AMP; upgrade to FP8 when sustained confidence permits
+    ema_conf: torch.Tensor | None = None  # stays on device; host consults only at intervals
+    alpha = 0.2  # EMA smoothing factor for confidence
+
+    # A tiny helper to update on-device EMA without host sync
+    def _update_confidence_ema(logits: torch.Tensor) -> torch.Tensor:
+        # logits: [B, vocab] or [B, T, vocab]. Use the last time-step if 3D.
+        last = logits if logits.dim() == 2 else logits[:, -1, :]
+        # Compute top-2 margin on-device
+        top2 = torch.topk(last, k=2, dim=topk_dim).values  # [B, 2]
+        margin = (top2[:, 0] - top2[:, 1]).mean()          # scalar tensor on device
+        nonlocal ema_conf
+        ema_conf = (1 - alpha) * (ema_conf if ema_conf is not None else margin) + alpha * margin
+        return ema_conf  # device scalar
+
+    # Decode
+    for step in range(max_steps):
+        # 1) Precision context (exactly one). No nested contexts, no leakage across iterations.
+        with _precision_context(device, use_fp8, prefer_bfloat16, enable_fp8):
+            # Forward pass (HF-style or plain)
+            try:
+                logits = model(input_ids=tokens)  # HF models often return logits tensor or a ModelOutput
+                if hasattr(logits, "logits"):
+                    logits = logits.logits
+            except TypeError:
+                logits = model(tokens)
+
+            # 2) Pick next token from the *last* position
+            last_step_logits = logits if logits.dim() == 2 else logits[:, -1, :]
+            next_token = torch.argmax(last_step_logits, dim=-1, keepdim=True)  # [B, 1]
+            tokens = torch.cat([tokens, next_token], dim=1)
+
+        # 3) Update on-device EMA signal every step (no host sync yet)
+        conf_dev = _update_confidence_ema(logits)
+
+        # 4) Periodically re-evaluate precision choice on host to avoid per-step sync
+        if (step + 1) % reeval_interval == 0:
+            conf_value = float(conf_dev)  # exactly one tiny sync every N steps
+            if not use_fp8 and enable_fp8 and _TE_AVAILABLE and (conf_value > enter_fp8_threshold):
+                use_fp8 = True
+            elif use_fp8 and (conf_value < exit_fp8_threshold):
+                use_fp8 = False
+
+        # 5) EOS handling
+        if eos_id is not None:
+            if (tokens[:, -1] == eos_id).all():
+                break
+
+    return tokens
+# ===== END dynamic_precision_inference =====
+
+
+# ----------------------------
+# Example (commented):
+# ----------------------------
+# model = ...  # your TE-enabled model (or any torch.nn.Module)
+# input_ids = torch.randint(0, vocab_size, (batch_size, seq_len))
+# out = decode_with_dynamic_precision(model, input_ids, max_steps=128, eos_id=tokenizer.eos_token_id)
+# print(out.shape)
+
+
 class DynamicQuantizedCache:
     def __init__(self, threshold: float = 0.8) -> None:
         self.threshold = threshold
         self.executor = ThreadPoolExecutor(max_workers=1)
+        self._ema_ratio: float | None = None
 
     def _memory_ratio(self) -> float:
         if not torch.cuda.is_available():
@@ -121,7 +257,12 @@ class DynamicQuantizedCache:
         device = torch.cuda.current_device()
         used = torch.cuda.memory_reserved(device)
         total = torch.cuda.get_device_properties(device).total_memory
-        return used / total
+        raw = used / total
+        if self._ema_ratio is None:
+            self._ema_ratio = raw
+        else:
+            self._ema_ratio = 0.8 * self._ema_ratio + 0.2 * raw
+        return self._ema_ratio
 
     def maybe_quantize(self, layers: List[object], policy: str = "conservative") -> None:
         if self._memory_ratio() < self.threshold:
@@ -164,6 +305,16 @@ def main() -> None:
     print("Generated:", generated.tolist())
     print("Switches:", controller.switch_count)
     print("Stats:", stats[:5])
+
+    if _TE_AVAILABLE and torch.cuda.is_available():
+        seq = decode_with_dynamic_precision(
+            model.cuda(),
+            torch.randint(1, 100, (1, 8), device="cuda"),
+            max_steps=16,
+        )
+        print("Dynamic precision sequence length:", seq.shape[-1])
+    else:
+        print("Transformer Engine FP8 demo skipped (TE or CUDA not available).")
 
     class MockLayer:
         def __init__(self):
