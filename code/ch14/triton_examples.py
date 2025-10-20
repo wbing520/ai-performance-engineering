@@ -15,48 +15,73 @@ def tiled_gemm_kernel(
     pid_m = tl.program_id(0)
     pid_n = tl.program_id(1)
 
-    offs_m = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
-    offs_n = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    m0 = pid_m * BLOCK_M
+    n0 = pid_n * BLOCK_N
 
-    # Create block descriptors to read A and B tiles; Triton will stage via SMEM for pipelining.
-    A_blk = tl.make_block_ptr(
-        base=A_ptr,
-        shape=(M, K),
-        strides=(stride_am, stride_ak),
-        offsets=(offs_m, 0),
-        block_shape=(BLOCK_M, BLOCK_K),
-        order=(1, 0),
+    offs_m = m0 + tl.arange(0, BLOCK_M)
+    offs_n = n0 + tl.arange(0, BLOCK_N)
+    offs_k = tl.arange(0, BLOCK_K)
+
+    A_desc = tl.make_tensor_descriptor(
+        A_ptr,
+        shape=[M, K],
+        strides=[stride_am, stride_ak],
+        block_shape=[BLOCK_M, BLOCK_K],
     )
-    B_blk = tl.make_block_ptr(
-        base=B_ptr,
-        shape=(K, N),
-        strides=(stride_bk, stride_bn),
-        offsets=(0, offs_n),
-        block_shape=(BLOCK_K, BLOCK_N),
-        order=(1, 0),
+    B_desc = tl.make_tensor_descriptor(
+        B_ptr,
+        shape=[K, N],
+        strides=[stride_bk, stride_bn],
+        block_shape=[BLOCK_K, BLOCK_N],
     )
 
     acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
 
     K_tiles = (K + BLOCK_K - 1) // BLOCK_K
-    # Software pipeline with two stages; Triton lowers to cp.async on NVIDIA.
+    if K_tiles == 0:
+        c_ptrs = C_ptr + (offs_m[:, None] * stride_cm + offs_n[None, :] * stride_cn)
+        c_mask = (offs_m[:, None] < M) & (offs_n[None, :] < N)
+        tl.store(c_ptrs, acc, mask=c_mask)
+        return
+
+    k0 = 0
+    if (m0 + BLOCK_M <= M) and (k0 + BLOCK_K <= K):
+        a_cur = A_desc.load([m0, k0])
+    else:
+        col_ids = k0 + offs_k
+        a_ptrs = A_ptr + (offs_m[:, None] * stride_am + col_ids[None, :] * stride_ak)
+        a_mask = (offs_m[:, None] < M) & (col_ids[None, :] < K)
+        a_cur = tl.load(a_ptrs, mask=a_mask, other=0.0)
+
+    if (n0 + BLOCK_N <= N) and (k0 + BLOCK_K <= K):
+        b_cur = B_desc.load([k0, n0])
+    else:
+        row_ids = k0 + offs_k
+        b_ptrs = B_ptr + (row_ids[:, None] * stride_bk + offs_n[None, :] * stride_bn)
+        b_mask = (row_ids[:, None] < K) & (offs_n[None, :] < N)
+        b_cur = tl.load(b_ptrs, mask=b_mask, other=0.0)
+
     for kt in tl.range(0, K_tiles, num_stages=2):
         k0 = kt * BLOCK_K
+        acc += tl.dot(a_cur, b_cur)
 
-        # Guards for tail tiles
-        a_mask = (offs_m[:, None] < M) & ((k0 + tl.arange(0, BLOCK_K))[None, :] < K)
-        b_mask = ((k0 + tl.arange(0, BLOCK_K))[:, None] < K) & (offs_n[None, :] < N)
+        next_k = k0 + BLOCK_K
+        if next_k < K:
+            if (m0 + BLOCK_M <= M) and (next_k + BLOCK_K <= K):
+                a_cur = A_desc.load([m0, next_k])
+            else:
+                col_ids = next_k + offs_k
+                a_ptrs = A_ptr + (offs_m[:, None] * stride_am + col_ids[None, :] * stride_ak)
+                a_mask = (offs_m[:, None] < M) & (col_ids[None, :] < K)
+                a_cur = tl.load(a_ptrs, mask=a_mask, other=0.0)
 
-        # Advance block pointers
-        A_cur = tl.advance(A_blk, (0, k0))
-        B_cur = tl.advance(B_blk, (k0, 0))
-
-        # Load tiles (masked, zero-padded)
-        a = tl.load(A_cur, mask=a_mask, other=0.0)
-        b = tl.load(B_cur, mask=b_mask, other=0.0)
-
-        # FMA on fp32 accumulators (BF16/FP16 inputs recommended in driver)
-        acc += tl.dot(a, b)
+            if (n0 + BLOCK_N <= N) and (next_k + BLOCK_K <= K):
+                b_cur = B_desc.load([next_k, n0])
+            else:
+                row_ids = next_k + offs_k
+                b_ptrs = B_ptr + (row_ids[:, None] * stride_bk + offs_n[None, :] * stride_bn)
+                b_mask = (row_ids[:, None] < K) & (offs_n[None, :] < N)
+                b_cur = tl.load(b_ptrs, mask=b_mask, other=0.0)
 
     # Store results with masking
     c_ptrs = C_ptr + (offs_m[:, None] * stride_cm + offs_n[None, :] * stride_cn)
