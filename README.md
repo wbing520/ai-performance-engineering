@@ -32,6 +32,14 @@ Using a hands‑on, empirical methodology with case studies, profiling data, thi
  
 * Ship with confidence—apply the 175+ item checklist to reproduce wins and prevent regressions across teams.
 
+### Author Bio
+
+Chris Fregly is a performance engineer and AI product leader who has driven innovations at Netflix, Databricks, and Amazon Web Services (AWS). He has led performance‑focused engineering teams that built AI/ML products, scaled go‑to‑market initiatives, and reduced cost for large‑scale generative‑AI and analytics workloads. 
+
+Chris is the author of two other O’Reilly books: Data Science on AWS and Generative AI on AWS. He's also the creator of the O’Reilly course “High‑Performance AI in Production with NVIDIA GPUs.” 
+
+His work spans kernel‑level tuning, compiler‑driven acceleration, distributed training, and high‑throughput inference. Chris hosts a monthly meetup called [AI Performance Engineering](https://www.meetup.com/ai-performance-engineering).
+
 ### 175+ Item Performance Checklist
 
 The book ships with a **175+ item performance checklist** that captures field‑tested optimizations covering the entire lifecycle. You can apply these immediately:
