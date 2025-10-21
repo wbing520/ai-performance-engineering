@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Blackwell validation suite covering PyTorch 2.9, CUDA 13.0, and Triton 3.4 features.
+Blackwell validation suite covering PyTorch 2.9, CUDA 13.0, and Triton 3.5 features.
 """
 
 import torch
@@ -16,11 +16,33 @@ except Exception:
     triton = None
     tl = None
 
+
+def ensure_cuda(feature: str) -> bool:
+    """Check CUDA availability and print a friendly skip message when missing."""
+    if torch.cuda.is_available():
+        return True
+    driver_info = None
+    try:
+        driver_version = torch.cuda.driver_version()
+        if driver_version:
+            driver_info = str(driver_version)
+    except Exception:
+        try:
+            from torch._C import _cuda_getDriverVersion  # type: ignore
+            driver_version = _cuda_getDriverVersion()
+            if driver_version:
+                driver_info = str(driver_version)
+        except Exception:
+            driver_info = None
+    suffix = f" (driver version {driver_info})" if driver_info else ""
+    print(f"⚠ Skipping {feature}: CUDA unavailable{suffix}. Update the NVIDIA driver for full coverage.")
+    return False
+
 def test_architecture_detection():
     """Test architecture detection."""
     print("=== Architecture Detection Test ===")
     if not torch.cuda.is_available():
-        print("❌ CUDA not available")
+        ensure_cuda("architecture detection")
         return
     device_props = torch.cuda.get_device_properties(0)
     compute_capability = f"{device_props.major}.{device_props.minor}"
@@ -35,6 +57,9 @@ def test_architecture_detection():
 def test_pytorch_29_features():
     """Test PyTorch 2.9 features."""
     print("\n=== PyTorch 2.9 Features Test ===")
+
+    if not ensure_cuda("torch.compile tests"):
+        return
     
     # Test torch.compile
     try:
@@ -104,52 +129,47 @@ def test_cuda_130_features():
 def test_profiling_tools():
     """Test profiling tools."""
     print("\n=== Profiling Tools Test ===")
-    
-    # Test PyTorch profiler
-    try:
-        with profile(
-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            profile_memory=True,
-            record_shapes=True,
-            with_stack=True,
-            with_flops=True,
-            with_modules=True,
-            schedule=schedule(
-                wait=1,
-                warmup=1,
-                active=3,
-                repeat=2
-            )
-        ) as prof:
-            # Create some work
-            x = torch.randn(1000, 1000).cuda()
-            y = torch.randn(1000, 1000).cuda()
-            z = torch.mm(x, y)
-            torch.cuda.synchronize()
-        
-        print("✓ PyTorch profiler works")
-    except Exception as e:
-        print(f"❌ PyTorch profiler failed: {e}")
-    
-    # Test NVTX
+
+    if ensure_cuda("PyTorch profiler"):
+        try:
+            with profile(
+                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                profile_memory=True,
+                record_shapes=True,
+                with_stack=True,
+                with_flops=True,
+                with_modules=True,
+                schedule=schedule(wait=1, warmup=1, active=3, repeat=2),
+            ):
+                x = torch.randn(1000, 1000, device="cuda")
+                y = torch.randn(1000, 1000, device="cuda")
+                _ = torch.mm(x, y)
+                torch.cuda.synchronize()
+            print("✓ PyTorch profiler works")
+        except Exception as exc:
+            print(f"❌ PyTorch profiler failed: {exc}")
+
     try:
         nvtx.range_push("test_region")
         time.sleep(0.1)
         nvtx.range_pop()
         print("✓ NVTX annotations work")
-    except Exception as e:
-        print(f"❌ NVTX failed: {e}")
+    except Exception as exc:
+        print(f"❌ NVTX failed: {exc}")
 
-def test_triton_34():
+
+def test_triton_35():
     """Test Triton 3.x features."""
     print("\n=== Triton 3.x Features Test ===")
-    
+
+    if not ensure_cuda("Triton kernels"):
+        return
+
     try:
         if triton is None or tl is None:
             raise RuntimeError("Triton not available")
         print(f"✓ Triton version: {triton.__version__}")
-        
-        # Define a minimal Triton kernel and JIT it
+
         @triton.jit
         def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
             pid = tl.program_id(axis=0)
@@ -160,50 +180,48 @@ def test_triton_34():
             y = tl.load(y_ptr + offsets, mask=mask)
             tl.store(output_ptr + offsets, x + y, mask=mask)
 
-        # Allocate small tensors and compile by launching once
         n = 1024
-        BLOCK = 128
+        block = 128
         x = torch.ones(n, dtype=torch.float32, device="cuda")
         y = torch.ones(n, dtype=torch.float32, device="cuda")
         out = torch.empty(n, dtype=torch.float32, device="cuda")
-        grid = (triton.cdiv(n, BLOCK),)
-        add_kernel[grid](x, y, out, n, BLOCK_SIZE=BLOCK)
+        grid = (triton.cdiv(n, block),)
+        add_kernel[grid](x, y, out, n, BLOCK_SIZE=block)
         torch.cuda.synchronize()
         print("✓ Triton kernel compile and launch works")
-    except Exception as e:
-        print(f"❌ Triton test failed: {e}")
+    except Exception as exc:
+        print(f"❌ Triton test failed: {exc}")
+
 
 def test_performance():
     """Test basic performance."""
     print("\n=== Performance Test ===")
-    
-    if torch.cuda.is_available():
-        # Test memory bandwidth
-        size = 1024 * 1024 * 1024  # 1GB
-        x = torch.randn(size // 4, dtype=torch.float32).cuda()
-        y = torch.randn(size // 4, dtype=torch.float32).cuda()
-        
-        torch.cuda.synchronize()
-        start = time.time()
-        z = x + y
-        torch.cuda.synchronize()
-        end = time.time()
-        
-        bandwidth = (size * 2) / (end - start) / 1e9  # GB/s
-        print(f"✓ Memory bandwidth: {bandwidth:.2f} GB/s")
-        
-        # Test compute performance
-        a = torch.randn(2048, 2048, dtype=torch.float32).cuda()
-        b = torch.randn(2048, 2048, dtype=torch.float32).cuda()
-        
-        torch.cuda.synchronize()
-        start = time.time()
-        c = torch.mm(a, b)
-        torch.cuda.synchronize()
-        end = time.time()
-        
-        flops = 2 * 2048 * 2048 * 2048 / (end - start) / 1e12  # TFLOPS
-        print(f"✓ Compute performance: {flops:.2f} TFLOPS")
+
+    if not ensure_cuda("performance microbenchmarks"):
+        return
+
+    size = 1024 * 1024 * 1024
+    x = torch.randn(size // 4, dtype=torch.float32, device="cuda")
+    y = torch.randn(size // 4, dtype=torch.float32, device="cuda")
+
+    torch.cuda.synchronize()
+    start = time.time()
+    _ = x + y
+    torch.cuda.synchronize()
+    end = time.time()
+    bandwidth = (size * 2) / (end - start) / 1e9
+    print(f"✓ Memory bandwidth: {bandwidth:.2f} GB/s")
+
+    a = torch.randn(2048, 2048, dtype=torch.float32, device="cuda")
+    b = torch.randn(2048, 2048, dtype=torch.float32, device="cuda")
+
+    torch.cuda.synchronize()
+    start = time.time()
+    _ = torch.mm(a, b)
+    torch.cuda.synchronize()
+    end = time.time()
+    flops = 2 * 2048 * 2048 * 2048 / (end - start) / 1e12
+    print(f"✓ Compute performance: {flops:.2f} TFLOPS")
 
 def main():
     """Run all tests."""
@@ -214,7 +232,7 @@ def main():
     test_pytorch_29_features()
     test_cuda_130_features()
     test_profiling_tools()
-    test_triton_34()
+    test_triton_35()
     test_performance()
     
     print("\n" + "=" * 60)

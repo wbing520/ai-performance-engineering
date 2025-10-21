@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Blackwell-only build workflow for AI Performance Engineering
-# Targets: NVIDIA Blackwell B200/B300 (SM100) with CUDA 12.9, PyTorch 2.9 nightly, Triton 3.4
+# Targets: NVIDIA Blackwell B200/B300 (SM100) with CUDA 12.9, PyTorch 2.9 nightly, Triton 3.5.0
 
 set -euo pipefail
 

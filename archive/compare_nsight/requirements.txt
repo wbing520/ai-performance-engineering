@@ -1,5 +1,5 @@
 # AI Performance Engineering - Blackwell Requirements
-# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.4
+# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.5.0
 
 # Core PyTorch ecosystem (install from nightly/cu129 channel)
 --index-url https://download.pytorch.org/whl/nightly/cu129
@@ -21,7 +21,7 @@ nvidia-nccl-cu12==2.28.3
 nvidia-nvtx-cu12==12.9.*
 
 # Triton for custom GPU kernels
-triton==3.4.0
+triton==3.5.0
 
 # Monitoring and system insight
 nvidia-ml-py3==7.352.0

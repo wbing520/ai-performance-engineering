@@ -11,7 +11,7 @@ kernel, and configuration assumes:
 
 - CUDA 12.9 toolkit and toolchain
 - PyTorch 2.9.0 (cu129 nightly builds)
-- Triton 3.4.0
+- Triton 3.5.0
 
 ## Core Components
 
@@ -121,4 +121,3 @@ The `archive/` directory carries more advanced orchestration, including:
 
 Refer back to `docs/tooling-and-profiling.md` for more on the profiling suite
 and automation workflows.
-

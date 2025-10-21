@@ -1,7 +1,7 @@
 # Performance Test Harness Guide
 
 ## Overview
-This document describes the timing mechanisms and best practices used in the AI Performance Engineering codebase for CUDA 13, PyTorch 2.9, and Triton 3.4.
+This document describes the timing mechanisms and best practices used in the AI Performance Engineering codebase for CUDA 13, PyTorch 2.9, and Triton 3.5.0.
 
 ## Timing Best Practices
 
@@ -258,4 +258,3 @@ Before committing a test:
 | `triton_nvshmem_example.py` | N/A (demo) | N/A | N/A | N/A | 2-5s | ✅ GOOD |
 
 All tests now follow best practices for GPU performance measurement!
-

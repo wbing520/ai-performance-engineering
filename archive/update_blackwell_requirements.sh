@@ -16,7 +16,7 @@ for path in root.rglob('requirements*.txt'):
 PY
 TEMPLATE
 # AI Performance Engineering - Blackwell Requirements
-# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.4
+# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.5.0
 
 --index-url https://download.pytorch.org/whl/nightly/cu129
 torch>=2.9.0.dev,<2.10
@@ -35,7 +35,7 @@ nvidia-curand-cu12==10.3.10.19
 nvidia-nccl-cu12==2.28.3
 nvidia-nvtx-cu12==12.9.*
 
-triton==3.4.0
+triton==3.5.0
 
 nvidia-ml-py3==7.352.0
 psutil==6.1.0

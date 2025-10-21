@@ -114,5 +114,5 @@ Page ≈ 42 updates:
 @@
 -    print("• PyTorch 2.8 torch.compile provides significant speedup")
 +    print("• PyTorch 2.9 torch.compile provides significant speedup")
-+    print("• CUDA 12.9 and Triton 3.4 support latest features")
++    print("• CUDA 12.9 and Triton 3.5.0 support latest features")
 ```

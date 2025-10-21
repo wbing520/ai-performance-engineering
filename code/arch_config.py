@@ -38,15 +38,15 @@ class ArchitectureConfig:
                 "NVLink-C2C communication"
             ],
             "triton_features": [
-                "Triton 3.4 Blackwell optimisations",
+                "Triton 3.5 Blackwell optimisations",
                 "HBM3e access patterns",
                 "TMA intrinsic support",
                 "Stream-ordered memory",
                 "Blackwell-tuned kernels"
             ],
             "profiling_tools": [
-                "Nsight Systems 2024.6",
-                "Nsight Compute 2024.3",
+                "Nsight Systems 2025.x",
+                "Nsight Compute 2025.x",
                 "HTA",
                 "PyTorch Profiler",
                 "perf"

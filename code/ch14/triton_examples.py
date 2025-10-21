@@ -116,7 +116,7 @@ def tiled_matmul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     assert K == K2
     C = torch.empty((M, N), device=A.device, dtype=torch.float32)
 
-    # Tunables (good starting points for B200 / Triton 3.4)
+    # Tunables (good starting points for B200 / Triton 3.5.0)
     BLOCK_M, BLOCK_N, BLOCK_K = 128, 128, 64
     num_warps = 8
     num_stages = 2

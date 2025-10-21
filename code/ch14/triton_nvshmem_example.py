@@ -1,10 +1,10 @@
 """
-Triton 3.4 + NVSHMEM Plugin Example
+Triton 3.5.0 + NVSHMEM Plugin Example
 Demonstrates custom multi-GPU kernels using Triton with NVSHMEM for direct GPU-GPU communication.
 
 Requirements:
 - PyTorch 2.9+
-- Triton 3.4+ (pytorch-triton)
+- Triton 3.5.0+ (pytorch-triton)
 - CUDA 13.0+
 - NVSHMEM 3.4+
 - Multi-GPU system (2+ GPUs)
@@ -152,7 +152,7 @@ def triton_nvshmem_example():
     Demonstrate Triton + NVSHMEM plugin usage (when available).
     """
     print("\n" + "=" * 80)
-    print("Triton 3.4 + NVSHMEM Plugin Example")
+    print("Triton 3.5.0 + NVSHMEM Plugin Example")
     print("=" * 80)
     
     if not NVSHMEM_AVAILABLE:
@@ -216,4 +216,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

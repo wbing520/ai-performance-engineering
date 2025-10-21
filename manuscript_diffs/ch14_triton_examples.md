@@ -8,14 +8,14 @@ Page ≈ 482 updates:
 +
 +
 +def setup_triton_optimizations():
-+    """Setup Triton 3.4 optimizations for current architecture."""
++    """Setup Triton 3.5.0 optimizations for current architecture."""
 +    configure_optimizations()
 +
 +    if torch.cuda.is_available():
 +        device_props = torch.cuda.get_device_properties(0)
 +        compute_capability = f"{device_props.major}.{device_props.minor}"
 +
-+        print(f"Triton 3.4 optimizations for {device_props.name}")
++        print(f"Triton 3.5.0 optimizations for {device_props.name}")
 +        print(f"Compute Capability: {compute_capability}")
 +
 +        if compute_capability == "10.0":

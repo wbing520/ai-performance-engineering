@@ -28,7 +28,7 @@ WORKDIR /app
 RUN pip install --upgrade pip && \
     pip install --index-url https://download.pytorch.org/whl/cu130 \
         'torch==2.9.*+cu130' 'torchvision==0.24.*+cu130' 'torchaudio==2.9.*+cu130' && \
-    pip install triton==3.4.0 && \
+    pip install triton==3.5.0 && \
     pip install nvidia-ml-py3==7.352.0 psutil==6.1.0 GPUtil==1.4.0
 
 

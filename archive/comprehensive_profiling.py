@@ -12,7 +12,7 @@ This script demonstrates:
 - Memory profiling
 - FLOP counting
 - Module-level analysis
-- Triton 3.4 profiling
+- Triton 3.5.0 profiling
 - Architecture-specific optimizations
 """
 
@@ -516,7 +516,7 @@ def main():
     Main function to demonstrate comprehensive profiling tools.
     """
     print("=== Comprehensive Profiling Tools Demo ===")
-    print("PyTorch 2.9, CUDA 12.9, Triton 3.4 Support")
+    print("PyTorch 2.9, CUDA 12.9, Triton 3.5.0 Support")
     print("Enhanced for Blackwell B200/B300")
     print()
     
@@ -548,7 +548,7 @@ def main():
     print("9. Architecture-specific features")
     print("10. Automated profiling pipeline")
     print("11. Latest CUDA 12.9 support")
-    print("12. Triton 3.4 integration")
+    print("12. Triton 3.5.0 integration")
 
 if __name__ == "__main__":
     main()

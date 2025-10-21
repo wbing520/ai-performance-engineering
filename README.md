@@ -104,7 +104,7 @@ python performance_basics.py
 
 The repository targets **NVIDIA Blackwell B200/B300 (SM100)**. CUDA builds,
 Nsight workflows, and PyTorch stacks assume CUDA 12.9, PyTorch 2.9 nightlies, and
-Triton 3.4. Helper scripts keep everything aligned:
+Triton 3.5.0. Helper scripts keep everything aligned:
 
 ```bash
 # Build CUDA samples and run sanity checks
@@ -124,7 +124,7 @@ For environment variables, validation scripts, and hardware guidance, see
 
 - **PyTorch 2.9**: Enhanced compiler, dynamic shapes, improved profiler
 - **CUDA 12.9**: Latest Blackwell features and kernel performance updates
-- **Triton 3.4**: Architecture-specific kernels and optimizations
+- **Triton 3.5.0**: Architecture-specific kernels and optimizations
 - **Nsight 2024.x**: Refreshed kernel and timeline analysis capabilities
 - **HTA**: Holistic Tracing Analysis for multi-GPU systems
 - **perf**: Enhanced system-level sampling workflows
