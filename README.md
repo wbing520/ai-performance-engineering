@@ -2,19 +2,39 @@
 
 ## About This Repo
 
-AI Systems Performance Engineering code, tooling, and resources for the O'Reilly
-book covering GPU optimization, distributed training, inference scaling, and
-full-stack performance tuning for modern AI workloads.
+AI Systems Performance Engineering code, tooling, and resources for the O'Reilly book covering GPU optimization, distributed training, inference scaling, and full-stack performance tuning for modern AI workloads.
 
 [![O'Reilly Book](img/ai_sys_perf_engg_cover_cheetah_sm.png)](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 
 > **O'Reilly Book – Fall 2025**  
 > [Available on Amazon](https://www.amazon.com/Systems-Performance-Engineering-Optimizing-Algorithms/dp/B0F47689K8/)
 
-### AI Systems Performance Engineering Checklist
+### AI Systems Performance Engineering Book
+Modern AI systems demand more than raw FLOPs—they need goodput‑driven, profile‑first engineering across hardware, software, and algorithms. This hands‑on guide shows how to turn GPUs, interconnects, and runtime stacks into efficient, reliable training and inference pipelines. 
 
-The book ships with a **175+ item performance checklist** covering the entire
-lifecycle:
+You’ll learn to diagnose real bottlenecks with Nsight and PyTorch profilers, squeeze bandwidth and memory, and use compiler stacks (PyTorch + OpenAI Triton) to craft high‑impact kernels. On the serving side, master high‑throughput inference with vLLM/SGLang, TensorRT‑LLM, and NVIDIA Dynamo—including disaggregated prefill/decode and paged KV cache—then scale across racks without blowing the budget.
+
+Using a hands‑on, empirical methodology with case studies, profiling data, this book is useful for AI/ML engineers, systems engineers, researchers, and platform teams building or operating training/inference at scale. The book contains thousands of lines of PyTorch and CUDA C++ code examples for modern NVIDIA GPUs.
+
+* Profile for goodput, not just utilization—use Nsight Systems/Compute and the PyTorch profiler to find the real stall points. 
+
+* Exploit memory & bandwidth—optimize layouts, caching, and data movement to feed the GPU continuously. 
+
+* Tune with compilers—leverage the PyTorch compiler stack and Triton to generate high‑impact kernels without C++ boilerplate. 
+
+* Scale training sanely—apply parallelism strategies (DP, FSDP, TP, PP, CP, and MoE) and overlap computation/communication to minimize bubbles. 
+
+* Serve trillion parameter models efficiently—use vLLM, SGLang, TensorRT‑LLM and NVIDIA Dynamo with disaggregated prefill/decode and KV‑cache movement.
+
+* Reduce cost per token—engineer for performance‑per‑watt and throughput per dollar, not just peak speed.
+
+* Adopt AI‑assisted optimization—let AI help synthesize and tune kernels as systems outgrow manual tweaking
+ 
+* Ship with confidence—apply the 175+ item checklist to reproduce wins and prevent regressions across teams.
+
+### 175+ Item Performance Checklist
+
+The book ships with a **175+ item performance checklist** that captures field‑tested optimizations covering the entire lifecycle. You can apply these immediately:
 
 - ✅ Performance tuning mindset and cost optimization
 - ✅ Reproducibility and documentation best practices
