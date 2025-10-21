@@ -1,4 +1,4 @@
-// Architecture-specific optimizations for CUDA 12.9
+// Architecture-specific optimizations for CUDA 13.0
 // Targets Blackwell B200/B300 (sm_100)
 // simple_kernel.cu
 // Improved version with dynamic block/grid calculation
@@ -67,7 +67,7 @@ int main() {
     return 0; // return 0 for success!
 }
 
-// CUDA 12.9 Stream-ordered Memory Allocation Example
+// CUDA 13.0 Stream-ordered Memory Allocation Example
 __global__ void stream_ordered_memory_example() {
     // Example of stream-ordered memory allocation
     // This is a placeholder for actual implementation
@@ -75,7 +75,7 @@ __global__ void stream_ordered_memory_example() {
     // Your kernel code here
 }
 
-// CUDA 12.9 TMA (Tensor Memory Accelerator) Example
+// CUDA 13.0 TMA (Tensor Memory Accelerator) Example
 __global__ void tma_example() {
     // Example of TMA usage for Blackwell B200/B300
     // This is a placeholder for actual implementation

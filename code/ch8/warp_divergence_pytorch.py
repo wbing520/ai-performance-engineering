@@ -181,7 +181,8 @@ def compiled_conditionals() -> None:
         out = torch.where(mask_lo, y * 0.5, out)
         return torch.where(~(mask_hi | mask_lo), x + y, out)
 
-    compiled = torch.compile(uncompiled, fullgraph=True, mode="reduce-overhead")
+    # Leave fullgraph disabled; enable it only for shape-static workloads that benefit from CUDA Graph capture.
+    compiled = torch.compile(uncompiled, mode="reduce-overhead")
 
     # Warm-up to trigger compilation
     compiled(x, y, threshold)

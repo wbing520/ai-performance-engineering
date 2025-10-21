@@ -1,4 +1,4 @@
-"""GPU occupancy heuristics with PyTorch (CUDA 12.9 / PyTorch 2.9).
+"""GPU occupancy heuristics with PyTorch (CUDA 13.0 / PyTorch 2.9).
 
 The focus is on sizing work to keep SMs busy, batching small ops, fusing chains,
 and choosing tensor layouts that map to efficient kernels.
@@ -93,7 +93,8 @@ def compile_fusion_demo() -> None:
         out = torch.nn.functional.gelu(out)
         return out + 1.0
 
-    compiled = torch.compile(eager, mode="reduce-overhead", fullgraph=True)
+    # Avoid forcing fullgraph so TorchDynamo can handle dynamic shapes; toggle manually if shapes are static.
+    compiled = torch.compile(eager, mode="reduce-overhead")
     compiled(x)  # warm-up
 
     print("\n=== torch.compile for occupancy (kernel fusion) ===")

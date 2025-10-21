@@ -1,4 +1,4 @@
-"""FlexDecoding showcase aligned with PyTorch 2.9 (CUDA 12.9)."""
+"""FlexDecoding showcase aligned with PyTorch 2.9 (CUDA 13.0)."""
 
 from __future__ import annotations
 
@@ -80,6 +80,7 @@ class FlexDecodingModule(torch.nn.Module):
         q_prefill = torch.randn(1, heads, 256, head_dim, device=device)
         kv_prefill = torch.randn_like(q_prefill)
         q_decode = torch.randn(1, heads, 1, head_dim, device=device)
+        compile_kwargs = {"mode": "max-autotune"}  # Keep fullgraph disabled unless shapes are static.
 
         if HAS_FLEX:
             score_mod = _score_mod_causal(self.offset)
@@ -90,8 +91,8 @@ class FlexDecodingModule(torch.nn.Module):
             def decode(q, k, v):
                 return flex_attention.flex_attention(q, k, v, score_mod=score_mod)
 
-            self.prefill_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
-            self.decode_impl = torch.compile(decode, mode="max-autotune", fullgraph=True)
+            self.prefill_impl = torch.compile(prefill, **compile_kwargs)
+            self.decode_impl = torch.compile(decode, **compile_kwargs)
 
             self.prefill_impl(q_prefill, kv_prefill, kv_prefill)
             self.decode_impl(q_decode, kv_prefill, kv_prefill)
@@ -99,8 +100,8 @@ class FlexDecodingModule(torch.nn.Module):
             def prefill(q, k, v):
                 return F.scaled_dot_product_attention(q, k, v, is_causal=True)
 
-            self.prefill_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
-            self.decode_impl = torch.compile(prefill, mode="max-autotune", fullgraph=True)
+            self.prefill_impl = torch.compile(prefill, **compile_kwargs)
+            self.decode_impl = torch.compile(prefill, **compile_kwargs)
 
             q_prefill_eager = q_prefill.transpose(1, 2)
             kv_prefill_eager = kv_prefill.transpose(1, 2)
@@ -208,7 +209,7 @@ def paged_attention_demo() -> None:
 
 def main() -> None:
     device = _device()
-    print("FlexDecoding example (PyTorch 2.9 / CUDA 12.9)")
+    print("FlexDecoding example (PyTorch 2.9 / CUDA 13.0)")
     print(f"Device: {device}")
     if torch.cuda.is_available():
         print(f"GPU: {torch.cuda.get_device_name()}")

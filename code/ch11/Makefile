@@ -5,7 +5,8 @@ ARCH ?= sm_100
 # CUDA configuration
 CUDA_VERSION = 13.0
 NVCC = nvcc
-NVCC_FLAGS = -O3 -std=c++17 -arch=$(ARCH) --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION)
+# Use -gencode to embed both cubin (sm_100) and PTX (compute_100) for forward compatibility
+NVCC_FLAGS = -O3 -std=c++17 -gencode arch=compute_100,code=[sm_100,compute_100] --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION) -Xcompiler -fPIC
 
 # Targets
 TARGETS = basic_streams stream_ordered_allocator warp_specialized_pipeline_multistream

@@ -1,27 +1,16 @@
 # AI Performance Engineering - Blackwell Requirements
-# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (nightly), CUDA 12.9, Triton 3.4
+# Target: Blackwell B200/B300 (SM100) with PyTorch 2.9 (cu130), CUDA 13.0, Triton 3.4
 
-# Core PyTorch ecosystem (install from nightly/cu129 channel)
---index-url https://download.pytorch.org/whl/nightly/cu129
-torch>=2.9.0.dev,<2.10
-torchvision>=0.24.0.dev,<0.25
-torchaudio>=2.9.0.dev,<2.10
+# Core PyTorch ecosystem (CUDA 13 wheels). Adjust/remove +cu130 for other platforms.
+--index-url https://download.pytorch.org/whl/cu130
+--extra-index-url https://pypi.org/simple
+torch==2.9.*+cu130
+torchvision==0.24.*+cu130
+torchaudio==2.9.*+cu130
 
-# CUDA 12.9 runtime libraries
-nvidia-cuda-runtime-cu12==12.9.*
-nvidia-cuda-nvrtc-cu12==12.9.*
-nvidia-cudnn-cu12==9.13.*
-nvidia-cublas-cu12==12.9.*
-nvidia-cufft-cu12==11.4.*
-nvidia-curand-cu12==10.3.10.19
-# cuSOLVER / cuSPARSE ship with the system toolkit; enable when needed
-# nvidia-cusolver-cu12==12.9.*
-# nvidia-cusparse-cu12==12.9.*
-nvidia-nccl-cu12==2.28.3
-nvidia-nvtx-cu12==12.9.*
-
-# Triton for custom GPU kernels
-triton==3.4.0
+# Optional: install upstream Triton if you author custom GPU kernels outside of
+# TorchInductor (PyTorch ships a bundled runtime already).
+triton==3.4.*
 
 # Monitoring and system insight
 nvidia-ml-py3==7.352.0
@@ -43,41 +32,3 @@ wandb==0.17.0
 plotly==5.18.0
 bokeh==3.4.1
 dash==2.16.1
-
-# Development workflow
-jupyter==1.0.0
-ipykernel==6.29.5
-black==24.2.0
-flake8==7.0.0
-mypy==1.9.0
-
-# Model development helpers
-transformers==4.40.2
-datasets==2.18.0
-accelerate==0.29.0
-sentencepiece==0.2.0
-tokenizers==0.19.1
-
-# Optional model serving & optimization
-onnx==1.16.1
-onnxruntime-gpu==1.18.0
-
-# Profiling & diagnostics
-py-spy==0.3.14
-memory-profiler==0.61.0
-line-profiler==4.1.2
-pyinstrument==5.0.0
-snakeviz==2.1.1
-
-# Experiment management & search
-optuna==4.0.0
-hyperopt==0.2.7
-ray[tune]==2.10.0
-
-# Scalable data utilities
-dask==2024.1.1
-xarray==2024.1.0
-
-# Notes
-# - Install Deepspeed/Fairscale or other distributed frameworks separately as needed.
-# - Ensure CUDA 12.9 toolkit / driver is present on the system ahead of time.

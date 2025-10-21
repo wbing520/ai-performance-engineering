@@ -8,7 +8,13 @@ import os
 import functools
 
 try:
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision, BackwardPrefetch, ShardingStrategy
+    from torch.distributed.fsdp import (
+        FullyShardedDataParallel as FSDP,
+        MixedPrecision,
+        BackwardPrefetch,
+        ShardingStrategy,
+        CPUOffload,
+    )
     from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
     FSDP_AVAILABLE = True
 except (ImportError, AttributeError):
@@ -115,17 +121,18 @@ def create_fsdp_model():
     # Create the model
     model = MyModel(num_layers=4, dim=256)
     
-    # Mixed precision policy for FP16 training
+    # Mixed precision policy (BFloat16 for compute/reduction)
     mixed_precision_policy = MixedPrecision(
-        param_dtype=torch.float16,
-        reduce_dtype=torch.float16,
-        buffer_dtype=torch.float16,
+        param_dtype=torch.bfloat16,
+        reduce_dtype=torch.bfloat16,
+        buffer_dtype=torch.bfloat16,
     )
     
     # Auto-wrap policy for transformer layers
     auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
         transformer_layer_cls={TransformerBlock},
+        min_num_params=1e8,
     )
     
     # Wrap model with FSDP
@@ -137,6 +144,13 @@ def create_fsdp_model():
         sharding_strategy=ShardingStrategy.FULL_SHARD,
         device_id=torch.cuda.current_device() if torch.cuda.is_available() else None,
         sync_module_states=True,  # Ensure all ranks start with same parameters
+        use_orig_params=True,
+        cpu_offload=CPUOffload(offload_params=True, pin_memory=True),
+        activation_checkpointing_policy={
+            nn.TransformerEncoderLayer,
+            nn.TransformerDecoderLayer,
+            nn.MultiheadAttention,
+        },
     )
     
     return fsdp_model, rank, world_size

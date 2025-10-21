@@ -1,4 +1,4 @@
-// occupancy_api.cu -- demonstrate cudaOccupancyMaxPotentialBlockSize (CUDA 12.9).
+// occupancy_api.cu -- demonstrate cudaOccupancyMaxPotentialBlockSize (CUDA 13.0).
 
 #include <cuda_runtime.h>
 #include <cstdio>

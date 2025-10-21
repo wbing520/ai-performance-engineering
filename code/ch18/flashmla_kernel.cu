@@ -1,4 +1,4 @@
-// flashmla_kernel.cu -- minimal FlashMLA decode sketch for CUDA 12.9 (sm_100)
+// flashmla_kernel.cu -- minimal FlashMLA decode sketch for CUDA 13.0 (sm_100)
 
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>

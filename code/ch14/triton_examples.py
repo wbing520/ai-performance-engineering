@@ -22,6 +22,7 @@ def tiled_gemm_kernel(
     offs_n = n0 + tl.arange(0, BLOCK_N)
     offs_k = tl.arange(0, BLOCK_K)
 
+    # Note: leading strides must be 16-byte multiples and last dimension contiguous for TMA descriptors on NVIDIA GPUs.
     A_desc = tl.make_tensor_descriptor(
         A_ptr,
         shape=[M, K],
@@ -49,17 +50,27 @@ def tiled_gemm_kernel(
         a_cur = A_desc.load([m0, k0])
     else:
         col_ids = k0 + offs_k
-        a_ptrs = A_ptr + (offs_m[:, None] * stride_am + col_ids[None, :] * stride_ak)
-        a_mask = (offs_m[:, None] < M) & (col_ids[None, :] < K)
-        a_cur = tl.load(a_ptrs, mask=a_mask, other=0.0)
+        row_offsets = offs_m[:, None] + tl.zeros((BLOCK_M, BLOCK_K), dtype=offs_m.dtype)
+        col_offsets = col_ids[None, :] + tl.zeros((BLOCK_M, BLOCK_K), dtype=col_ids.dtype)
+        a_cur = tl.load(
+            A_desc,
+            offsets=(row_offsets, col_offsets),
+            boundary_check=(0, 1),
+            padding_option="zero",
+        )
 
     if (n0 + BLOCK_N <= N) and (k0 + BLOCK_K <= K):
         b_cur = B_desc.load([k0, n0])
     else:
         row_ids = k0 + offs_k
-        b_ptrs = B_ptr + (row_ids[:, None] * stride_bk + offs_n[None, :] * stride_bn)
-        b_mask = (row_ids[:, None] < K) & (offs_n[None, :] < N)
-        b_cur = tl.load(b_ptrs, mask=b_mask, other=0.0)
+        row_offsets = row_ids[:, None] + tl.zeros((BLOCK_K, BLOCK_N), dtype=row_ids.dtype)
+        col_offsets = offs_n[None, :] + tl.zeros((BLOCK_K, BLOCK_N), dtype=offs_n.dtype)
+        b_cur = tl.load(
+            B_desc,
+            offsets=(row_offsets, col_offsets),
+            boundary_check=(0, 1),
+            padding_option="zero",
+        )
 
     for kt in tl.range(0, K_tiles, num_stages=2):
         k0 = kt * BLOCK_K
@@ -71,17 +82,27 @@ def tiled_gemm_kernel(
                 a_cur = A_desc.load([m0, next_k])
             else:
                 col_ids = next_k + offs_k
-                a_ptrs = A_ptr + (offs_m[:, None] * stride_am + col_ids[None, :] * stride_ak)
-                a_mask = (offs_m[:, None] < M) & (col_ids[None, :] < K)
-                a_cur = tl.load(a_ptrs, mask=a_mask, other=0.0)
+                row_offsets = offs_m[:, None] + tl.zeros((BLOCK_M, BLOCK_K), dtype=offs_m.dtype)
+                col_offsets = col_ids[None, :] + tl.zeros((BLOCK_M, BLOCK_K), dtype=col_ids.dtype)
+                a_cur = tl.load(
+                    A_desc,
+                    offsets=(row_offsets, col_offsets),
+                    boundary_check=(0, 1),
+                    padding_option="zero",
+                )
 
             if (n0 + BLOCK_N <= N) and (next_k + BLOCK_K <= K):
                 b_cur = B_desc.load([next_k, n0])
             else:
                 row_ids = next_k + offs_k
-                b_ptrs = B_ptr + (row_ids[:, None] * stride_bk + offs_n[None, :] * stride_bn)
-                b_mask = (row_ids[:, None] < K) & (offs_n[None, :] < N)
-                b_cur = tl.load(b_ptrs, mask=b_mask, other=0.0)
+                row_offsets = row_ids[:, None] + tl.zeros((BLOCK_K, BLOCK_N), dtype=row_ids.dtype)
+                col_offsets = offs_n[None, :] + tl.zeros((BLOCK_K, BLOCK_N), dtype=offs_n.dtype)
+                b_cur = tl.load(
+                    B_desc,
+                    offsets=(row_offsets, col_offsets),
+                    boundary_check=(0, 1),
+                    padding_option="zero",
+                )
 
     # Store results with masking
     c_ptrs = C_ptr + (offs_m[:, None] * stride_cm + offs_n[None, :] * stride_cn)
@@ -115,8 +136,28 @@ def tiled_matmul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_M': 128, 'BLOCK_N': 128, 'BLOCK_K': 64}, num_warps=8, num_stages=3),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 128, 'BLOCK_K': 64}, num_warps=4, num_stages=3),
+        triton.Config(
+            {
+                'BLOCK_M': 128,
+                'BLOCK_N': 128,
+                'BLOCK_K': 64,
+                'num_consumer_groups': 2,
+                'num_buffers_warp_spec': 3,
+            },
+            num_warps=8,
+            num_stages=3,
+        ),
+        triton.Config(
+            {
+                'BLOCK_M': 64,
+                'BLOCK_N': 128,
+                'BLOCK_K': 64,
+                'num_consumer_groups': 2,
+                'num_buffers_warp_spec': 3,
+            },
+            num_warps=4,
+            num_stages=3,
+        ),
     ],
     key=['M', 'N', 'K']
 )

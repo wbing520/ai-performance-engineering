@@ -77,7 +77,8 @@ def fusion_with_torch_compile() -> None:
         y4 = torch.log(torch.abs(inp) + 1)
         return y1 + y2 + y3 + y4
 
-    compiled = torch.compile(unfused, mode="reduce-overhead", fullgraph=True)
+    # Do not force fullgraph so dynamic shapes remain supported; enable manually for stable workloads.
+    compiled = torch.compile(unfused, mode="reduce-overhead")
     compiled(x)  # warm-up
 
     print("\n=== Kernel fusion with torch.compile ===")

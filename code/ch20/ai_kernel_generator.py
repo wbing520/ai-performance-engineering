@@ -1,4 +1,4 @@
-"""Chapter 20: AI-assisted CUDA kernel iteration (PyTorch 2.9 / CUDA 12.9)."""
+"""Chapter 20: AI-assisted CUDA kernel iteration (PyTorch 2.9 / CUDA 13.0)."""
 
 from __future__ import annotations
 

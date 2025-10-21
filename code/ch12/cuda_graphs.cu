@@ -1,4 +1,4 @@
-// cuda_graphs.cu -- CUDA 12.9 graph capture/update demonstrations for Blackwell.
+// cuda_graphs.cu -- CUDA 13.0 graph capture/update demonstrations for Blackwell.
 
 #include <cuda_runtime.h>
 #include <cstdio>

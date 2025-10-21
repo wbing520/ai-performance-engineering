@@ -1,4 +1,4 @@
-// basic_streams.cu -- CUDA 12.9 stream overlap demo with error handling.
+// basic_streams.cu -- CUDA 13.0 stream overlap demo with error handling.
 
 #include <cuda_runtime.h>
 #include <cstdio>

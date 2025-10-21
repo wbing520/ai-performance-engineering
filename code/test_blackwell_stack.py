@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Blackwell validation suite covering PyTorch 2.9, CUDA 12.9, and Triton 3.4 features.
+Blackwell validation suite covering PyTorch 2.9, CUDA 13.0, and Triton 3.4 features.
 """
 
 import torch
@@ -40,7 +40,24 @@ def test_pytorch_29_features():
     try:
         model = torch.nn.Linear(1000, 1000).cuda()
         compiled_model = torch.compile(model, mode="max-autotune")
-        print("✓ torch.compile with max-autotune works")
+
+        inputs = torch.randn(32, 1000, device="cuda")
+
+        iters_warmup, iters_meas = 5, 20
+        for _ in range(iters_warmup):
+            _ = compiled_model(inputs)
+
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        torch.cuda.synchronize()
+        start.record()
+        for _ in range(iters_meas):
+            _ = compiled_model(inputs)
+        end.record()
+        end.synchronize()
+        avg_ms = start.elapsed_time(end) / iters_meas
+        print(f"✓ torch.compile (max-autotune) avg {avg_ms:.3f} ms/iter")
+        print("  Hint: use mode='reduce-overhead' only for shape-stable graphs that benefit from CUDA Graphs; keep defaults for dynamic workloads.")
     except Exception as e:
         print(f"❌ torch.compile failed: {e}")
     
@@ -66,9 +83,9 @@ def test_pytorch_29_features():
     except Exception as e:
         print(f"❌ Triton config access failed: {e}")
 
-def test_cuda_129_features():
-    """Test CUDA 12.9 features."""
-    print("\n=== CUDA 12.9 Features Test ===")
+def test_cuda_130_features():
+    """Test CUDA 13.0 features."""
+    print("\n=== CUDA 13.0 Features Test ===")
     
     # Test stream-ordered memory allocation
     try:
@@ -195,7 +212,7 @@ def main():
     
     test_architecture_detection()
     test_pytorch_29_features()
-    test_cuda_129_features()
+    test_cuda_130_features()
     test_profiling_tools()
     test_triton_34()
     test_performance()

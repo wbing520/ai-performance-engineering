@@ -52,7 +52,7 @@ def train_epoch(model: torch.nn.Module,
                 criterion: torch.nn.Module,
                 stream: torch.cuda.Stream | None = None) -> None:
     model.train()
-    stream = stream or torch.cuda.Stream() if device.type == "cuda" else None
+    stream = stream or torch.cuda.Stream(device=device) if device.type == "cuda" else None
 
     for inputs, targets in loader:
         if stream is not None:
