@@ -71,6 +71,16 @@ else
     exit 1
 fi
 
+# Ensure open kernel modules are enabled for Blackwell GPUs
+MODPROBE_CONF="/etc/modprobe.d/nvidia-open.conf"
+if [[ ! -f "$MODPROBE_CONF" ]] || ! grep -q "NVreg_OpenRmEnableUnsupportedGpus=1" "$MODPROBE_CONF"; then
+    echo "Configuring NVIDIA open kernel modules for Blackwell GPUs..."
+    cat <<'EOF' > "$MODPROBE_CONF"
+options nvidia NVreg_OpenRmEnableUnsupportedGpus=1
+EOF
+    update-initramfs -u
+fi
+
 # Update system packages
 echo ""
 echo "📦 Updating system packages..."
