@@ -19,6 +19,7 @@ echo "  • System tools (numactl, perf, etc.)"
 echo ""
 
 PROJECT_ROOT="$(dirname "$(realpath "$0")")"
+REQUIRED_DRIVER_VERSION="575.57"
 echo "📁 Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
@@ -52,6 +53,19 @@ echo "🔍 Checking for NVIDIA GPU..."
 if command -v nvidia-smi &> /dev/null; then
     nvidia-smi
     echo "✅ NVIDIA GPU detected"
+
+    DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits | head -n 1 | tr -d ' ')
+    if [[ -n "$DRIVER_VERSION" ]]; then
+        python3 - "$DRIVER_VERSION" "$REQUIRED_DRIVER_VERSION" <<'PY'
+import sys
+from packaging import version
+current = version.parse(sys.argv[1])
+required = version.parse(sys.argv[2])
+if current < required:
+    print(f"⚠️  NVIDIA driver {current} is older than required {required} for CUDA 13.0/PyTorch 2.9. "
+          "Upgrade to nvidia-driver-580 (or newer) and reboot, then rerun this setup.")
+PY
+    fi
 else
     echo "❌ NVIDIA GPU not detected. Please ensure NVIDIA drivers are installed."
     exit 1
@@ -68,7 +82,13 @@ echo "🐍 Installing Python and pip..."
 apt install -y python3 python3-pip python3-venv python3-dev
 
 # Upgrade pip
-python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip setuptools packaging
+
+# Remove distro flatbuffers package whose invalid version breaks pip metadata
+if dpkg -s python3-flatbuffers >/dev/null 2>&1; then
+    echo "Removing distro python3-flatbuffers package (invalid version metadata)..."
+    apt remove -y python3-flatbuffers
+fi
 
 # Install CUDA 12.9 toolchain
 echo ""
@@ -208,7 +228,7 @@ if [ -f "$REQUIREMENTS_FILE" ]; then
         echo "Installing core packages individually..."
         python3 -m pip install --no-input --upgrade --ignore-installed \
             blinker==1.9.0 \
-            nvidia-ml-py3==7.352.0 psutil==7.1.0 GPUtil==1.4.0 py-cpuinfo==9.0.0 \
+            pynvml==13.0.1 psutil==7.1.0 GPUtil==1.4.0 py-cpuinfo==9.0.0 \
             numpy==2.1.2 pandas==2.3.2 scikit-learn==1.7.2 pillow==11.3.0 \
             matplotlib==3.10.6 seaborn==0.13.2 tensorboard==2.20.0 wandb==0.22.0 plotly==6.3.0 bokeh==3.8.0 dash==3.2.0 \
             jupyter==1.1.1 ipykernel==6.30.1 black==25.9.0 flake8==7.3.0 mypy==1.18.2 \
@@ -222,7 +242,7 @@ else
     echo "⚠️  Requirements file not found at $REQUIREMENTS_FILE. Installing core packages directly..."
     python3 -m pip install --no-input --upgrade --ignore-installed \
         blinker==1.9.0 \
-        nvidia-ml-py3==7.352.0 psutil==7.1.0 GPUtil==1.4.0 py-cpuinfo==9.0.0 \
+        pynvml==13.0.1 psutil==7.1.0 GPUtil==1.4.0 py-cpuinfo==9.0.0 \
         numpy==2.1.2 pandas==2.3.2 scikit-learn==1.7.2 pillow==11.3.0 \
         matplotlib==3.10.6 seaborn==0.13.2 tensorboard==2.20.0 wandb==0.22.0 plotly==6.3.0 bokeh==3.8.0 dash==3.2.0 \
         jupyter==1.1.1 ipykernel==6.30.1 black==25.9.0 flake8==7.3.0 mypy==1.18.2 \
@@ -252,18 +272,59 @@ echo "🧪 Verifying installation..."
 
 # Check PyTorch
 echo "Checking PyTorch installation..."
-python3 -c "
-import torch
-print(f'✅ PyTorch version: {torch.__version__}')
-print(f'✅ CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'✅ CUDA version: {torch.version.cuda}')
-    print(f'✅ GPU count: {torch.cuda.device_count()}')
-    print(f'✅ GPU name: {torch.cuda.get_device_name(0)}')
+python3 - "$REQUIRED_DRIVER_VERSION" <<'PY'
+import os
+import sys
+import textwrap
+from packaging import version
+
+required_driver = version.parse(sys.argv[1])
+
+try:
+    import torch
+except Exception as exc:  # pragma: no cover
+    print(f"❌ PyTorch import failed: {exc}")
+    sys.exit(1)
+
+print(f"✅ PyTorch version: {torch.__version__}")
+
+cuda_available = torch.cuda.is_available()
+print(f"✅ CUDA available: {cuda_available}")
+
+if cuda_available:
+    print(f"✅ CUDA version: {torch.version.cuda}")
+    print(f"✅ GPU count: {torch.cuda.device_count()}")
+    try:
+        print(f"✅ GPU name: {torch.cuda.get_device_name(0)}")
+    except Exception:  # pragma: no cover
+        pass
 else:
-    print('❌ CUDA not available')
-    exit(1)
-"
+    driver_version = None
+    try:
+        from torch._C import _cuda_getDriverVersion  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover
+        _cuda_getDriverVersion = None
+
+    if _cuda_getDriverVersion is not None:
+        try:
+            driver_version = _cuda_getDriverVersion()
+        except Exception:
+            driver_version = None
+
+    if driver_version:
+        current = version.parse(str(driver_version))
+        if current < required_driver:
+            print(
+                textwrap.dedent(
+                    f"""
+                    ⚠ NVIDIA driver {current} is older than required {required_driver}.
+                    → Install a newer driver (e.g., nvidia-driver-580) and reboot, then rerun setup.sh.
+                    """
+                ).strip()
+            )
+    else:
+        print("❌ CUDA runtime not available. Ensure the NVIDIA driver meets CUDA 13.0 requirements and reboot if this is a fresh install.")
+PY
 
 # Check CUDA tools
 echo ""

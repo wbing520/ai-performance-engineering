@@ -13,8 +13,11 @@ torchaudio==2.9.0+cu130
 # TorchInductor (PyTorch bundles its own runtime already).
 triton==3.5.0
 
+# Build tooling compatibility
+packaging>=24.0
+
 # Monitoring and system insight
-nvidia-ml-py3==7.352.0
+pynvml==13.0.1
 psutil==7.1.0
 GPUtil==1.4.0
 py-cpuinfo==9.0.0
