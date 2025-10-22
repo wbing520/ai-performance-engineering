@@ -47,7 +47,7 @@ def main():
         
         mb = args.data_size * 4 / 1e6
         print(f"Single-process: All-reduce of {mb:.1f} MB took {elapsed*1000:.2f} ms", flush=True)
-        print("✓ Single-process benchmark completed", flush=True)
+        print(" Single-process benchmark completed", flush=True)
         return
     
     rank = dist.get_rank()
@@ -80,7 +80,7 @@ def main():
         expected_value = world_size  # sum of 1's across all ranks
         actual_value = tensor[0].item()
         assert abs(actual_value - expected_value) < 1e-6, f"Expected {expected_value}, got {actual_value}"
-        print("✓ All-reduce correctness verified", flush=True)
+        print(" All-reduce correctness verified", flush=True)
     
     dist.destroy_process_group()
 

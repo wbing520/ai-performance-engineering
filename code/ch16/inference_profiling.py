@@ -623,9 +623,9 @@ def benchmark_inference_optimizations():
     alerts = stats['monitoring']['alerts']
     if alerts:
         for alert in alerts:
-            print(f"⚠️  {alert}")
+            print(f"  {alert}")
     else:
-        print("✅ No alerts - system running normally")
+        print(" No alerts - system running normally")
     
     print("\n=== Benchmark Complete ===")
 
@@ -640,4 +640,4 @@ if torch.cuda.is_available():
     if compute_capability == "10.0":  # Blackwell B200/B300
         print(f"Enabled Blackwell B200/B300 optimizations (compute capability {compute_capability})")
     else:
-        print(f"⚠ Unsupported compute capability {compute_capability}; running in fallback mode")
+        print(f" Unsupported compute capability {compute_capability}; running in fallback mode")

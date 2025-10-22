@@ -9,7 +9,7 @@ NVCC = nvcc
 NVCC_FLAGS = -O3 -std=c++17 -gencode arch=compute_100,code=[sm_100,compute_100] --expt-relaxed-constexpr -DCUDA_VERSION=$(CUDA_VERSION) -Xcompiler -fPIC
 
 # Build all CUDA sources in this chapter
-SOURCES = atomic_work_queue.cu cuda_graphs.cu dynamic_parallelism.cu
+SOURCES = atomic_work_queue.cu cuda_graphs.cu dynamic_parallelism.cu cuda_graphs_conditional.cu
 TARGETS = $(SOURCES:.cu=)
 
 # Default target

@@ -29,7 +29,7 @@ RUN pip install --upgrade pip && \
     pip install --index-url https://download.pytorch.org/whl/cu130 \
         'torch==2.9.*+cu130' 'torchvision==0.24.*+cu130' 'torchaudio==2.9.*+cu130' && \
     pip install triton==3.5.0 && \
-    pip install pynvml==13.0.1 psutil==6.1.0 GPUtil==1.4.0
+    pip install nvidia-ml-py==12.560.30 psutil==6.1.0 GPUtil==1.4.0
 
 
 # Runtime stage for smaller final image

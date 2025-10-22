@@ -107,6 +107,13 @@ def enable_async_tp(tp_mesh, compile_mode: str) -> JobConfig:
     job_cfg.compile.enable = True
     job_cfg.compile.components = ["model"]
     job_cfg.compile.backend = "inductor"
+    
+    # PyTorch 2.9: Enhanced compilation options
+    job_cfg.compile.mode = compile_mode
+    if hasattr(job_cfg.compile, "inductor_config"):
+        # Enable CUDA graph trees (PyTorch 2.9)
+        job_cfg.compile.inductor_config.triton_cudagraphs = True
+        job_cfg.compile.inductor_config.triton_cudagraph_trees = True
 
     maybe_enable_async_tp(job_cfg, tp_mesh)
     return job_cfg

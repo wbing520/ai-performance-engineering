@@ -7,15 +7,15 @@ print("CUDA available:", torch.cuda.is_available())
 # Try to import flex_attention
 try:
     from torch.nn.attention import flex_attention
-    print("✓ FlexAttention imported successfully!")
+    print(" FlexAttention imported successfully!")
     print("Type:", type(flex_attention))
     print("Available methods:", [x for x in dir(flex_attention) if not x.startswith('_')])
 except ImportError as e:
-    print("✗ ImportError:", e)
+    print(" ImportError:", e)
 except AttributeError as e:
-    print("✗ AttributeError:", e)
+    print(" AttributeError:", e)
 except Exception as e:
-    print("✗ Unexpected error:", e)
+    print(" Unexpected error:", e)
 
 # Check what's available in torch.nn.attention
 print("\nAvailable in torch.nn.attention:")

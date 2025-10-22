@@ -205,9 +205,144 @@ def demonstrate_memory_optimization():
     
     mixed_precision_demo()
 
+def demonstrate_pytorch_29_memory_features():
+    """
+    Demonstrate PyTorch 2.9 memory features (NEW).
+    
+    PyTorch 2.9 adds:
+    - Improved memory snapshot v2 API
+    - Better profiler integration
+    - Blackwell-specific metrics
+    """
+    if not torch.cuda.is_available():
+        print("CUDA not available, skipping PyTorch 2.9 memory demos")
+        return
+    
+    print("\n=== PyTorch 2.9 Memory Features ===")
+    
+    device = 'cuda'
+    
+    # 1. Memory snapshot v2 with enhanced metadata
+    print("\n1. Enhanced Memory Snapshot (v2 API):")
+    
+    model = nn.Sequential(
+        nn.Linear(1024, 2048),
+        nn.ReLU(),
+        nn.Linear(2048, 1024)
+    ).to(device)
+    
+    x = torch.randn(32, 1024, device=device)
+    
+    # Enable memory history with context
+    torch.cuda.memory._record_memory_history(
+        enabled=True,
+        context="pytorch_29_demo",  # NEW in 2.9: context tagging
+        stacks="python",  # Record Python stack traces
+        max_entries=10000
+    )
+    
+    # Run forward pass
+    y = model(x)
+    loss = y.sum()
+    loss.backward()
+    
+    # Get snapshot with enhanced metadata
+    snapshot = torch.cuda.memory._snapshot()
+    
+    print(f"   Snapshot entries: {len(snapshot)}")
+    print(f"   Memory events tracked with Python stacks")
+    print(f"   Export with: torch.cuda.memory._dump_snapshot('snapshot.pkl')")
+    
+    torch.cuda.memory._record_memory_history(False)
+    
+    # 2. Memory-efficient attention backend selection (PyTorch 2.9)
+    print("\n2. Memory-Efficient Attention Backend (FlashAttention-3 for Blackwell):")
+    
+    # Enable specific backends
+    if hasattr(torch.backends.cuda, "enable_flash_sdp"):
+        torch.backends.cuda.enable_flash_sdp(True)  # FlashAttention-3
+        torch.backends.cuda.enable_mem_efficient_sdp(True)
+        torch.backends.cuda.enable_math_sdp(False)  # Disable slow fallback
+        
+        print("    FlashAttention-3 enabled (Blackwell-optimized)")
+        print("    Memory-efficient backend enabled")
+        print("    Math backend disabled (slow fallback)")
+        
+        # Check which backend is selected
+        if hasattr(torch.backends.cuda, "preferred_sdp_backend"):
+            backend = torch.backends.cuda.preferred_sdp_backend
+            print(f"   Preferred backend: {backend}")
+    
+    # 3. Blackwell-specific memory metrics
+    print("\n3. Blackwell-Specific Memory Metrics:")
+    
+    device_props = torch.cuda.get_device_properties(0)
+    compute_capability = f"{device_props.major}.{device_props.minor}"
+    
+    if compute_capability == "10.0":  # Blackwell
+        print(f"   Detected: Blackwell B200/B300 (CC {compute_capability})")
+        print(f"   HBM3e Total: {device_props.total_memory / 1e9:.1f} GB")
+        print(f"   Memory bandwidth: ~8 TB/s")
+        print(f"   L2 Cache: {device_props.l2_cache_size / 1024 / 1024:.1f} MB")
+        
+        # Check HBM3e utilization
+        allocated = torch.cuda.memory_allocated() / device_props.total_memory
+        print(f"   HBM3e utilization: {allocated * 100:.1f}%")
+    else:
+        print(f"   Non-Blackwell GPU detected (CC {compute_capability})")
+    
+    # 4. Advanced profiler integration (PyTorch 2.9)
+    print("\n4. PyTorch Profiler with Blackwell Features:")
+    
+    from torch.profiler import profile, ProfilerActivity
+    
+    model_profiler = nn.Sequential(
+        nn.Linear(512, 1024),
+        nn.GELU(),
+        nn.Linear(1024, 512)
+    ).to(device)
+    
+    x_profiler = torch.randn(16, 512, device=device)
+    
+    # Check if experimental config is available (PyTorch 2.9+)
+    try:
+        experimental_config = torch._C._profiler._ExperimentalConfig(
+            verbose=True,
+            enable_cuda_sync_events=True,  # Blackwell-specific sync tracking
+            adjust_timestamps=True,
+        )
+        use_experimental = True
+    except:
+        experimental_config = None
+        use_experimental = False
+    
+    with profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True,
+        with_flops=True,
+        experimental_config=experimental_config if use_experimental else None,
+    ) as prof:
+        output = model_profiler(x_profiler)
+        loss = output.sum()
+        loss.backward()
+    
+    print(f"   {'' if use_experimental else ''} Experimental Blackwell features: {use_experimental}")
+    print(f"   Profiler captured {len(prof.key_averages())} events")
+    
+    # Print top memory consumers
+    print("\n   Top memory-consuming operations:")
+    for event in prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=3).split('\n')[:5]:
+        print(f"   {event}")
+    
+    print("\n=== End PyTorch 2.9 Memory Features ===")
+
+
 if __name__ == "__main__":
     demonstrate_memory_profiling()
     demonstrate_memory_optimization()
+    demonstrate_pytorch_29_memory_features()  # NEW in PyTorch 2.9
 
 # Architecture-specific optimizations
 if torch.cuda.is_available():

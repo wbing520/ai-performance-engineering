@@ -80,7 +80,7 @@ __global__ void gemm_pipeline_kernel(const float* __restrict__ A,
   load_tile(pipe, block, B_tiles[0], B, N, 0, col_tile, K, N);
 
   for (int tile = 0; tile < num_tiles; ++tile) {
-    cuda::pipeline_consumer_wait_prior<1>(pipe);
+    pipe.consumer_wait();
     block.sync();
 
     int curr = tile % STAGES;

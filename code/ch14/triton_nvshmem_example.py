@@ -136,14 +136,14 @@ def pytorch_symmetric_memory_approach():
             tensors[0],
             group=None  # Use default group
         )
-        print("✓ Symmetric memory allocated successfully")
+        print(" Symmetric memory allocated successfully")
         
         # You can now write custom CUDA/Triton kernels that access
         # the symmetric buffer from any GPU
-        print("✓ Buffers are directly addressable from any GPU in the group")
+        print(" Buffers are directly addressable from any GPU in the group")
         
     except (AttributeError, RuntimeError) as e:
-        print(f"✗ Symmetric memory not available: {e}")
+        print(f" Symmetric memory not available: {e}")
         print("  This feature requires PyTorch 2.9+ with proper NVSHMEM support")
 
 
@@ -194,7 +194,7 @@ def triton_nvshmem_example():
     # Run the conceptual example
     results = triton_multi_gpu_operation(tensors)
     
-    print(f"✓ Launched kernels on {n_gpus} GPUs")
+    print(f" Launched kernels on {n_gpus} GPUs")
     print(f"  Input size: {tensors[0].numel()} elements per GPU")
     print(f"  Results computed: {[r.item() for r in results]}")
     

@@ -115,8 +115,10 @@ class TokenPrecisionController:
 # ----------------------------
 # Optional global toggles (B200 best practices)
 # ----------------------------
-# BF16 is the default mixed-precision for Blackwell; TF32 allowed for matmul when relevant.
-torch.backends.cuda.matmul.allow_tf32 = True
+# NEW PyTorch 2.9 API (no warnings!)
+torch.set_float32_matmul_precision('high')
+torch.backends.cudnn.conv.fp32_precision = 'tf32'
+torch.backends.cuda.matmul.fp32_precision = 'high'
 # If you compile models elsewhere, keep it outside this loop; don't pay compile cost per-step.
 
 # ----------------------------

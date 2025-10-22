@@ -95,7 +95,7 @@ __global__ void gemm_tiled_pipeline(
 
     int curr = 0, next = 1;
     for (int tile = 0; tile < numTiles; ++tile) {
-        cuda::pipeline_consumer_wait_prior<1>(pipe);
+        pipe.consumer_wait();
         accum += computeTile(A_buf[curr], B_buf[curr], tx, ty);
         pipe.consumer_release();
 

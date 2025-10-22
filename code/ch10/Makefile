@@ -14,8 +14,8 @@ TARGETS = $(SOURCES:.cu=)
 
 # Blackwell-only examples are built only when ARCH=sm_100
 ifeq ($(ARCH),sm_100)
-SOURCES += tma_2d_pipeline_blackwell.cu cluster_group_blackwell.cu
-TARGETS += tma_2d_pipeline_blackwell cluster_group_blackwell
+SOURCES += tma_2d_pipeline_blackwell.cu cluster_group_blackwell.cu tcgen05_blackwell.cu
+TARGETS += tma_2d_pipeline_blackwell cluster_group_blackwell tcgen05_blackwell
 endif
 
 # Default target
@@ -38,6 +38,9 @@ tma_2d_pipeline_blackwell: tma_2d_pipeline_blackwell.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 cluster_group_blackwell: cluster_group_blackwell.cu
+	$(NVCC) $(NVCC_FLAGS) -o $@ $<
+
+tcgen05_blackwell: tcgen05_blackwell.cu
 	$(NVCC) $(NVCC_FLAGS) -o $@ $<
 
 # Architecture-specific targets

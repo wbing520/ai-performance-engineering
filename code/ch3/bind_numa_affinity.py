@@ -17,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Dataset
 
 try:
-    import pynvml as nvml  # pip install pynvml
+    import pynvml as nvml  # pip install nvidia-ml-py (imports as pynvml)
     _HAS_NVML = True
 except Exception:  # pragma: no cover - NVML optional for unit tests
     _HAS_NVML = False

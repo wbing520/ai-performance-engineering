@@ -17,7 +17,7 @@ triton==3.5.0
 packaging>=24.0
 
 # Monitoring and system insight
-pynvml==13.0.1
+nvidia-ml-py==12.560.30
 psutil==7.1.0
 GPUtil==1.4.0
 py-cpuinfo==9.0.0
