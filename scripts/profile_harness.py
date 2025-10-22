@@ -32,6 +32,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
 DEFAULT_TIMEOUT = 900  # seconds
 
+CUDA_BIN_DIRS = [
+    "/usr/local/cuda-13.0/bin",
+    "/usr/local/cuda-13/bin",
+    "/usr/local/cuda-12.9/bin",
+    "/usr/local/cuda/bin",
+]
+
+CUDA_LIB_DIRS = [
+    "/usr/local/cuda-13.0/lib64",
+    "/usr/local/cuda-13/lib64",
+    "/usr/local/cuda-12.9/lib64",
+    "/usr/local/cuda/lib64",
+]
 
 def log_progress(*parts: str) -> None:
     """Emit a timestamped, flushed progress line for streaming logs."""
@@ -416,6 +429,9 @@ def resolve_profilers(requested: List[str]) -> List[str]:
 
 
 def session_directory(root: Path) -> Path:
+    root = root.expanduser()
+    if not root.is_absolute():
+        root = (REPO_ROOT / root).resolve()
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     directory = root / timestamp
     directory.mkdir(parents=True, exist_ok=True)
@@ -462,6 +478,23 @@ def base_env(example: Example) -> Dict[str, str]:
     env = os.environ.copy()
     env.update(example.env)
 
+    # Ensure CUDA/Nsight binaries and shared libraries are on PATH/LD_LIBRARY_PATH
+    def _prepend_unique(var: str, candidates: Iterable[str]) -> None:
+        current = env.get(var, "")
+        parts = [p for p in current.split(os.pathsep) if p]
+        for candidate in candidates:
+            if os.path.isdir(candidate) and candidate not in parts:
+                parts.insert(0, candidate)
+        if parts:
+            env[var] = os.pathsep.join(parts)
+
+    _prepend_unique("PATH", CUDA_BIN_DIRS)
+    _prepend_unique("LD_LIBRARY_PATH", CUDA_LIB_DIRS)
+
+    tmp_dir = Path(env.get("TMPDIR", REPO_ROOT / "profiles" / "tmp"))
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    env["TMPDIR"] = str(tmp_dir)
+
     chapter_tags = {
         "ch01",
         "ch02",
@@ -480,6 +513,21 @@ def base_env(example: Example) -> Dict[str, str]:
     return env
 
 
+def _find_command(cmd: str) -> Optional[str]:
+    """Return absolute path to a command, searching CUDA directories when needed."""
+    import shutil
+
+    path = shutil.which(cmd)
+    if path:
+        return path
+
+    for directory in CUDA_BIN_DIRS:
+        candidate = Path(directory) / cmd
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
+
+
 def _terminate_lingering_nsys() -> None:
     """Best-effort cleanup for stray Nsight Systems agents before NCU runs."""
     try:
@@ -489,8 +537,6 @@ def _terminate_lingering_nsys() -> None:
 
 
 def check_preconditions(example: Example, profiler: str) -> Optional[str]:
-    import shutil
-
     missing = missing_modules(example.requires_modules)
     if missing:
         return f"missing modules: {', '.join(missing)}"
@@ -501,7 +547,7 @@ def check_preconditions(example: Example, profiler: str) -> Optional[str]:
     elif profiler == "ncu":
         command_requirements.append("ncu")
 
-    unavailable = [cmd for cmd in command_requirements if shutil.which(cmd) is None]
+    unavailable = [cmd for cmd in command_requirements if _find_command(cmd) is None]
     if unavailable:
         return f"missing commands: {', '.join(sorted(set(unavailable)))}"
 
@@ -988,6 +1034,7 @@ def main() -> None:
     summarize(all_results, session_dir)
     failures = [r for r in all_results if not r.skipped and r.exit_code != 0]
     failure_list = REPO_ROOT / "profile_runs" / "harness" / "latest_failures.txt"
+    failure_list.parent.mkdir(parents=True, exist_ok=True)
     if failures:
             failure_list.write_text(
                 "\n".join(

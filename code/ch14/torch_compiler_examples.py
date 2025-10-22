@@ -43,7 +43,23 @@ def benchmark_compile(mode: str = "default", amp: bool = True, use_fused: bool =
     data = torch.randn(32, 256, device=device)
     target = torch.randint(0, 10, (32,), device=device)
 
-    compile_kwargs = dict(mode=mode, dynamic=True)
+    # PyTorch 2.9: Enhanced compilation options
+    compile_kwargs = dict(
+        mode=mode,
+        fullgraph=False,  # Allow graph breaks for flexibility
+        dynamic=None,     # Auto-detect dynamic shapes (better in PyTorch 2.9)
+        backend="inductor",
+    )
+    
+    # Add PyTorch 2.9 specific options
+    if mode == "max-autotune":
+        compile_kwargs["options"] = {
+            "triton.cudagraphs": True,
+            "triton.cudagraph_trees": True,  # NEW in PyTorch 2.9
+            "max_autotune": True,
+            "max_autotune_gemm_backends": "TRITON,CUTLASS,ATen",  # NEW
+        }
+    
     compiled = torch.compile(model, **compile_kwargs)
 
     scaler = torch.cuda.amp.GradScaler(enabled=amp and device.type == "cuda")
@@ -91,7 +107,7 @@ def benchmark_compile(mode: str = "default", amp: bool = True, use_fused: bool =
 def compile_with_strict_graph() -> None:
     """
     PyTorch 2.9 feature: explicit graph break control.
-    Use torch._dynamo.error_on_graph_break() to enforce full-graph compilation.
+    Use torch._dynamo.error_on_graph_break(True) to enforce full-graph compilation.
     """
     import torch._dynamo
     
@@ -106,7 +122,7 @@ def compile_with_strict_graph() -> None:
     # Example 1: Error on graph break (strict mode for debugging)
     print("\nExample 1: Strict mode - error on any graph break")
     try:
-        with torch._dynamo.error_on_graph_break():
+        with torch._dynamo.error_on_graph_break(True):
             compiled = torch.compile(model, mode="reduce-overhead")
             # This will raise an error if any graph breaks occur
             _ = compiled(data)
@@ -117,7 +133,7 @@ def compile_with_strict_graph() -> None:
     
     # Example 2: Allow graph breaks (permissive mode)
     print("\nExample 2: Permissive mode - explicitly allow graph breaks")
-    with torch._dynamo.allow_graph_break():
+    with torch._dynamo.error_on_graph_break(False):
         compiled = torch.compile(model, mode="default")
         _ = compiled(data)
         print("✓ Graph breaks allowed - compilation may split into subgraphs")
@@ -130,8 +146,8 @@ def compile_with_strict_graph() -> None:
     
     print("\n" + "=" * 80)
     print("Key Takeaways:")
-    print("- Use error_on_graph_break() during development to catch issues")
-    print("- Use allow_graph_break() when you expect/accept partial compilation")
+    print("- Use error_on_graph_break(True) during development to catch issues")
+    print("- Use error_on_graph_break(False) when you expect/accept partial compilation")
     print("- Default mode is usually best for production (automatic handling)")
     print("- Graph breaks reduce optimization potential but allow more Python code")
     print("=" * 80)

@@ -76,9 +76,23 @@ MODPROBE_CONF="/etc/modprobe.d/nvidia-open.conf"
 if [[ ! -f "$MODPROBE_CONF" ]] || ! grep -q "NVreg_OpenRmEnableUnsupportedGpus=1" "$MODPROBE_CONF"; then
     echo "Configuring NVIDIA open kernel modules for Blackwell GPUs..."
     cat <<'EOF' > "$MODPROBE_CONF"
-options nvidia NVreg_OpenRmEnableUnsupportedGpus=1
+options nvidia NVreg_OpenRmEnableUnsupportedGpus=1 NVreg_RestrictProfilingToAdminUsers=0
 EOF
     update-initramfs -u
+    if lsmod | grep -q "^nvidia"; then
+        echo "Reloading NVIDIA kernel modules to enable profiling counters..."
+        systemctl stop nvidia-persistenced >/dev/null 2>&1 || true
+        for module in nvidia_uvm nvidia_peermem nvidia_modeset nvidia_drm nvidia; do
+            if lsmod | grep -q "^${module}"; then
+                modprobe -r "${module}" >/dev/null 2>&1 || true
+            fi
+        done
+        modprobe nvidia NVreg_OpenRmEnableUnsupportedGpus=1 NVreg_RestrictProfilingToAdminUsers=0 >/dev/null 2>&1 || true
+        for module in nvidia_modeset nvidia_uvm nvidia_peermem; do
+            modprobe "${module}" >/dev/null 2>&1 || true
+        done
+        systemctl start nvidia-persistenced >/dev/null 2>&1 || true
+    fi
 fi
 
 # Update system packages
@@ -148,50 +162,30 @@ TEMP_DIR="/tmp/nsight_install"
 mkdir -p "$TEMP_DIR"
 cd "$TEMP_DIR"
 
-# Install Nsight Systems (latest available via apt)
-echo "Installing Nsight Systems (latest available)..."
-NSYS_PKG=$(apt-cache search --names-only '^nsight-systems-[0-9]' | awk '{print $1}' | sort -V | tail -1)
-if [[ -n "$NSYS_PKG" ]]; then
-    if apt install -y "$NSYS_PKG"; then
-        echo "✅ Nsight Systems installed: $NSYS_PKG"
-    else
-        echo "⚠️  Could not install $NSYS_PKG, trying generic package..."
-        if apt install -y nsight-systems; then
-            echo "✅ Nsight Systems (generic) installed"
-        else
-            echo "❌ Could not install Nsight Systems"
-        fi
-    fi
+# Install Nsight Systems and set binary alternative
+echo "Installing Nsight Systems (pinned 2025.3.2)..."
+NSYS_VERSION="2025.3.2"
+apt install -y "nsight-systems-${NSYS_VERSION}"
+NSYS_BIN="/opt/nvidia/nsight-systems/${NSYS_VERSION}/bin/nsys"
+if [[ -x "$NSYS_BIN" ]]; then
+    update-alternatives --install /usr/local/bin/nsys nsys "$NSYS_BIN" 50
+    update-alternatives --set nsys "$NSYS_BIN"
+    echo "✅ Nsight Systems pinned to ${NSYS_VERSION} (${NSYS_BIN})"
 else
-    echo "⚠️  Could not determine latest Nsight Systems package. Installing generic package..."
-    if apt install -y nsight-systems; then
-        echo "✅ Nsight Systems (generic) installed"
-    else
-        echo "❌ Could not install Nsight Systems"
-    fi
+    echo "❌ Nsight Systems binary not found at ${NSYS_BIN}"
 fi
 
-# Install Nsight Compute (latest available via apt)
-echo "Installing Nsight Compute (latest available)..."
-NCU_PKG=$(apt-cache search --names-only '^nsight-compute-[0-9]' | awk '{print $1}' | sort -V | tail -1)
-if [[ -n "$NCU_PKG" ]]; then
-    if apt install -y "$NCU_PKG"; then
-        echo "✅ Nsight Compute installed: $NCU_PKG"
-    else
-        echo "⚠️  Could not install $NCU_PKG, trying generic package..."
-        if apt install -y nsight-compute; then
-            echo "✅ Nsight Compute (generic) installed"
-        else
-            echo "❌ Could not install Nsight Compute"
-        fi
-    fi
+# Install Nsight Compute and set binary alternative
+echo "Installing Nsight Compute (pinned 2025.3.1)..."
+NCU_VERSION="2025.3.1"
+apt install -y "nsight-compute-${NCU_VERSION}"
+NCU_BIN="/opt/nvidia/nsight-compute/${NCU_VERSION}/bin/ncu"
+if [[ -x "$NCU_BIN" ]]; then
+    update-alternatives --install /usr/local/bin/ncu ncu "$NCU_BIN" 50
+    update-alternatives --set ncu "$NCU_BIN"
+    echo "✅ Nsight Compute pinned to ${NCU_VERSION} (${NCU_BIN})"
 else
-    echo "⚠️  Could not determine latest Nsight Compute package. Installing generic package..."
-    if apt install -y nsight-compute; then
-        echo "✅ Nsight Compute (generic) installed"
-    else
-        echo "❌ Could not install Nsight Compute"
-    fi
+    echo "❌ Nsight Compute binary not found at ${NCU_BIN}"
 fi
 
 # Nsight tools are already in PATH when installed via apt

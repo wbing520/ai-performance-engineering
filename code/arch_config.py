@@ -90,13 +90,55 @@ class ArchitectureConfig:
     def configure_pytorch_optimizations(self) -> None:
         if not torch.cuda.is_available():
             return
+        
+        # PyTorch Inductor configuration
         inductor = getattr(torch, "_inductor", None)
-        triton_cfg = getattr(getattr(inductor, "config", None), "triton", None) if inductor else None
-        if triton_cfg and hasattr(triton_cfg, "unique_kernel_names"):
-            triton_cfg.unique_kernel_names = True
+        if inductor and hasattr(inductor, "config"):
+            cfg = inductor.config
+            # Enable PyTorch 2.9 features
+            if hasattr(cfg, "triton"):
+                triton_cfg = cfg.triton
+                if hasattr(triton_cfg, "unique_kernel_names"):
+                    triton_cfg.unique_kernel_names = True
+                # NEW in PyTorch 2.9: CUDA graph trees for better performance
+                if hasattr(triton_cfg, "cudagraph_trees"):
+                    triton_cfg.cudagraph_trees = True
+                if hasattr(triton_cfg, "cudagraphs"):
+                    triton_cfg.cudagraphs = True
+            
+            # Enable max-autotune GEMM backends (PyTorch 2.9)
+            if hasattr(cfg, "max_autotune_gemm_backends"):
+                cfg.max_autotune_gemm_backends = "TRITON,CUTLASS,ATen"
+        
+        # Triton 3.5 configuration for Blackwell
+        if self.arch == "blackwell":
+            try:
+                import triton
+                # Configure Triton 3.5 for Blackwell (SM 10.0)
+                if hasattr(triton.runtime, "driver"):
+                    triton.runtime.driver.set_active_device_capability(10, 0)
+            except (ImportError, AttributeError):
+                pass
+            
+            # Blackwell-specific environment variables
+            os.environ.setdefault("TRITON_CUDNN_ALGOS", "1")
+            os.environ.setdefault("TRITON_TMA_ENABLE", "1")
+            os.environ.setdefault("TRITON_ALWAYS_COMPILE", "0")  # Use kernel cache
+        
+        # PyTorch 2.9: Enable FlashAttention-3 for Blackwell
+        if hasattr(torch.backends.cuda, "enable_flash_sdp"):
+            torch.backends.cuda.enable_flash_sdp(True)
+            torch.backends.cuda.enable_mem_efficient_sdp(True)
+            torch.backends.cuda.enable_math_sdp(False)  # Disable slow fallback
+        
+        # Standard CUDA configurations
         os.environ.setdefault("TORCH_CUDNN_V8_API_ENABLED", "1")
         os.environ.setdefault("TORCH_CUDNN_V8_API_DISABLED", "0")
         os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "max_split_size_mb:128,expandable_segments:True")
+        
+        # PyTorch 2.9: Enable TF32 for Blackwell (improves FP32 matmul performance)
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
 
     def print_info(self) -> None:
         cfg = self.config

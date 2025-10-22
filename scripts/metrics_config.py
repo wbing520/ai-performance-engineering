@@ -209,7 +209,7 @@ CONFIG_BY_EXAMPLE: Dict[str, ProfilerOverrides] = {
             "sm__sass_thread_inst_executed_op_fp16_pred_on.sum",
             "sm__sass_average_branch_targets_threads_uniform.pct",
         ],
-        pytorch_modes=["torch_compile"],
+        pytorch_modes=["blackwell"],
     ),
     "ch14_triton_examples": _overrides_from_lists(
         ncu_metrics=[
